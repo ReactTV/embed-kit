@@ -3,13 +3,36 @@
   "version": "0.1.0",
   "description": "Normalized API across YouTube, Twitch, TikTok, and other embed sources",
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "default": "./dist/index.js"
+    "./base": {
+      "types": "./dist/_base/index.d.ts",
+      "import": "./dist/_base/index.js",
+      "default": "./dist/_base/index.js"
+    },
+    "./youtube": {
+      "types": "./dist/youtube/index.d.ts",
+      "import": "./dist/youtube/index.js",
+      "default": "./dist/youtube/index.js"
+    },
+    "./twitch": {
+      "types": "./dist/twitch/index.d.ts",
+      "import": "./dist/twitch/index.js",
+      "default": "./dist/twitch/index.js"
+    },
+    "./tiktok": {
+      "types": "./dist/tiktok/index.d.ts",
+      "import": "./dist/tiktok/index.js",
+      "default": "./dist/tiktok/index.js"
+    },
+    "./internet-archive": {
+      "types": "./dist/internet-archive/index.d.ts",
+      "import": "./dist/internet-archive/index.js",
+      "default": "./dist/internet-archive/index.js"
+    },
+    "./dailymotion": {
+      "types": "./dist/dailymotion/index.d.ts",
+      "import": "./dist/dailymotion/index.js",
+      "default": "./dist/dailymotion/index.js"
     }
   },
   "files": [
@@ -19,7 +42,8 @@
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist",
-    "prepublishOnly": "npm run clean && npm run build"
+    "prepublishOnly": "npm run clean && npm run build",
+    "test": "npm run build && npx serve ."
   },
   "devDependencies": {
     "typescript": "^5.7.2"

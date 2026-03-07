@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Twitch embed — embed-kit</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 42rem; margin: 2rem auto; padding: 0 1rem; }
+    h1 { font-size: 1.25rem; }
+    .embed-wrap { margin: 1rem 0; }
+    twitch-embed { display: block; }
+    twitch-embed:not(:defined) { min-height: 200px; background: #eee; display: flex; align-items: center; justify-content: center; color: #666; }
+    twitch-embed:not(:defined)::before { content: "Loading… (use npx serve . if this stays)"; }
+    .server-hint { font-size: 0.875rem; color: #666; margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>Twitch embed</h1>
+  <p class="server-hint">If embeds don’t appear, run <code>npx serve .</code> from the project root (ES modules require a server).</p>
+  <p>By video URL (<code>src</code>):</p>
+  <div class="embed-wrap">
+    <twitch-embed
+      src="https://www.twitch.tv/videos/2156437383"
+      width="560"
+      height="315"
+      title="Twitch video"
+    ></twitch-embed>
+  </div>
+  <p>By clip URL:</p>
+  <div class="embed-wrap">
+    <twitch-embed
+      src="https://clips.twitch.tv/IncredulousCourageousTarsierSSSsss"
+      width="560"
+      height="315"
+      title="Twitch clip"
+    ></twitch-embed>
+  </div>
+  <p><a href="../../test/index.html">← Back to test index</a></p>
+
+  <script type="module">
+    import { registerTwitchEmbed } from "../../dist/twitch/index.js";
+    registerTwitchEmbed();
+  </script>
+</body>
+</html>

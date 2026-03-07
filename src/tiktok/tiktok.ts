@@ -10,8 +10,13 @@ export class TikTokEmbed implements EmbedProvider {
   }
 
   parseSourceUrl(url: string): ParsedEmbed | null {
-    // TODO: parse tiktok.com/@user/video/..., vm.tiktok.com/..., etc.
-    void url;
+    const trimmed = url.trim();
+    const vmMatch = /(?:vm|vt)\.tiktok\.com\/([\w-]+)/.exec(trimmed);
+    if (vmMatch) return { id: vmMatch[1]!, provider: this.name };
+    const videoMatch = /tiktok\.com\/@[\w.-]+\/video\/(\d+)/.exec(trimmed);
+    if (videoMatch) return { id: videoMatch[1]!, provider: this.name };
+    const embedMatch = /tiktok\.com\/embed\/v2\/(\d+)/.exec(trimmed);
+    if (embedMatch) return { id: embedMatch[1]!, provider: this.name };
     return null;
   }
 }

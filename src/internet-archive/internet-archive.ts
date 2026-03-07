@@ -10,8 +10,11 @@ export class InternetArchiveEmbed implements EmbedProvider {
   }
 
   parseSourceUrl(url: string): ParsedEmbed | null {
-    // TODO: parse archive.org/details/..., archive.org/embed/..., etc.
-    void url;
+    const trimmed = url.trim();
+    const detailsMatch = /archive\.org\/details\/([^/?#]+)/.exec(trimmed);
+    if (detailsMatch) return { id: detailsMatch[1]!, provider: this.name };
+    const embedMatch = /archive\.org\/embed\/([^/?#]+)/.exec(trimmed);
+    if (embedMatch) return { id: embedMatch[1]!, provider: this.name };
     return null;
   }
 }

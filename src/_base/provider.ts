@@ -10,6 +10,8 @@ export interface EmbedOptions {
 export interface ParsedEmbed {
   id: string;
   provider: string;
+  /** Optional provider-specific data (e.g. Twitch clip vs video). Passed through to getEmbedUrl. */
+  options?: EmbedOptions;
 }
 
 export interface EmbedProvider {

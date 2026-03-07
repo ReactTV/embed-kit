@@ -10,8 +10,13 @@ export class DailymotionEmbed implements EmbedProvider {
   }
 
   parseSourceUrl(url: string): ParsedEmbed | null {
-    // TODO: parse dailymotion.com/video/..., dai.ly/..., etc.
-    void url;
+    const trimmed = url.trim();
+    const videoMatch = /dailymotion\.com\/video\/([a-zA-Z0-9]+)/.exec(trimmed);
+    if (videoMatch) return { id: videoMatch[1]!, provider: this.name };
+    const shortMatch = /dai\.ly\/([a-zA-Z0-9]+)/.exec(trimmed);
+    if (shortMatch) return { id: shortMatch[1]!, provider: this.name };
+    const embedMatch = /dailymotion\.com\/embed\/video\/([a-zA-Z0-9]+)/.exec(trimmed);
+    if (embedMatch) return { id: embedMatch[1]!, provider: this.name };
     return null;
   }
 }

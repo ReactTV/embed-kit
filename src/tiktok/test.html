@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TikTok embed — embed-kit</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 42rem; margin: 2rem auto; padding: 0 1rem; }
+    h1 { font-size: 1.25rem; }
+    .embed-wrap { margin: 1rem 0; }
+    tiktok-embed { display: block; }
+    tiktok-embed:not(:defined) { min-height: 200px; background: #eee; display: flex; align-items: center; justify-content: center; color: #666; }
+    tiktok-embed:not(:defined)::before { content: "Loading… (use npx serve . if this stays)"; }
+    .server-hint { font-size: 0.875rem; color: #666; margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>TikTok embed</h1>
+  <p class="server-hint">If embeds don’t appear, run <code>npx serve .</code> from the project root (ES modules require a server).</p>
+  <p>By URL (<code>src</code>):</p>
+  <div class="embed-wrap">
+    <tiktok-embed
+      src="https://www.tiktok.com/@tiktok/video/7000000000000000000"
+      width="325"
+      height="575"
+      title="TikTok video"
+    ></tiktok-embed>
+  </div>
+  <p>By video id (<code>video-id</code>):</p>
+  <div class="embed-wrap">
+    <tiktok-embed
+      video-id="7000000000000000000"
+      width="325"
+      height="575"
+      title="TikTok video"
+    ></tiktok-embed>
+  </div>
+  <p><small>Replace with a real TikTok URL or video id to see content.</small></p>
+  <p><a href="../../test/index.html">← Back to test index</a></p>
+
+  <script type="module">
+    import { registerTikTokEmbed } from "../../dist/tiktok/index.js";
+    registerTikTokEmbed();
+  </script>
+</body>
+</html>
