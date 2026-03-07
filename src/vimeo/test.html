@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vimeo embed — embed-kit</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 42rem; margin: 2rem auto; padding: 0 1rem; }
+    h1 { font-size: 1.25rem; }
+    .embed-wrap { margin: 1rem 0; }
+    vimeo-embed { display: block; }
+    vimeo-embed:not(:defined) { min-height: 200px; background: #eee; display: flex; align-items: center; justify-content: center; color: #666; }
+    vimeo-embed:not(:defined)::before { content: "Loading… (use npx serve . if this stays)"; }
+    .server-hint { font-size: 0.875rem; color: #666; margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>Vimeo embed</h1>
+  <p class="server-hint">If embeds don’t appear, run <code>npx serve .</code> from the project root (ES modules require a server).</p>
+  <p>By URL (<code>src</code>):</p>
+  <div class="embed-wrap">
+    <vimeo-embed
+      src="https://vimeo.com/148751763"
+      width="560"
+      height="315"
+      title="Vimeo video"
+    ></vimeo-embed>
+  </div>
+  <p>By video id (<code>video-id</code>):</p>
+  <div class="embed-wrap">
+    <vimeo-embed
+      video-id="148751763"
+      width="560"
+      height="315"
+      title="Vimeo video"
+    ></vimeo-embed>
+  </div>
+  <p><a href="../../test/index.html">← Back to test index</a></p>
+
+  <script type="module">
+    import { registerVimeoEmbed } from "../../dist/vimeo/index.js";
+    registerVimeoEmbed();
+  </script>
+</body>
+</html>

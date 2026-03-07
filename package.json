@@ -33,6 +33,11 @@
       "types": "./dist/dailymotion/index.d.ts",
       "import": "./dist/dailymotion/index.js",
       "default": "./dist/dailymotion/index.js"
+    },
+    "./vimeo": {
+      "types": "./dist/vimeo/index.d.ts",
+      "import": "./dist/vimeo/index.js",
+      "default": "./dist/vimeo/index.js"
     }
   },
   "files": [
@@ -56,6 +61,7 @@
     "youtube",
     "twitch",
     "tiktok",
+    "vimeo",
     "iframe",
     "player"
   ],
