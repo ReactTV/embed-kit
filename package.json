@@ -1,0 +1,39 @@
+{
+  "name": "embed-kit",
+  "version": "0.1.0",
+  "description": "Normalized API across YouTube, Twitch, TikTok, and other embed sources",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "embed",
+    "youtube",
+    "twitch",
+    "tiktok",
+    "iframe",
+    "player"
+  ],
+  "license": "MIT"
+}
