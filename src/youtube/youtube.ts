@@ -1,4 +1,4 @@
-import type { EmbedOptions, EmbedProvider, ParsedEmbed } from "../base.js";
+import type { EmbedOptions, EmbedProvider, ParsedEmbed } from "../_base/index.js";
 
 export class YouTubeEmbed implements EmbedProvider {
   readonly name = "youtube";
