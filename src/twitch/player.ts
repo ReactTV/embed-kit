@@ -27,7 +27,9 @@ export function createPlayer(
   const width = options.width ?? 560;
   const height = options.height ?? 315;
   const autoplay = Boolean((options as { autoplay?: boolean }).autoplay);
+  const onReady = (options as { onReady?: () => void }).onReady;
   const onEnded = (options as { onEnded?: () => void }).onEnded;
+  const onProgress = (options as { onProgress?: (data: { currentTime: number; duration?: number }) => void }).onProgress;
   const isClip = (options as { twitchType?: string }).twitchType === "clip";
   const parent =
     typeof window !== "undefined" && window.location?.hostname
@@ -106,6 +108,7 @@ export function createPlayer(
 
     if (data.namespace === NS_EMBED && data.eventName === "ready") {
       readyResolve();
+      onReady?.();
     } else if (data.namespace === NS_PLAYER_PROXY && data.eventName === "UPDATE_STATE" && data.params && typeof data.params === "object" && !Array.isArray(data.params)) {
       const p = data.params as { playback?: string; currentTime?: number; duration?: number };
       if (p.playback !== undefined) {
@@ -117,6 +120,12 @@ export function createPlayer(
       }
       if (typeof p.duration === "number") {
         duration = p.duration;
+      }
+      if (onProgress && (typeof p.currentTime === "number" || typeof p.duration === "number")) {
+        onProgress({
+          currentTime: typeof p.currentTime === "number" ? p.currentTime : currentTime,
+          duration: typeof p.duration === "number" ? p.duration : duration,
+        });
       }
     }
   };

@@ -34,7 +34,9 @@ export function createPlayer(
   const width = options.width ?? 325;
   const height = options.height ?? 575;
   const autoplay = Boolean((options as { autoplay?: boolean }).autoplay);
+  const onReady = (options as { onReady?: () => void }).onReady;
   const onEnded = (options as { onEnded?: () => void }).onEnded;
+  const onProgress = (options as { onProgress?: (data: { currentTime: number; duration?: number }) => void }).onProgress;
 
   // Vertical video: width is the narrow dimension, height the tall one (e.g. 325×575).
   const iframe = createEmbedIframeElement({
@@ -56,6 +58,10 @@ export function createPlayer(
   const readyPromise = new Promise<void>((resolve) => {
     resolveReady = resolve;
   });
+  let resolvePlayer: (p: EmbedPlayer) => void;
+  const playerPromise = new Promise<EmbedPlayer>((resolve) => {
+    resolvePlayer = resolve;
+  });
 
   const handleMessage = (event: MessageEvent): void => {
     if (event.origin !== EMBED_ORIGIN || event.source !== iframe.contentWindow) return;
@@ -65,6 +71,8 @@ export function createPlayer(
     switch (data.type) {
       case "onPlayerReady":
         resolveReady();
+        onReady?.();
+        resolvePlayer(player);
         break;
       case "onStateChange":
         if (typeof data.value === "number") {
@@ -77,6 +85,7 @@ export function createPlayer(
         if (t) {
           if (typeof t.currentTime === "number") lastCurrentTime = t.currentTime;
           if (typeof t.duration === "number") lastDuration = t.duration;
+          onProgress?.({ currentTime: lastCurrentTime, duration: lastDuration });
         }
         break;
     }
@@ -127,5 +136,5 @@ export function createPlayer(
     },
   };
 
-  return Promise.resolve(player);
+  return playerPromise;
 }

@@ -62,7 +62,9 @@ export function createPlayer(
   const width = options.width ?? 560;
   const height = options.height ?? 315;
   const autoplay = Boolean((options as { autoplay?: boolean }).autoplay);
+  const onReadyCallback = (options as { onReady?: () => void }).onReady;
   const onEnded = (options as { onEnded?: () => void }).onEnded;
+  const onProgress = (options as { onProgress?: (data: { currentTime: number; duration?: number }) => void }).onProgress;
 
   return loadYTScript().then(
     () =>
@@ -80,6 +82,25 @@ export function createPlayer(
             events: {
               onReady(ev: { target: YTPlayer }) {
                 const player = ev.target;
+                onReadyCallback?.();
+                let progressInterval: ReturnType<typeof setInterval> | undefined;
+                if (onProgress) {
+                  progressInterval = setInterval(() => {
+                    try {
+                      const currentTime = player.getCurrentTime();
+                      const duration = player.getDuration();
+                      if (typeof currentTime === "number" && !Number.isNaN(currentTime)) {
+                        const dur = typeof duration === "number" && !Number.isNaN(duration) && duration > 0 ? duration : undefined;
+                        onProgress({
+                          currentTime,
+                          ...(dur !== undefined ? { duration: dur } : {}),
+                        });
+                      }
+                    } catch {
+                      // Player may be destroyed
+                    }
+                  }, 500);
+                }
                 resolve({
                   get ready() {
                     return Promise.resolve();
@@ -107,6 +128,7 @@ export function createPlayer(
                     return Promise.resolve(player.isMuted());
                   },
                   destroy() {
+                    if (progressInterval) clearInterval(progressInterval);
                     if (div.parentNode) container.removeChild(div);
                   },
                 });

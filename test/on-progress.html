@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>onEnded API tests — embed-kit</title>
+  <title>onProgress API tests — embed-kit</title>
   <style>
     body { font-family: system-ui, sans-serif; max-width: 42rem; margin: 2rem auto; padding: 0 1rem; }
     h1 { font-size: 1.25rem; }
@@ -17,8 +17,8 @@
   </style>
 </head>
 <body>
-  <h1>Normalized onEnded callback tests</h1>
-  <p>Tests that each provider calls the normalized <code>onEnded</code> callback when playback reaches the end. The test uses <code>duration</code> to seek to 2 seconds before the end, then plays and asserts <code>onEnded</code> is invoked.</p>
+  <h1>Normalized onProgress callback tests</h1>
+  <p>Tests that each provider calls the normalized <code>onProgress</code> callback during playback with <code>{ currentTime, duration? }</code>. The test mounts the embed with <code>onProgress</code>, starts playback, waits a few seconds, and asserts that at least one progress event was received with a valid <code>currentTime</code>.</p>
 
   <section id="youtube-section">
     <h2>YouTube</h2>
@@ -36,7 +36,7 @@
 
   <section id="twitch-section" style="margin-top: 2rem;">
     <h2>Twitch</h2>
-    <p><small>Twitch may not emit an ended event for all embeds; test may time out.</small></p>
+    <p><small>Twitch may not emit progress until playback has started.</small></p>
     <div id="twitch-container" class="player-container"></div>
     <div id="twitch-results" class="results"></div>
     <button id="twitch-run">Run test</button>
@@ -60,8 +60,7 @@
 
   <script type="module">
     const READY_TIMEOUT_MS = 30000; // YouTube iframe API + player init can be slow
-    const ENDED_TIMEOUT_MS = 15000; // ~2s playback + buffer
-    const SEEK_BEFORE_END = 2; // seconds before end to seek to
+    const PROGRESS_WAIT_MS = 4000; // play and wait for progress events
     const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
     function showTimeoutFailure(resultsId, timeoutMs = READY_TIMEOUT_MS) {
@@ -81,12 +80,13 @@
       el.innerHTML = results.map((r) => `<div class="result ${r.status}">${r.label}: ${r.status.toUpperCase()}</div>`).join("");
     }
 
-    function runOnEndedTest(createPlayerFn, resultsId, label = "onEnded") {
+    function runOnProgressTest(createPlayerFn, resultsId) {
       showResults(resultsId, [
-        { label: "duration, seek to end − 2s, play", status: "pending" },
-        { label: `${label} called`, status: "pending" },
+        { label: "Player ready, play()", status: "pending" },
+        { label: "onProgress called at least once", status: "pending" },
+        { label: "Progress currentTime is number", status: "pending" },
       ]);
-      let endedCalled = false;
+      const progressEvents = [];
       const container = document.getElementById(resultsId.replace("-results", "-container"));
       if (!container) return;
       container.innerHTML = "";
@@ -96,60 +96,56 @@
       container.appendChild(mountDiv);
 
       const t = showTimeoutFailure(resultsId);
-      const playerPromise = createPlayerFn(mountDiv, () => { endedCalled = true; }, () => {
-        clearTimeout(t);
-        playerPromise.then(async (player) => {
-          try {
-            let duration = await player.duration;
-            if (duration <= 0) {
+      const playerPromise = createPlayerFn(
+        mountDiv,
+        (data) => progressEvents.push(data),
+        () => {
+          clearTimeout(t);
+          playerPromise.then(async (player) => {
+            try {
               const playResult = player.play();
               if (playResult && typeof playResult.then === "function") await playResult;
-              await delay(1500);
-              player.pause();
-              await delay(400);
-              duration = await player.duration;
-            }
-            const seekTo = Math.max(0, duration - SEEK_BEFORE_END);
-            const seekResult = player.seek(seekTo);
-            if (seekResult && typeof seekResult.then === "function") await seekResult;
-            await delay(800);
+              await delay(PROGRESS_WAIT_MS);
 
-            const playResult = player.play();
-            if (playResult && typeof playResult.then === "function") await playResult;
+              const lastEvent = progressEvents.length > 0 ? progressEvents[progressEvents.length - 1] : null;
+              const hasEvents = progressEvents.length >= 1;
+              const validCurrentTime =
+                lastEvent != null &&
+                typeof lastEvent.currentTime === "number" &&
+                !Number.isNaN(lastEvent.currentTime);
 
-            const deadline = Date.now() + ENDED_TIMEOUT_MS;
-            while (!endedCalled && Date.now() < deadline) {
-              await delay(300);
+              showResults(resultsId, [
+                { label: "Player ready, play()", status: "pass" },
+                { label: "onProgress called at least once", status: hasEvents ? "pass" : "fail" },
+                { label: "Progress currentTime is number", status: validCurrentTime ? "pass" : "fail" },
+              ]);
+            } catch (err) {
+              showResults(resultsId, [
+                { label: "Player ready, play()", status: "fail" },
+                { label: "onProgress called at least once", status: "fail" },
+                { label: "Progress currentTime is number", status: "fail" },
+              ]);
+              document.getElementById(resultsId)?.appendChild(
+                Object.assign(document.createElement("div"), {
+                  className: "result fail",
+                  textContent: String(err?.message ?? err),
+                })
+              );
             }
-            showResults(resultsId, [
-              { label: "duration, seek to end − 2s, play", status: duration > 0 ? "pass" : "fail" },
-              { label: `${label} called`, status: endedCalled ? "pass" : "fail" },
-            ]);
-          } catch (err) {
-            showResults(resultsId, [
-              { label: "duration, seek to end − 2s, play", status: "fail" },
-              { label: `${label} called`, status: "fail" },
-            ]);
-            document.getElementById(resultsId)?.appendChild(
-              Object.assign(document.createElement("div"), {
-                className: "result fail",
-                textContent: String(err?.message ?? err),
-              })
-            );
-          }
-        });
-      });
+          });
+        }
+      );
     }
 
     document.getElementById("youtube-run").addEventListener("click", async () => {
       const { createPlayer } = await import("../dist/youtube/player.js");
       const { VIDEO_ID } = await import("../dist/youtube/constants.js");
-      runOnEndedTest(
-        (mountDiv, onEnded, onReady) =>
+      runOnProgressTest(
+        (mountDiv, onProgress, onReady) =>
           createPlayer(mountDiv, VIDEO_ID, {
             width: "560",
             height: "315",
-            onEnded,
+            onProgress,
             onReady,
           }),
         "youtube-results"
@@ -159,12 +155,12 @@
     document.getElementById("vimeo-run").addEventListener("click", async () => {
       const { createPlayer } = await import("../dist/vimeo/player.js");
       const { VIDEO_ID } = await import("../dist/vimeo/constants.js");
-      runOnEndedTest(
-        (mountDiv, onEnded, onReady) =>
+      runOnProgressTest(
+        (mountDiv, onProgress, onReady) =>
           createPlayer(mountDiv, VIDEO_ID, {
             width: "560",
             height: "315",
-            onEnded,
+            onProgress,
             onReady,
           }),
         "vimeo-results"
@@ -174,12 +170,12 @@
     document.getElementById("twitch-run").addEventListener("click", async () => {
       const { createPlayer } = await import("../dist/twitch/player.js");
       const { VIDEO_ID } = await import("../dist/twitch/constants.js");
-      runOnEndedTest(
-        (mountDiv, onEnded, onReady) =>
+      runOnProgressTest(
+        (mountDiv, onProgress, onReady) =>
           createPlayer(mountDiv, VIDEO_ID, {
             width: "560",
             height: "315",
-            onEnded,
+            onProgress,
             onReady,
           }),
         "twitch-results"
@@ -189,12 +185,12 @@
     document.getElementById("tiktok-run").addEventListener("click", async () => {
       const { createPlayer } = await import("../dist/tiktok/player.js");
       const { VIDEO_ID } = await import("../dist/tiktok/constants.js");
-      runOnEndedTest(
-        (mountDiv, onEnded, onReady) =>
+      runOnProgressTest(
+        (mountDiv, onProgress, onReady) =>
           createPlayer(mountDiv, VIDEO_ID, {
             width: "325",
             height: "575",
-            onEnded,
+            onProgress,
             onReady,
           }),
         "tiktok-results"
@@ -204,12 +200,12 @@
     document.getElementById("dailymotion-run").addEventListener("click", async () => {
       const { createPlayer } = await import("../dist/dailymotion/player.js");
       const { VIDEO_ID } = await import("../dist/dailymotion/constants.js");
-      runOnEndedTest(
-        (mountDiv, onEnded, onReady) =>
+      runOnProgressTest(
+        (mountDiv, onProgress, onReady) =>
           createPlayer(mountDiv, VIDEO_ID, {
             width: "560",
             height: "315",
-            onEnded,
+            onProgress,
             onReady,
           }),
         "dailymotion-results"

@@ -59,7 +59,9 @@ export function createPlayer(
   const width = options.width ?? 560;
   const height = options.height ?? 315;
   const autoplay = Boolean((options as { autoplay?: boolean }).autoplay);
+  const onReady = (options as { onReady?: () => void }).onReady;
   const onEnded = (options as { onEnded?: () => void }).onEnded;
+  const onProgress = (options as { onProgress?: (data: { currentTime: number; duration?: number }) => void }).onProgress;
   const widthStyle = typeof width === "number" ? `${width}px` : String(width);
   const heightStyle = typeof height === "number" ? `${height}px` : String(height);
 
@@ -83,13 +85,33 @@ export function createPlayer(
       });
     })
     .then((dmPlayer) => {
+      onReady?.();
       let dmMuted = false;
+      let progressInterval: ReturnType<typeof setInterval> | undefined;
       if (onEnded) {
         if (typeof dmPlayer.on === "function") {
           dmPlayer.on("video_end", onEnded);
         } else if (typeof dmPlayer.addEventListener === "function") {
           dmPlayer.addEventListener("video_end", onEnded);
         }
+      }
+      if (onProgress) {
+        progressInterval = setInterval(() => {
+          dmPlayer.getState().then((state) => {
+            const currentTime =
+              typeof state.videoTime === "number" && !Number.isNaN(state.videoTime)
+                ? state.videoTime
+                : 0;
+            const dur =
+              typeof state.videoDuration === "number" && !Number.isNaN(state.videoDuration)
+                ? state.videoDuration
+                : undefined;
+            onProgress({
+              currentTime,
+              ...(dur !== undefined ? { duration: dur } : {}),
+            });
+          }).catch(() => {});
+        }, 500);
       }
       return {
       get ready() {
@@ -145,6 +167,7 @@ export function createPlayer(
         return Promise.resolve(dmMuted);
       },
       destroy() {
+        if (progressInterval) clearInterval(progressInterval);
         dmPlayer.destroy();
         wrapper.remove();
       },

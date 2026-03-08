@@ -237,6 +237,8 @@ export function createControllableEmbedElement(
         ...options,
       }).then((player) => {
         this.#player = player;
+        const onReady = (this as unknown as { onReady?: () => void }).onReady;
+        if (typeof onReady === "function") onReady();
         return player;
       });
     }

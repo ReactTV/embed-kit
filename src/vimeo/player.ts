@@ -53,7 +53,9 @@ export function createPlayer(
   const width = options.width ?? 560;
   const height = options.height ?? 315;
   const autoplay = Boolean((options as { autoplay?: boolean }).autoplay);
+  const onReady = (options as { onReady?: () => void }).onReady;
   const onEnded = (options as { onEnded?: () => void }).onEnded;
+  const onProgress = (options as { onProgress?: (data: { currentTime: number; duration?: number }) => void }).onProgress;
 
   const vimeoHash = (options as { vimeoHash?: string }).vimeoHash;
   const query = new URLSearchParams({ api: "1" });
@@ -76,6 +78,14 @@ export function createPlayer(
       vimeoPlayer.on("ended", onEnded);
       let endedFired = false;
       vimeoPlayer.on("timeupdate", (data?: VimeoTimeupdateData) => {
+        if (onProgress && data != null) {
+          const sec = data.seconds ?? 0;
+          const dur = data.duration;
+          onProgress({
+            currentTime: typeof sec === "number" ? sec : 0,
+            ...(typeof dur === "number" ? { duration: dur } : {}),
+          });
+        }
         if (endedFired) return;
         const p = data?.percent;
         const sec = data?.seconds;
@@ -88,11 +98,23 @@ export function createPlayer(
           onEnded();
         }
       });
+    } else if (onProgress && typeof vimeoPlayer.on === "function") {
+      vimeoPlayer.on("timeupdate", (data?: VimeoTimeupdateData) => {
+        if (data != null) {
+          const sec = data.seconds ?? 0;
+          const dur = data.duration;
+          onProgress({
+            currentTime: typeof sec === "number" ? sec : 0,
+            ...(typeof dur === "number" ? { duration: dur } : {}),
+          });
+        }
+      });
     }
     const readyPromise =
       typeof vimeoPlayer.ready === "function"
         ? vimeoPlayer.ready()
         : vimeoPlayer.getPaused().then(() => undefined);
+    readyPromise.then(() => onReady?.());
     return {
       get ready() {
         return readyPromise;

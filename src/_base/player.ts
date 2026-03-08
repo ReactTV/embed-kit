@@ -41,12 +41,24 @@ export interface EmbedPlayer {
   destroy?(): void | Promise<void>;
 }
 
+/** Normalized progress payload: current playback time and optional duration (seconds). */
+export interface ProgressData {
+  /** Current playback position in seconds. */
+  currentTime: number;
+  /** Total duration in seconds when known. Unsupported providers may omit. */
+  duration?: number;
+}
+
 export interface CreatePlayerOptions {
   width?: string | number;
   height?: string | number;
   /** When true, the embed will start playing automatically when loaded (if supported). */
   autoplay?: boolean;
+  /** Called when the player is ready for playback control (same moment the ready promise resolves). */
+  onReady?: () => void;
   /** Called when playback reaches the end of the media. */
   onEnded?: () => void;
+  /** Called during playback with current time (and duration when available). Unsupported providers may not call. */
+  onProgress?: (data: ProgressData) => void;
   [key: string]: unknown;
 }

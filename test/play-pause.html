@@ -59,14 +59,18 @@
   <p style="margin-top: 2rem;"><a href="index.html">← Back to test index</a></p>
 
   <script type="module">
-    const READY_TIMEOUT_MS = 15000;
+    const READY_TIMEOUT_MS = 30000; // YouTube iframe API + player init can be slow
     const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
-    async function waitReady(readyPromise, label = "ready") {
-      const timeout = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error(`${label} timed out after ${READY_TIMEOUT_MS}ms`)), READY_TIMEOUT_MS)
-      );
-      await Promise.race([readyPromise, timeout]);
+    function showTimeoutFailure(resultsId, label = "ready") {
+      return setTimeout(() => {
+        document.getElementById(resultsId)?.appendChild(
+          Object.assign(document.createElement("div"), {
+            className: "result fail",
+            textContent: `${label} timed out after ${READY_TIMEOUT_MS}ms`,
+          })
+        );
+      }, READY_TIMEOUT_MS);
     }
 
     function showResults(containerId, results) {
@@ -156,7 +160,7 @@
       }
     }
 
-    async function mountAndTest(containerId, resultsId, register, provider, tagName, sourceUrl, options = {}) {
+    function mountAndTest(containerId, resultsId, register, provider, tagName, sourceUrl, options = {}) {
       const container = document.getElementById(containerId);
       container.innerHTML = "";
       register();
@@ -166,28 +170,31 @@
       el.setAttribute("width", "560");
       el.setAttribute("height", "315");
       el.setAttribute("title", "Test");
+      const t = showTimeoutFailure(resultsId, "Embed ready");
+      el.onReady = () => {
+        clearTimeout(t);
+        runPlayPauseTests(provider, resultsId, options);
+      };
       container.appendChild(el);
-
-      await waitReady(el.ready, "Embed ready");
-      await runPlayPauseTests(provider, resultsId, options);
     }
 
     document.getElementById("youtube-run").addEventListener("click", async () => {
       const { registerYouTubeEmbed, youtubeEmbedProvider } = await import("../dist/youtube/index.js");
       const { SOURCE_URL } = await import("../dist/youtube/constants.js");
-      await mountAndTest("youtube-container", "youtube-results", registerYouTubeEmbed, youtubeEmbedProvider, "youtube-embed", SOURCE_URL);
+      mountAndTest("youtube-container", "youtube-results", registerYouTubeEmbed, youtubeEmbedProvider, "youtube-embed", SOURCE_URL);
     });
 
     document.getElementById("vimeo-run").addEventListener("click", async () => {
       const { registerVimeoEmbed, vimeoEmbedProvider } = await import("../dist/vimeo/index.js");
       const { SOURCE_URL } = await import("../dist/vimeo/constants.js");
-      await mountAndTest("vimeo-container", "vimeo-results", registerVimeoEmbed, vimeoEmbedProvider, "vimeo-embed", SOURCE_URL);
+      mountAndTest("vimeo-container", "vimeo-results", registerVimeoEmbed, vimeoEmbedProvider, "vimeo-embed", SOURCE_URL);
     });
 
     document.getElementById("twitch-run").addEventListener("click", async () => {
       const { registerTwitchEmbed, twitchEmbedProvider } = await import("../dist/twitch/index.js");
       const { VIDEO_SOURCE_URL } = await import("../dist/twitch/constants.js");
       const container = document.getElementById("twitch-container");
+      const resultsId = "twitch-results";
       container.innerHTML = "";
       registerTwitchEmbed();
       const el = document.createElement("twitch-embed");
@@ -195,21 +202,24 @@
       el.setAttribute("width", "560");
       el.setAttribute("height", "315");
       el.setAttribute("title", "Test");
+      const t = showTimeoutFailure(resultsId, "Twitch embed ready");
+      el.onReady = async () => {
+        clearTimeout(t);
+        const embedEl = container.querySelector("twitch-embed");
+        if (embedEl && typeof embedEl.play === "function") {
+          await embedEl.play();
+          if (typeof embedEl.pause === "function") await embedEl.pause();
+          await delay(400);
+        }
+        await runPlayPauseTests(twitchEmbedProvider, resultsId, { delayAfterPlay: 800, delayAfterPause: 800 });
+      };
       container.appendChild(el);
-      await waitReady(el.ready, "Twitch embed ready");
-      const embedEl = container.querySelector("twitch-embed");
-      if (embedEl && typeof embedEl.play === "function") {
-        await embedEl.play();
-        if (typeof embedEl.pause === "function") await embedEl.pause();
-        await delay(400);
-      }
-      await runPlayPauseTests(twitchEmbedProvider, "twitch-results", { delayAfterPlay: 800, delayAfterPause: 800 });
     });
 
     document.getElementById("tiktok-run").addEventListener("click", async () => {
       const { registerTikTokEmbed, tiktokEmbedProvider } = await import("../dist/tiktok/index.js");
       const { SOURCE_URL } = await import("../dist/tiktok/constants.js");
-      await mountAndTest("tiktok-container", "tiktok-results", registerTikTokEmbed, tiktokEmbedProvider, "tiktok-embed", SOURCE_URL, {
+      mountAndTest("tiktok-container", "tiktok-results", registerTikTokEmbed, tiktokEmbedProvider, "tiktok-embed", SOURCE_URL, {
         delayAfterPlay: 1500,
         delayAfterPause: 1000,
       });
@@ -226,9 +236,15 @@
       mountDiv.style.width = "560px";
       mountDiv.style.height = "315px";
       container.appendChild(mountDiv);
-      await dailymotionEmbedProvider.createPlayer(mountDiv, VIDEO_ID, { width: "560", height: "315" });
-      await waitReady(dailymotionEmbedProvider.ready, "Dailymotion ready");
-      await runPlayPauseTests(dailymotionEmbedProvider, resultsId);
+      const t = showTimeoutFailure(resultsId, "Dailymotion ready");
+      await dailymotionEmbedProvider.createPlayer(mountDiv, VIDEO_ID, {
+        width: "560",
+        height: "315",
+        onReady: () => {
+          clearTimeout(t);
+          runPlayPauseTests(dailymotionEmbedProvider, resultsId);
+        },
+      });
     });
   </script>
 </body>
