@@ -181,6 +181,17 @@ export function createControllableEmbedElement(
       this.style.width = /^\d+$/.test(w) ? `${w}px` : w;
       this.style.height = /^\d+$/.test(h) ? `${h}px` : h;
 
+      // Only mount and create the player when the element is in the document.
+      // Otherwise (e.g. attributes set before appendChild), the iframe is never
+      // in the DOM and providers like Vimeo never fire ready().
+      if (!this.isConnected) {
+        if (this.#container?.parentNode) this.#container.remove();
+        this.#container = null;
+        this.#playerPromise = null;
+        this.#player = null;
+        return;
+      }
+
       if (this.#container?.parentNode) {
         this.#container.remove();
       }
