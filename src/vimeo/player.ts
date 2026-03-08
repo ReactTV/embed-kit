@@ -23,6 +23,8 @@ interface VimeoPlayer {
   getCurrentTime: () => Promise<number>;
   getDuration: () => Promise<number>;
   setCurrentTime: (seconds: number) => Promise<number>;
+  getMuted: () => Promise<boolean>;
+  setMuted: (muted: boolean) => Promise<void>;
   on: (event: string, callback: (data?: VimeoTimeupdateData) => void) => void;
   destroy: () => void;
 }
@@ -113,6 +115,15 @@ export function createPlayer(
       },
       get autoplay() {
         return Promise.resolve(autoplay);
+      },
+      mute() {
+        return vimeoPlayer.setMuted(true);
+      },
+      unmute() {
+        return vimeoPlayer.setMuted(false);
+      },
+      get muted() {
+        return vimeoPlayer.getMuted();
       },
       destroy() {
         vimeoPlayer.destroy();

@@ -26,6 +26,8 @@ interface DailymotionPlayer {
   getDuration?: () => Promise<number>; // seconds; optional in SDK
   getPosition?: () => Promise<number>; // seconds; optional in SDK
   seek?: (seconds: number) => void | Promise<void>;
+  /** Web SDK: set mute mode (true = muted, false = unmuted). */
+  setMute?: (muted: boolean) => void;
   /** Preferred: SDK uses .on(eventName, callback) for events (e.g. "video_end"). */
   on?: (event: string, callback: () => void) => void;
   addEventListener?: (event: string, callback: () => void) => void;
@@ -81,6 +83,7 @@ export function createPlayer(
       });
     })
     .then((dmPlayer) => {
+      let dmMuted = false;
       if (onEnded) {
         if (typeof dmPlayer.on === "function") {
           dmPlayer.on("video_end", onEnded);
@@ -125,6 +128,21 @@ export function createPlayer(
       },
       get autoplay() {
         return Promise.resolve(autoplay);
+      },
+      mute() {
+        if (typeof dmPlayer.setMute === "function") {
+          dmPlayer.setMute(true);
+          dmMuted = true;
+        }
+      },
+      unmute() {
+        if (typeof dmPlayer.setMute === "function") {
+          dmPlayer.setMute(false);
+          dmMuted = false;
+        }
+      },
+      get muted() {
+        return Promise.resolve(dmMuted);
       },
       destroy() {
         dmPlayer.destroy();

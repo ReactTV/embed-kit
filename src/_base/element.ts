@@ -77,7 +77,7 @@ export function createEmbedElement(
 
 /**
  * Creates a custom element class for a provider that implements createPlayer.
- * The element calls provider.createPlayer() and exposes play(), pause(), paused, currentTime, seek(), autoplay.
+ * The element calls provider.createPlayer() and exposes play(), pause(), paused, currentTime, seek(), autoplay, mute(), unmute(), muted.
  * The player container is mounted in the light DOM (on the host) so SDKs that use document.getElementById
  * (e.g. Dailymotion) can find the mount element.
  */
@@ -137,6 +137,20 @@ export function createControllableEmbedElement(
 
     get autoplay(): Promise<boolean> {
       return this.#getPlayer().then((player) => (player ? player.autoplay : Promise.resolve(false)));
+    }
+
+    async mute(): Promise<void> {
+      const player = await this.#getPlayer();
+      if (player) player.mute();
+    }
+
+    async unmute(): Promise<void> {
+      const player = await this.#getPlayer();
+      if (player) player.unmute();
+    }
+
+    get muted(): Promise<boolean> {
+      return this.#getPlayer().then((player) => (player ? player.muted : Promise.resolve(false)));
     }
 
     /** Resolves when the embed player is ready for playback control. */

@@ -51,6 +51,18 @@ export class VimeoEmbed implements EmbedProvider {
     return this.#player?.autoplay ?? Promise.resolve(false);
   }
 
+  mute(): void | Promise<void> {
+    return this.#player?.mute();
+  }
+
+  unmute(): void | Promise<void> {
+    return this.#player?.unmute();
+  }
+
+  get muted(): Promise<boolean> {
+    return this.#player?.muted ?? Promise.resolve(false);
+  }
+
   parseSourceUrl(url: string): ParsedEmbed | null {
     const trimmed = url.trim();
     const playerMatch = /player\.vimeo\.com\/video\/(\d+)/.exec(trimmed);

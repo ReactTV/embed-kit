@@ -17,8 +17,8 @@
   </style>
 </head>
 <body>
-  <h1>Normalized play / pause API tests</h1>
-  <p>Tests each provider’s play/pause API: mount the embed, assert <code>currentTime === 0</code> before play, then <code>provider.play()</code>, <code>await provider.paused</code>, <code>provider.pause()</code>, <code>provider.seek(seconds)</code>, and assert <code>currentTime</code> ≈ seek target.</p>
+  <h1>Normalized play / pause and mute API tests</h1>
+  <p>Tests each provider’s play/pause API: mount the embed, assert <code>currentTime === 0</code> before play, then <code>provider.play()</code>, <code>await provider.paused</code>, <code>provider.pause()</code>, <code>provider.seek(seconds)</code>, and assert <code>currentTime</code> ≈ seek target. Also tests <code>provider.mute()</code>, <code>provider.muted</code>, and <code>provider.unmute()</code> where supported.</p>
 
   <section id="youtube-section">
     <h2>YouTube</h2>
@@ -76,13 +76,15 @@
     }
 
     async function runPlayPauseTests(provider, resultsId, options = {}) {
-      const { skipGetPaused = false, skipSeek = false, delayAfterPlay = 2000, delayAfterPause = 600 } = options;
+      const { skipGetPaused = false, skipSeek = false, skipMute = false, delayAfterPlay = 2000, delayAfterPause = 600 } = options;
       const seekLabel = skipSeek ? "Seek (not supported)" : `seek(${5}) then currentTime ≈ 5`;
+      const muteLabel = skipMute ? "Mute/Unmute (not supported)" : "Mute then unmute (muted true/false)";
       showResults(resultsId, [
         { label: "currentTime === 0 before play", status: "pending" },
         { label: "Play", status: "pending" },
         { label: "Pause", status: "pending" },
         { label: seekLabel, status: "pending" },
+        { label: muteLabel, status: "pending" },
       ]);
       try {
         const timeBeforePlay = await provider.currentTime;
@@ -119,11 +121,30 @@
           }
         }
 
+        let muteOk = skipMute;
+        if (!skipMute && typeof provider.mute === "function" && typeof provider.unmute === "function" && provider.muted != null) {
+          try {
+            const mutedBefore = await provider.muted;
+            const muteResult = provider.mute();
+            if (muteResult && typeof muteResult.then === "function") await muteResult;
+            await delay(400);
+            const mutedAfterMute = await provider.muted;
+            const unmuteResult = provider.unmute();
+            if (unmuteResult && typeof unmuteResult.then === "function") await unmuteResult;
+            await delay(400);
+            const mutedAfterUnmute = await provider.muted;
+            muteOk = mutedAfterMute === true && mutedAfterUnmute === false;
+          } catch (_e) {
+            muteOk = false;
+          }
+        }
+
         showResults(resultsId, [
           { label: "currentTime === 0 before play", status: timeBeforePlayOk ? "pass" : "fail" },
           { label: skipGetPaused ? "Play (no throw)" : "Play (getPaused() false after play)", status: playOk ? "pass" : "fail" },
           { label: skipGetPaused ? "Pause (no throw)" : "Pause (getPaused() true after pause)", status: pauseOk ? "pass" : "fail" },
           { label: seekLabel, status: seekOk ? "pass" : "fail" },
+          { label: muteLabel, status: muteOk ? "pass" : "fail" },
         ]);
       } catch (err) {
         showResults(resultsId, [

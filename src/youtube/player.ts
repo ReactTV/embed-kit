@@ -30,6 +30,9 @@ interface YTPlayer {
   getCurrentTime: () => number; // seconds
   getDuration: () => number; // seconds (0 until metadata loaded)
   seekTo: (seconds: number, allowSeekAhead: boolean) => void;
+  mute: () => void;
+  unMute: () => void;
+  isMuted: () => boolean;
 }
 
 function loadYTScript(): Promise<void> {
@@ -97,6 +100,11 @@ export function createPlayer(
                   },
                   get autoplay() {
                     return Promise.resolve(autoplay);
+                  },
+                  mute: () => player.mute(),
+                  unmute: () => player.unMute(),
+                  get muted() {
+                    return Promise.resolve(player.isMuted());
                   },
                   destroy() {
                     if (div.parentNode) container.removeChild(div);

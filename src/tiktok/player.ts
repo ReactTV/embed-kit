@@ -84,6 +84,7 @@ export function createPlayer(
 
   window.addEventListener("message", handleMessage);
 
+  let lastMuted = false;
   const player: EmbedPlayer = {
     get ready() {
       return readyPromise;
@@ -108,6 +109,17 @@ export function createPlayer(
     },
     get autoplay(): Promise<boolean> {
       return Promise.resolve(autoplay);
+    },
+    mute() {
+      lastMuted = true;
+      post(iframe, "mute", true);
+    },
+    unmute() {
+      lastMuted = false;
+      post(iframe, "mute", false);
+    },
+    get muted(): Promise<boolean> {
+      return Promise.resolve(lastMuted);
     },
     destroy() {
       window.removeEventListener("message", handleMessage);

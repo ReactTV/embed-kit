@@ -49,6 +49,18 @@ export class TikTokEmbed implements EmbedProvider {
     return this.#player?.autoplay ?? Promise.resolve(false);
   }
 
+  mute(): void {
+    this.#player?.mute();
+  }
+
+  unmute(): void {
+    this.#player?.unmute();
+  }
+
+  get muted(): Promise<boolean> {
+    return this.#player?.muted ?? Promise.resolve(false);
+  }
+
   parseSourceUrl(url: string): ParsedEmbed | null {
     const trimmed = url.trim();
     const playerMatch = /tiktok\.com\/player\/v1\/(\d+)/.exec(trimmed);

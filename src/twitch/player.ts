@@ -6,11 +6,12 @@ const NS_PLAYER_PROXY = "twitch-embed-player-proxy";
 const CMD_PLAY = 3;
 const CMD_PAUSE = 2;
 const CMD_SEEK = 4;
+const CMD_SET_MUTED = 10;
 
 interface TwitchMessage {
   namespace?: string;
-  eventName?: string;
-  params?: { playback?: string; currentTime?: number; duration?: number };
+  eventName?: string | number;
+  params?: { playback?: string; currentTime?: number; duration?: number } | boolean;
 }
 
 /**
@@ -65,6 +66,11 @@ export function createPlayer(
       get autoplay() {
         return Promise.resolve(autoplay);
       },
+      mute() {},
+      unmute() {},
+      get muted() {
+        return Promise.resolve(false);
+      },
       destroy() {
         if (iframe.parentNode) iframe.remove();
       },
@@ -87,6 +93,7 @@ export function createPlayer(
   let isPaused = true;
   let currentTime = 0;
   let duration = 0;
+  let isMuted = false;
   let readyResolve: () => void;
   const readyPromise = new Promise<void>((r) => {
     readyResolve = r;
@@ -99,8 +106,8 @@ export function createPlayer(
 
     if (data.namespace === NS_EMBED && data.eventName === "ready") {
       readyResolve();
-    } else if (data.namespace === NS_PLAYER_PROXY && data.eventName === "UPDATE_STATE" && data.params) {
-      const p = data.params;
+    } else if (data.namespace === NS_PLAYER_PROXY && data.eventName === "UPDATE_STATE" && data.params && typeof data.params === "object" && !Array.isArray(data.params)) {
+      const p = data.params as { playback?: string; currentTime?: number; duration?: number };
       if (p.playback !== undefined) {
         isPaused = p.playback !== "Playing";
         if (p.playback === "Ended") onEnded?.();
@@ -116,7 +123,7 @@ export function createPlayer(
 
   window.addEventListener("message", onMessage);
 
-  const send = (eventName: number, params?: number): void => {
+  const send = (eventName: number, params?: number | boolean): void => {
     if (!iframe.contentWindow) return;
     iframe.contentWindow.postMessage(
       { eventName, params, namespace: NS_PLAYER_PROXY },
@@ -148,6 +155,17 @@ export function createPlayer(
     },
     get autoplay() {
       return Promise.resolve(autoplay);
+    },
+    mute() {
+      isMuted = true;
+      send(CMD_SET_MUTED, true);
+    },
+    unmute() {
+      isMuted = false;
+      send(CMD_SET_MUTED, false);
+    },
+    get muted() {
+      return Promise.resolve(isMuted);
     },
     destroy() {
       window.removeEventListener("message", onMessage);

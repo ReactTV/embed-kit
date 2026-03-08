@@ -1,5 +1,5 @@
 /**
- * Normalized embed player API (play, pause, paused, currentTime, seek, autoplay).
+ * Normalized embed player API (play, pause, paused, currentTime, seek, autoplay, mute, unmute, muted).
  * Each provider that supports playback control implements this interface.
  */
 
@@ -27,6 +27,15 @@ export interface EmbedPlayer {
 
   /** Resolves to true if autoplay was requested when creating the player. */
   readonly autoplay: Promise<boolean>;
+
+  /** Mute audio. Unsupported providers may no-op. */
+  mute(): void | Promise<void>;
+
+  /** Unmute audio. Unsupported providers may no-op. */
+  unmute(): void | Promise<void>;
+
+  /** Resolves to true if audio is muted, false otherwise. Unsupported providers may return false. */
+  readonly muted: Promise<boolean>;
 
   /** Optional: clean up player and listeners. */
   destroy?(): void | Promise<void>;

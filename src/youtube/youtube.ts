@@ -49,6 +49,18 @@ export class YouTubeEmbed implements EmbedProvider {
     return this.#player?.autoplay ?? Promise.resolve(false);
   }
 
+  mute(): void {
+    this.#player?.mute();
+  }
+
+  unmute(): void {
+    this.#player?.unmute();
+  }
+
+  get muted(): Promise<boolean> {
+    return this.#player?.muted ?? Promise.resolve(false);
+  }
+
   parseSourceUrl(url: string): ParsedEmbed | null {
     const trimmed = url.trim();
     const watchMatch = /(?:youtube\.com\/watch\?.*\bv=)([a-zA-Z0-9_-]{11})/.exec(trimmed);

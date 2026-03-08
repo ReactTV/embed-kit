@@ -55,6 +55,15 @@ export interface EmbedProvider {
 
   /** Resolves when the active player is ready for playback control (optional). */
   readonly ready?: Promise<void>;
+
+  /** Mute audio (optional; delegates to the active player). */
+  mute?(): void | Promise<void>;
+
+  /** Unmute audio (optional; delegates to the active player). */
+  unmute?(): void | Promise<void>;
+
+  /** Resolves to true if muted, false otherwise (optional; delegates to the active player). */
+  readonly muted?: Promise<boolean>;
 }
 
 /** Provider that supports the normalized play/pause API. */
@@ -72,4 +81,7 @@ export type ControllableEmbedProvider = EmbedProvider & {
   seek(seconds: number): void | Promise<void>;
   readonly autoplay: Promise<boolean>;
   readonly ready: Promise<void>;
+  mute(): void | Promise<void>;
+  unmute(): void | Promise<void>;
+  readonly muted: Promise<boolean>;
 };
