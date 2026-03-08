@@ -42,6 +42,13 @@
     <button id="twitch-run">Run tests</button>
   </section>
 
+  <section id="tiktok-section" style="margin-top: 2rem;">
+    <h2>TikTok</h2>
+    <div id="tiktok-container" class="player-container"></div>
+    <div id="tiktok-results" class="results"></div>
+    <button id="tiktok-run">Run tests</button>
+  </section>
+
   <p style="margin-top: 2rem;"><a href="index.html">← Back to test index</a></p>
 
   <script type="module">
@@ -54,7 +61,7 @@
     }
 
     async function runPlayPauseTests(provider, resultsId, options = {}) {
-      const { skipGetPaused = false } = options;
+      const { skipGetPaused = false, delayAfterPlay = 600, delayAfterPause = 600 } = options;
       showResults(resultsId, [
         { label: "Play", status: "pending" },
         { label: "Pause", status: "pending" },
@@ -62,13 +69,13 @@
       try {
         const playResult = provider.play();
         if (playResult && typeof playResult.then === "function") await playResult;
-        await delay(600);
+        await delay(delayAfterPlay);
         const pausedAfterPlay = skipGetPaused ? false : await provider.getPaused();
         const playOk = skipGetPaused ? true : pausedAfterPlay === false;
 
         const pauseResult = provider.pause();
         if (pauseResult && typeof pauseResult.then === "function") await pauseResult;
-        await delay(600);
+        await delay(delayAfterPause);
         const pausedAfterPause = skipGetPaused ? true : await provider.getPaused();
         const pauseOk = skipGetPaused ? true : pausedAfterPause === true;
 
@@ -119,6 +126,16 @@
       const { registerTwitchEmbed, twitchEmbedProvider } = await import("../dist/twitch/index.js");
       const { VIDEO_SOURCE_URL } = await import("../dist/twitch/constants.js");
       await mountAndTest("twitch-container", "twitch-results", registerTwitchEmbed, twitchEmbedProvider, "twitch-embed", VIDEO_SOURCE_URL, { skipGetPaused: true });
+    });
+
+    document.getElementById("tiktok-run").addEventListener("click", async () => {
+      const { registerTikTokEmbed, tiktokEmbedProvider } = await import("../dist/tiktok/index.js");
+      const { SOURCE_URL } = await import("../dist/tiktok/constants.js");
+      await mountAndTest("tiktok-container", "tiktok-results", registerTikTokEmbed, tiktokEmbedProvider, "tiktok-embed", SOURCE_URL, {
+        initialDelay: 2500,
+        delayAfterPlay: 1500,
+        delayAfterPause: 1000,
+      });
     });
   </script>
 </body>

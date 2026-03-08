@@ -78,7 +78,7 @@
     "build": "tsc",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run clean && npm run build",
-    "test": "npm run build && npx serve ."
+    "test": "npm run build && npx serve . --listen 3333"
   },
   "devDependencies": {
     "typescript": "^5.7.2"
