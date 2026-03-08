@@ -29,6 +29,10 @@ export class YouTubeEmbed implements EmbedProvider {
     this.#player?.pause();
   }
 
+  get ready(): Promise<void> {
+    return this.#player?.ready ?? new Promise<void>(() => {});
+  }
+
   get paused(): Promise<boolean> {
     return this.#player?.paused ?? Promise.resolve(true);
   }

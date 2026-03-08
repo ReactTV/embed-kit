@@ -47,9 +47,9 @@ function loadDailymotionScript(): Promise<void> {
 }
 
 /**
- * Create a controllable Dailymotion player. The SDK looks up the container by id via
- * document.getElementById, so we create the wrapper in document.body, then move it into
- * the container once the SDK is ready so the player sits in the document flow.
+ * Create a controllable Dailymotion player. The SDK finds the mount element by id via
+ * document.getElementById. The container must be in the light DOM (e.g. a direct child
+ * of the host element) so the SDK can find it; the base controllable element mounts there.
  */
 export function createPlayer(
   container: HTMLElement,
@@ -68,7 +68,7 @@ export function createPlayer(
   wrapper.style.width = widthStyle;
   wrapper.style.height = heightStyle;
   wrapper.style.overflow = "hidden";
-  document.body.appendChild(wrapper);
+  container.appendChild(wrapper);
 
   return loadDailymotionScript()
     .then(() => {
@@ -81,34 +81,33 @@ export function createPlayer(
         ...(autoplay ? { params: { autoplay: true } } : {}),
       });
     })
-    .then((dmPlayer) => {
-      wrapper.remove();
-      container.appendChild(wrapper);
-      return {
-        play: () => dmPlayer.play(),
-        pause: () => dmPlayer.pause(),
-        get paused() {
-          return dmPlayer.getState().then((state) => Boolean(state.playerIsPlaying === false));
-        },
-        get currentTime() {
-          return typeof dmPlayer.getPosition === "function"
-            ? dmPlayer.getPosition!()
-            : Promise.resolve(0);
-        },
-        seek(seconds: number) {
-          if (typeof dmPlayer.seek === "function") {
-            return dmPlayer.seek(seconds);
-          }
-        },
-        get autoplay() {
-          return Promise.resolve(autoplay);
-        },
-        destroy() {
-          dmPlayer.destroy();
-          wrapper.remove();
-        },
-      };
-    })
+    .then((dmPlayer) => ({
+      get ready() {
+        return Promise.resolve();
+      },
+      play: () => dmPlayer.play(),
+      pause: () => dmPlayer.pause(),
+      get paused() {
+        return dmPlayer.getState().then((state) => Boolean(state.playerIsPlaying === false));
+      },
+      get currentTime() {
+        return typeof dmPlayer.getPosition === "function"
+          ? dmPlayer.getPosition!()
+          : Promise.resolve(0);
+      },
+      seek(seconds: number) {
+        if (typeof dmPlayer.seek === "function") {
+          return dmPlayer.seek(seconds);
+        }
+      },
+      get autoplay() {
+        return Promise.resolve(autoplay);
+      },
+      destroy() {
+        dmPlayer.destroy();
+        wrapper.remove();
+      },
+    }))
     .catch((err) => {
       wrapper.remove();
       throw err;

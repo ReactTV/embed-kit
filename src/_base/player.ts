@@ -4,6 +4,9 @@
  */
 
 export interface EmbedPlayer {
+  /** Resolves when the player is ready for playback control (e.g. after embed has loaded). */
+  readonly ready: Promise<void>;
+
   /** Start playback. */
   play(): void | Promise<void>;
 

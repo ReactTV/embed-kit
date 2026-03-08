@@ -49,8 +49,7 @@ function loadTwitchScript(): Promise<void> {
 /**
  * Create a controllable Twitch player in the given container (video by id, or clip by slug).
  * Clips use the clips.twitch.tv/embed iframe (no interactive API). Videos use Twitch.Embed.
- * The SDK requires getElementById, so we create the div in document.body, then move it into
- * the container once the embed is ready so the player sits in the document flow.
+ * The SDK uses getElementById; the container must be in the light DOM (base controllable element mounts there).
  */
 export function createPlayer(
   container: HTMLElement,
@@ -81,6 +80,9 @@ export function createPlayer(
     iframe.allowFullscreen = true;
     container.appendChild(iframe);
     return Promise.resolve({
+      get ready() {
+        return Promise.resolve();
+      },
       play: () => {},
       pause: () => {},
       get paused() {
@@ -103,7 +105,7 @@ export function createPlayer(
   div.id = `twitch-player-${Math.random().toString(36).slice(2, 11)}`;
   const widthNum = typeof width === "number" ? width : parseInt(String(width), 10) || 560;
   const heightNum = typeof height === "number" ? height : parseInt(String(height), 10) || 315;
-  document.body.appendChild(div);
+  container.appendChild(div);
 
   return loadTwitchScript().then(
     () =>
@@ -136,9 +138,10 @@ export function createPlayer(
             try {
               const player = embed.getPlayer();
               if (player) {
-                div.remove();
-                container.appendChild(div);
                 resolve({
+                  get ready() {
+                    return Promise.resolve();
+                  },
                   play: () => player.play(),
                   pause: () => player.pause(),
                   get paused() {

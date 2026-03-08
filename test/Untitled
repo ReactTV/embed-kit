@@ -1,0 +1,39 @@
+<body>
+  <h1>Dailymotion embed</h1>
+  <p class="server-hint">If embeds don’t appear, run <code>npx serve .</code> from the project root (ES modules require a server).</p>
+  <h2>Autoplay</h2>
+  <div class="embed-wrap" id="dm-autoplay-wrap"></div>
+  <button type="button" id="dm-autoplay-btn">Load autoplay video</button>
+
+  <h2>By URL (<code>src</code>)</h2>
+  <div class="embed-wrap">
+    <dailymotion-embed id="dm-by-src" width="560" height="315" title="Dailymotion video" src="https://www.dailymotion.com/video/xcs52i" style="display: block; width: 560px; height: 315px;"></dailymotion-embed>
+  </div>
+  <h2>By video id (<code>video-id</code>)</h2>
+  <div class="embed-wrap">
+    <dailymotion-embed id="dm-by-id" width="560" height="315" title="Dailymotion video" video-id="xcs52i" style="display: block; width: 560px; height: 315px;"></dailymotion-embed>
+  </div>
+  <p><a href="../../test/index.html">← Back to test index</a></p>
+
+  <script type="module">
+    import { registerDailymotionEmbed } from "../../dist/dailymotion/index.js";
+    import { SOURCE_URL, VIDEO_ID } from "../../dist/dailymotion/constants.js";
+    registerDailymotionEmbed();
+    document.getElementById("dm-by-src").setAttribute("src", SOURCE_URL);
+    document.getElementById("dm-by-id").setAttribute("video-id", VIDEO_ID);
+    document.getElementById("dm-autoplay-btn").addEventListener("click", () => {
+      const wrap = document.getElementById("dm-autoplay-wrap");
+      if (wrap.querySelector("dailymotion-embed")) return;
+      const el = document.createElement("dailymotion-embed");
+      el.setAttribute("width", "560");
+      el.setAttribute("height", "315");
+      el.setAttribute("title", "Dailymotion video (autoplay)");
+      el.setAttribute("autoplay", "");
+      el.setAttribute("src", SOURCE_URL);
+      wrap.appendChild(el);
+      document.getElementById("dm-autoplay-btn").disabled = true;
+    });
+  </script>
+
+
+<div id="dailymotion-player-bcmqv5hri" class="dailymotion-player-root dailymotion-player-default" style="background: rgb(13, 13, 13); padding-bottom: 56.25%; position: relative;"><div class="dailymotion-player-wrapper" style="height: 100%; overflow: hidden; position: absolute; width: 100%; margin: 1e-05px;"><iframe allow="autoplay; fullscreen; picture-in-picture; web-share" class="dailymotion-player" frameborder="0" src="https://geo.dailymotion.com/player.html?video=xcs52i" title="Dailymotion video player - Pub LEGO Pirates (15 sec) 2009" height="100%" width="100%" style="opacity: 1;"></iframe></div></div><div id="dailymotion-player-thn9dufgb" class="dailymotion-player-root dailymotion-player-default" style="background: rgb(13, 13, 13); padding-bottom: 56.25%; position: relative;"><div class="dailymotion-player-wrapper" style="height: 100%; overflow: hidden; position: absolute; width: 100%; margin: 1e-05px;"><iframe allow="autoplay; fullscreen; picture-in-picture; web-share" class="dailymotion-player" frameborder="0" src="https://geo.dailymotion.com/player.html?video=xcs52i" title="Dailymotion video player - Pub LEGO Pirates (15 sec) 2009" height="100%" width="100%" style="opacity: 1;"></iframe></div></div><script src="https://static1.dmcdn.net/playerv5/pes.iframe.6f0446f7.js" id="pes.iframe.6f0446f7" load-status="loaded"></script><script src="https://static1.dmcdn.net/playerv5/pes.eid.7c48dcdc.js" id="pes.eid.7c48dcdc" load-status="loaded"></script></body>

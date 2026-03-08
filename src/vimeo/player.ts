@@ -59,7 +59,11 @@ export function createPlayer(
 
   return loadVimeoScript().then(() => {
     const vimeoPlayer = new window.Vimeo!.Player(iframe);
+    const readyPromise = vimeoPlayer.getPaused().then(() => undefined);
     return {
+      get ready() {
+        return readyPromise;
+      },
       play: () => vimeoPlayer.play(),
       pause: () => vimeoPlayer.pause(),
       get paused() {

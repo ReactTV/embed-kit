@@ -78,6 +78,8 @@ export function createEmbedElement(
 /**
  * Creates a custom element class for a provider that implements createPlayer.
  * The element calls provider.createPlayer() and exposes play(), pause(), paused, currentTime, seek(), autoplay.
+ * The player container is mounted in the light DOM (on the host) so SDKs that use document.getElementById
+ * (e.g. Dailymotion) can find the mount element.
  */
 export function createControllableEmbedElement(
   provider: EmbedProvider & {
@@ -94,15 +96,11 @@ export function createControllableEmbedElement(
       return ["src", "video-id", "width", "height", "title", "autoplay"];
     }
 
-    #shadow: ShadowRoot | null = null;
     #playerPromise: Promise<EmbedPlayer> | null = null;
     #player: EmbedPlayer | null = null;
     #container: HTMLElement | null = null;
 
     connectedCallback(): void {
-      if (!this.#shadow) {
-        this.#shadow = this.attachShadow({ mode: "open" });
-      }
       this.#render();
     }
 
@@ -137,6 +135,12 @@ export function createControllableEmbedElement(
       return this.#getPlayer().then((player) => (player ? player.autoplay : Promise.resolve(false)));
     }
 
+    /** Resolves when the embed player is ready for playback control. */
+    get ready(): Promise<void> {
+      const p = this.#playerPromise;
+      return p ? p.then((player) => player.ready) : new Promise<void>(() => {});
+    }
+
     async #getPlayer(): Promise<EmbedPlayer | null> {
       if (this.#player) return this.#player;
       if (this.#playerPromise) return this.#playerPromise;
@@ -144,8 +148,6 @@ export function createControllableEmbedElement(
     }
 
     #render(): void {
-      if (!this.#shadow) return;
-
       const srcAttr = this.getAttribute("src");
       const idAttr = this.getAttribute("video-id");
 
@@ -163,10 +165,10 @@ export function createControllableEmbedElement(
       }
 
       if (!id) {
-        this.#shadow.innerHTML = "";
+        if (this.#container?.parentNode) this.#container.remove();
+        this.#container = null;
         this.#playerPromise = null;
         this.#player = null;
-        this.#container = null;
         return;
       }
 
@@ -193,8 +195,7 @@ export function createControllableEmbedElement(
       container.style.height = heightPx;
       container.style.minWidth = widthPx;
       container.style.minHeight = heightPx;
-      this.#shadow.innerHTML = "";
-      this.#shadow.appendChild(container);
+      this.appendChild(container);
       this.#container = container;
 
       const autoplayAttr = this.getAttribute("autoplay");

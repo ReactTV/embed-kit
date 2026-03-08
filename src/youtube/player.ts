@@ -70,6 +70,9 @@ export function createPlayer(
               onReady(ev: { target: YTPlayer }) {
                 const player = ev.target;
                 resolve({
+                  get ready() {
+                    return Promise.resolve();
+                  },
                   play: () => player.playVideo(),
                   pause: () => player.pauseVideo(),
                   get paused() {

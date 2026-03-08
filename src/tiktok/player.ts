@@ -39,6 +39,11 @@ export function createPlayer(
   container.appendChild(iframe);
 
   let lastState: number = STATE_PAUSED;
+  let resolveReady: () => void;
+  const readyPromise = new Promise<void>((resolve) => {
+    resolveReady = resolve;
+  });
+
   const handleMessage = (event: MessageEvent): void => {
     if (event.origin !== EMBED_ORIGIN || event.source !== iframe.contentWindow) return;
     const data = event.data;
@@ -46,6 +51,7 @@ export function createPlayer(
 
     switch (data.type) {
       case "onPlayerReady":
+        resolveReady();
         break;
       case "onStateChange":
         if (typeof data.value === "number") lastState = data.value;
@@ -56,6 +62,9 @@ export function createPlayer(
   window.addEventListener("message", handleMessage);
 
   const player: EmbedPlayer = {
+    get ready() {
+      return readyPromise;
+    },
     async play() {
       post(iframe, "play");
     },
