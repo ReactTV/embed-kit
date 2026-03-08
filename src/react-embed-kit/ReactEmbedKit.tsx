@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect } from "react";
 import type {
   ICreatePlayerOptions,
   IEmbedPlayer,
@@ -45,7 +45,6 @@ export function ReactEmbedKit({
 }: ReactEmbedKitProps): React.ReactElement {
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<IEmbedPlayer | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -53,12 +52,10 @@ export function ReactEmbedKit({
 
     const resolved = getProviderForUrl(url);
     if (!resolved) {
-      setError(`Unsupported URL: ${url}`);
       onUnsupportedUrl(url);
       return;
     }
 
-    setError(null);
     // Clear any previous player DOM so the new embed isn't covered (handles URL change
     // before the previous createPlayer promise resolved, so destroy() was never called).
     container.innerHTML = "";
@@ -67,10 +64,7 @@ export function ReactEmbedKit({
       width: width ?? defaultWidth,
       height: height ?? defaultHeight,
       autoplay: Boolean(autoplay),
-      onError: (data: IErrorData) => {
-        setError(data.message ?? String(data.code ?? "Unknown error"));
-        onError(data);
-      },
+      onError,
       ...providerOptions,
       ...restOptions,
     };
@@ -102,7 +96,6 @@ export function ReactEmbedKit({
       })
       .catch((err) => {
         if (!cancelled) {
-          setError(err?.message ?? String(err));
           onError({ message: err?.message ?? String(err) });
         }
       });
@@ -115,45 +108,5 @@ export function ReactEmbedKit({
     };
   }, [url, width, height, autoplay]);
 
-  const w = `${width ?? defaultWidth}px`;
-  const h = `${height ?? defaultHeight}px`;
-
-  return (
-    <div
-      className={className}
-      style={{
-        position: "relative",
-        width: w,
-        height: h,
-        minWidth: w,
-        minHeight: h,
-        ...style,
-      }}
-    >
-      <div
-        ref={containerRef}
-        style={{
-          width: "100%",
-          height: "100%",
-          overflow: "hidden",
-        }}
-      />
-      {error !== null ? (
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: "#f5f5f5",
-            color: "#666",
-            fontSize: "14px",
-          }}
-        >
-          {error}
-        </div>
-      ) : null}
-    </div>
-  );
+  return <div ref={containerRef} className={className} style={style} />;
 }
