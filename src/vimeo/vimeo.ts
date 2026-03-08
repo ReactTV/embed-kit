@@ -62,6 +62,14 @@ export class VimeoEmbed implements IEmbedProvider {
     return this.#player?.muted ?? Promise.resolve(false);
   }
 
+  get volume(): number | undefined {
+    return this.#player?.volume;
+  }
+
+  setVolume(volume: number): void | Promise<void> {
+    return this.#player?.setVolume?.(volume);
+  }
+
   parseSourceUrl(url: string) {
     const trimmed = url.trim();
     const playerMatch = REGEX_PLAYER.exec(trimmed);

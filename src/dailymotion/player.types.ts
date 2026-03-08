@@ -135,6 +135,8 @@ export interface DailymotionPlayer {
   getPosition?: () => Promise<number>;
   seek: (seconds: number) => void | Promise<void>;
   setMute: (muted: boolean) => void;
+  setVolume?: (volume: number) => void; // 0-1
+  getVolume?: () => number; // 0-1
   on(event: string, callback?: (state: DailymotionPlayerState) => void): void;
   destroy: () => void;
 }

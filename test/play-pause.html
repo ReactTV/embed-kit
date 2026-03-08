@@ -18,7 +18,7 @@
 </head>
 <body>
   <h1>Normalized play / pause and mute API tests</h1>
-  <p>Tests each provider’s play/pause API: mount the embed, assert <code>currentTime === 0</code> before play, then <code>provider.play()</code>, <code>onPlay</code> fired, <code>await provider.paused</code>, <code>provider.pause()</code>, <code>onPause</code> fired, <code>provider.seek(seconds)</code>, and assert <code>currentTime</code> ≈ seek target. Also tests <code>provider.mute()</code>, <code>provider.muted</code>, and <code>provider.unmute()</code> where supported.</p>
+  <p>Tests each provider’s play/pause API: mount the embed, assert <code>currentTime === 0</code> before play, then <code>provider.play()</code>, <code>onPlay</code> fired, <code>await provider.paused</code>, <code>provider.pause()</code>, <code>onPause</code> fired, <code>provider.seek(seconds)</code>, and assert <code>currentTime</code> ≈ seek target. Also tests <code>provider.mute()</code>, <code>provider.muted</code>, <code>provider.unmute()</code>, and <code>provider.volume</code> / <code>provider.setVolume(0–1)</code> where supported.</p>
 
   <p><button id="run-all" type="button">Run all tests</button> <span id="run-all-status"></span></p>
 
@@ -84,9 +84,10 @@
     const INTER_STEP_DELAY_MS = 500;
 
     async function runPlayPauseTests(provider, resultsId, options = {}) {
-      const { skipGetPaused = false, skipSeek = false, skipMute = false, delayAfterPlay = 2000, delayAfterPause = 600 } = options;
+      const { skipGetPaused = false, skipSeek = false, skipMute = false, skipVolume = false, delayAfterPlay = 2000, delayAfterPause = 600 } = options;
       const seekLabel = skipSeek ? "Seek (not supported)" : `seek(${5}) then currentTime ≈ 5`;
       const muteLabel = skipMute ? "Mute/Unmute (not supported)" : "Mute then unmute (muted true/false)";
+      const volumeLabel = skipVolume ? "Volume get/set (not supported)" : "Volume get/set (setVolume(0.5) then volume ≈ 0.5)";
       const muteEvents = Array.isArray(options.muteEvents) ? options.muteEvents : null;
       const playEvents = Array.isArray(options.playEvents) ? options.playEvents : null;
       const pauseEvents = Array.isArray(options.pauseEvents) ? options.pauseEvents : null;
@@ -101,6 +102,7 @@
         { label: seekLabel, status: "pending" },
         { label: muteLabel, status: "pending" },
         ...(testOnMuteEvent ? [{ label: "onMute fired when mute state changed", status: "pending" }] : []),
+        { label: volumeLabel, status: "pending" },
       ]);
       try {
         const timeBeforePlay = await provider.currentTime;
@@ -163,6 +165,26 @@
 
         const onMuteOk = !testOnMuteEvent || (muteEvents.length >= 2 && muteEvents.some((e) => e.muted === true) && muteEvents.some((e) => e.muted === false));
 
+        await delay(INTER_STEP_DELAY_MS);
+        const VOLUME_TARGET = 0.5;
+        const VOLUME_TOLERANCE = 0.2;
+        let volumeOk = skipVolume;
+        if (!skipVolume && typeof provider.setVolume === "function") {
+          try {
+            const setResult = provider.setVolume(VOLUME_TARGET);
+            if (setResult && typeof setResult.then === "function") await setResult;
+            await delay(600);
+            const volAfterSet = provider.volume;
+            volumeOk = typeof volAfterSet === "number" && !Number.isNaN(volAfterSet) && Math.abs(volAfterSet - VOLUME_TARGET) <= VOLUME_TOLERANCE;
+            const restoreResult = provider.setVolume(1);
+            if (restoreResult && typeof restoreResult.then === "function") await restoreResult;
+          } catch (_e) {
+            volumeOk = false;
+          }
+        } else if (!skipVolume) {
+          volumeOk = true; // not supported, row shows "not supported"
+        }
+
         showResults(resultsId, [
           { label: "currentTime === 0 before play", status: timeBeforePlayOk ? "pass" : "fail" },
           { label: skipGetPaused ? "Play (no throw)" : "Play (getPaused() false after play)", status: playOk ? "pass" : "fail" },
@@ -172,6 +194,7 @@
           { label: seekLabel, status: seekOk ? "pass" : "fail" },
           { label: muteLabel, status: muteOk ? "pass" : "fail" },
           ...(testOnMuteEvent ? [{ label: "onMute fired when mute state changed", status: onMuteOk ? "pass" : "fail" }] : []),
+          { label: volumeLabel, status: volumeOk ? "pass" : "fail" },
         ]);
       } catch (err) {
         showResults(resultsId, [
@@ -266,7 +289,7 @@
           delayAfterPlay: 1500,
           delayAfterPause: 1000,
           onComplete: resolve,
-        });
+          });
       });
     }
 

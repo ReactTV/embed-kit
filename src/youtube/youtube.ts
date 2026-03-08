@@ -30,12 +30,12 @@ export class YouTubeEmbed implements IEmbedProvider {
     this.#player?.pause();
   }
 
-  get paused(): Promise<boolean> {
-    return this.#player?.paused ?? Promise.resolve(true);
+  get paused(): boolean {
+    return this.#player?.paused ?? false;
   }
 
-  get currentTime(): Promise<number> {
-    return this.#player?.currentTime ?? Promise.resolve(0);
+  get currentTime(): number {
+    return this.#player?.currentTime ?? 0;
   }
 
   seek(seconds: number): void {
@@ -50,8 +50,16 @@ export class YouTubeEmbed implements IEmbedProvider {
     this.#player?.unmute();
   }
 
-  get muted(): Promise<boolean> {
-    return this.#player?.muted ?? Promise.resolve(false);
+  get muted(): boolean {
+    return this.#player?.muted ?? false;
+  }
+
+  get volume(): number | undefined {
+    return this.#player?.volume;
+  }
+
+  setVolume(volume: number): void | Promise<void> {
+    return this.#player?.setVolume?.(volume);
   }
 
   parseSourceUrl(url: string) {

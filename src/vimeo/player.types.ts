@@ -35,6 +35,8 @@ export interface IVimeoPlayer {
   setCurrentTime: (seconds: number) => Promise<number>;
   getMuted: () => Promise<boolean>;
   setMuted: (muted: boolean) => Promise<void>;
+  getVolume: () => Promise<number>; // 0-1
+  setVolume: (volume: number) => Promise<number>; // 0-1
   on: (event: string, callback: (data: TVimeoEventData) => void) => void;
   destroy: () => void;
 }

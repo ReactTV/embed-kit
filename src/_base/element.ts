@@ -44,7 +44,7 @@ export function createEmbedElement(provider: IEmbedProvider): CustomElementConst
     declare onError?: (data: IErrorData) => void;
 
     static get observedAttributes(): string[] {
-      return ["src", "video-id", "width", "height", "title", "autoplay"];
+      return ["src", "video-id", "width", "height", "title", "autoplay", "volume"];
     }
 
     #playerPromise: Promise<IEmbedPlayer> | null = null;
@@ -101,6 +101,15 @@ export function createEmbedElement(provider: IEmbedProvider): CustomElementConst
 
     get muted(): Promise<boolean> {
       return this.player.then((p) => p?.muted ?? Promise.resolve(false));
+    }
+
+    /** Volume 0–1 when supported by the provider. */
+    get volume(): Promise<number | undefined> {
+      return this.player.then((p) => p?.volume);
+    }
+
+    async setVolume(volume: number): Promise<void> {
+      (await this.player)?.setVolume?.(volume);
     }
 
     /** Last error from the player, if any. Cleared when the embed is recreated (e.g. video-id change). */
@@ -174,12 +183,15 @@ export function createEmbedElement(provider: IEmbedProvider): CustomElementConst
 
       const autoplayAttr = this.getAttribute("autoplay");
       const autoplay = autoplayAttr !== null && autoplayAttr !== "false";
+      const volumeAttr = this.getAttribute("volume");
+      const volume = volumeAttr !== null ? parseFloat(volumeAttr) : undefined;
       const noop = (): void => {};
       const userOnError = this.onError ?? noop;
       this.#playerPromise = provider.createPlayer(container, id, {
         width,
         height,
         autoplay,
+        ...(typeof volume === "number" && !Number.isNaN(volume) && { volume }),
         onReady: this.onReady ?? noop,
         onPlay: this.onPlay ?? noop,
         onPause: this.onPause ?? noop,

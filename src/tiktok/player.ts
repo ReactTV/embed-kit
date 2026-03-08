@@ -61,6 +61,7 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     duration: 0,
     isPaused: true,
     muted: false,
+    volume: 1,
     error: null,
     isPlaying: false,
   };
@@ -151,6 +152,13 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     },
     get muted(): boolean {
       return playerState.muted;
+    },
+    get volume() {
+      return playerState.volume;
+    },
+    setVolume(vol: number) {
+      // TikTok does not support volume
+      playerState.volume = vol;
     },
     get error() {
       return playerState.error;

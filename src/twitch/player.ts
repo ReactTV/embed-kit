@@ -110,6 +110,7 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
       playerState.currentTime = p.currentTime;
       playerState.duration = p.duration;
       if (typeof p.muted === "boolean") playerState.muted = p.muted;
+      if (typeof p.volume === "number" && !Number.isNaN(p.volume)) playerState.volume = p.volume;
       onProgress(p.currentTime);
     }
   };
@@ -123,7 +124,6 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
       EMBED_ORIGIN
     );
   };
-
   const player: IEmbedPlayer = {
     play() {
       playerState.isPaused = false;
@@ -161,6 +161,14 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     },
     get muted() {
       return playerState.muted;
+    },
+    get volume() {
+      return playerState.volume;
+    },
+    setVolume(vol: number) {
+      const v = Math.max(0, Math.min(1, vol));
+      playerState.volume = v;
+      send(PlayerCommands.SET_VOLUME, v);
     },
     get error() {
       return playerState.error;

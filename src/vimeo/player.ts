@@ -30,6 +30,7 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     width = 560,
     height = 315,
     autoplay = false,
+    volume: initialVolume,
     onReady = () => {},
     onPlay = () => {},
     onPause = () => {},
@@ -60,14 +61,13 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     isPlaying: false,
     isPaused: true,
     muted: false,
+    ...(typeof initialVolume === "number" && initialVolume >= 0 && initialVolume <= 1 && { volume: initialVolume }),
     error: null,
   };
   return loadScript(VIMEO_SCRIPT, {
     isLoaded: () => !!window.Vimeo?.Player,
     errorMessage: "Failed to load Vimeo player script",
   }).then(() => {
-    onReady();
-
     const vimeoPlayer = new window.Vimeo!.Player(iframe);
 
     vimeoPlayer.on("error", (data: TVimeoEventData) => {
@@ -98,10 +98,26 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
       onProgress(playerState.currentTime);
     });
     vimeoPlayer.on("volumechange", (data: TVimeoEventData) => {
-      const { muted } = data as IVimeoVolumechangeData;
+      const { volume, muted } = data as IVimeoVolumechangeData;
+      playerState.volume = volume;
       playerState.muted = muted;
       onMute({ muted });
     });
+
+    const applyInitialVolume = (): void => {
+      if (typeof initialVolume === "number" && initialVolume >= 0 && initialVolume <= 1) {
+        vimeoPlayer.setVolume(initialVolume).then(() => {
+          playerState.volume = initialVolume;
+        });
+      } else {
+        vimeoPlayer.getVolume().then((v) => {
+          playerState.volume = v;
+        });
+      }
+    };
+
+    onReady();
+    applyInitialVolume();
 
     return {
       play: () => vimeoPlayer.play(),
@@ -132,6 +148,15 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
       },
       get muted() {
         return playerState.muted;
+      },
+      get volume() {
+        return playerState.volume;
+      },
+      setVolume(vol: number) {
+        const v = Math.max(0, Math.min(1, vol));
+        return vimeoPlayer.setVolume(v).then(() => {
+          playerState.volume = v;
+        });
       },
       get error() {
         return playerState.error;

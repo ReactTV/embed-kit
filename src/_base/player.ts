@@ -8,6 +8,8 @@ export interface ICreatePlayerOptions {
   width?: number;
   height?: number;
   autoplay?: boolean;
+  /** Initial volume 0–1. Not all providers support volume (e.g. some iframe embeds). */
+  volume?: number;
   onReady?: () => void;
   onPlay?: () => void;
   onPause?: () => void;
@@ -62,6 +64,8 @@ export interface TPlayerState {
   isPlaying: boolean;
   isPaused: boolean;
   muted: boolean;
+  /** Volume 0–1 when supported by the provider. */
+  volume?: number;
   error: IErrorData | null;
 }
 
@@ -77,6 +81,10 @@ export interface IEmbedPlayer {
   readonly currentTime: number;
   readonly duration: number;
   readonly muted: boolean;
+  /** Volume 0–1. Undefined if the provider does not support volume or not yet known. */
+  readonly volume?: number | undefined;
+  /** Set volume 0–1. No-op if the provider does not support it. */
+  setVolume?(volume: number): void | Promise<void>;
   readonly error: IErrorData | null;
 }
 

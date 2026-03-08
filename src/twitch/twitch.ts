@@ -76,6 +76,14 @@ export class TwitchEmbed implements IEmbedProvider {
     return this.#player?.muted ?? Promise.resolve(false);
   }
 
+  get volume(): number | undefined {
+    return this.#player?.volume;
+  }
+
+  setVolume(volume: number): void | Promise<void> {
+    return this.#player?.setVolume?.(volume);
+  }
+
   parseSourceUrl(url: string) {
     const trimmed = url.trim();
     const videoMatch = REGEX_VIDEO.exec(trimmed);

@@ -81,6 +81,9 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
       dmPlayer.on(events.VIDEO_END, onEnded);
       dmPlayer.on(events.PLAYER_VOLUMECHANGE, (data: DailymotionPlayerState) => {
         playerState.muted = data.playerIsMuted ?? false;
+        if (typeof data.playerVolume === "number" && !Number.isNaN(data.playerVolume)) {
+          playerState.volume = data.playerVolume;
+        }
       });
       dmPlayer.on(events.VIDEO_DURATIONCHANGE, (data: DailymotionPlayerState) => {
         playerState.duration = data.videoDuration ?? 0;
@@ -137,6 +140,14 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
           dmPlayer.setMute(false);
           playerState.muted = false;
           onMute({ muted: false });
+        },
+        get volume() {
+          return playerState.volume ?? dmPlayer.getVolume?.();
+        },
+        setVolume(vol: number) {
+          const v = Math.max(0, Math.min(1, vol));
+          dmPlayer.setVolume?.(v);
+          playerState.volume = v;
         },
       };
     })

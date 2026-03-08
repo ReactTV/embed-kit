@@ -10,6 +10,8 @@ export interface ReactEmbedKitProps {
   className?: string;
   style?: React.CSSProperties;
   autoplay?: boolean;
+  /** Initial volume 0–1. Not all providers support volume. */
+  volume?: number;
   progressInterval?: number;
   onUnsupportedUrl?: (url: string) => void;
   onError?: (data: IErrorData) => void;

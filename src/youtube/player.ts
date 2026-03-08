@@ -39,6 +39,8 @@ interface YTPlayer {
   mute: () => void;
   unMute: () => void;
   isMuted: () => boolean;
+  getVolume: () => number; // 0-100
+  setVolume: (volume: number) => void; // 0-100
 }
 
 function loadYTScript(): Promise<void> {
@@ -65,6 +67,7 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}): Promis
     width = 560,
     height = 315,
     autoplay = false,
+    volume: initialVolume,
     onReady = () => {},
     onPlay = () => {},
     onPause = () => {},
@@ -87,6 +90,7 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}): Promis
     isPlaying: false,
     isPaused: true,
     muted: false,
+    ...(typeof initialVolume === "number" && initialVolume >= 0 && initialVolume <= 1 && { volume: initialVolume }),
     error: null,
   };
 
@@ -114,6 +118,12 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}): Promis
         },
         onReady(ev: { target: YTPlayer }) {
           player = ev.target;
+          if (typeof initialVolume === "number" && initialVolume >= 0 && initialVolume <= 1) {
+            player.setVolume(Math.round(initialVolume * 100));
+            playerState.volume = initialVolume;
+          } else {
+            playerState.volume = player.getVolume() / 100;
+          }
           onReady();
 
           // YouTube IFrame API has no timeupdate/progress event and no volume/mute event; polling required.
@@ -128,6 +138,7 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}): Promis
               playerState.muted = isMuted;
               onMute({ muted: isMuted });
             }
+            playerState.volume = player.getVolume() / 100;
 
             playerState.isPlaying = player.getPlayerState() === PlayerState.PLAYING;
             playerState.isPaused = player.getPlayerState() === PlayerState.PAUSED;
@@ -185,6 +196,14 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}): Promis
       },
       get muted() {
         return playerState.muted;
+      },
+      get volume() {
+        return playerState.volume;
+      },
+      setVolume(vol: number) {
+        const v = Math.max(0, Math.min(1, vol));
+        player!.setVolume(Math.round(v * 100));
+        playerState.volume = v;
       },
       get error() {
         return playerState.error;
