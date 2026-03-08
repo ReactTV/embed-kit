@@ -56,6 +56,7 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
         isPaused: true,
         muted: false,
         error: null,
+        isPlaying: false,
       };
 
       const { events } = window.dailymotion!;
@@ -64,6 +65,12 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
       dmPlayer.on(events.VIDEO_PAUSE, onPause);
       dmPlayer.on(events.VIDEO_BUFFERING, onBuffering);
       dmPlayer.on(events.VIDEO_END, onEnded);
+      dmPlayer.on(events.PLAYER_VOLUMECHANGE, (data: DailymotionPlayerState) => {
+        playerState.muted = data.playerIsMuted ?? false;
+      });
+      dmPlayer.on(events.VIDEO_DURATIONCHANGE, (data: DailymotionPlayerState) => {
+        playerState.duration = data.videoDuration ?? 0;
+      });
 
       const handleError = (): void => {
         playerState.error = { message: "Dailymotion playback error" };
@@ -79,37 +86,20 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
 
       return {
         get currentTime() {
-          return dmPlayer.getState().then(async (state) => {
-            if (typeof state.videoTime === "number" && !Number.isNaN(state.videoTime)) {
-              return state.videoTime;
-            }
-            if (typeof dmPlayer.getPosition === "function") {
-              return dmPlayer.getPosition!();
-            }
-            return 0;
-          });
+          return playerState.currentTime;
         },
         destroy() {
           dmPlayer.destroy();
           wrapper.remove();
         },
         get duration() {
-          if (typeof dmPlayer.getDuration === "function") {
-            return dmPlayer.getDuration();
-          }
-          return dmPlayer
-            .getState()
-            .then((state) =>
-              typeof state.videoDuration === "number" && !Number.isNaN(state.videoDuration)
-                ? state.videoDuration
-                : 0
-            );
+          return playerState.duration;
         },
         get error() {
           return playerState.error;
         },
         get muted() {
-          return Promise.resolve(playerState.muted);
+          return playerState.muted;
         },
         mute() {
           if (typeof dmPlayer.setMute === "function") {
@@ -122,7 +112,7 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
           dmPlayer.pause();
         },
         get paused() {
-          return dmPlayer.getState().then((state) => state.playerIsPlaying === false);
+          return playerState.isPaused;
         },
         play() {
           dmPlayer.play();

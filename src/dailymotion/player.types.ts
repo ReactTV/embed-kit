@@ -3,17 +3,57 @@
 
 /** Event name constants from dailymotion.events (Web SDK). */
 export interface DailymotionEvents {
-  VIDEO_PLAY: string;
-  VIDEO_PAUSE: string;
-  VIDEO_BUFFERING: string;
-  VIDEO_END: string;
-  VIDEO_TIMECHANGE: string;
-  PLAYER_ERROR: string;
+  AD_CLICK: "ad_click";
+  AD_COMPANIONSREADY: "ad_companions";
+  AD_DURATIONCHANGE: "ad_durationchange";
+  AD_END: "ad_end";
+  AD_ERROR: "ad_error";
+  AD_IMPRESSION: "ad_impression";
+  AD_LOADED: "ad_loaded";
+  AD_PAUSE: "ad_pause";
+  AD_PLAY: "ad_play";
+  AD_READYTOFETCH: "ad_readytofetch";
+  AD_START: "ad_start";
+  AD_TIMECHANGE: "ad_timeupdate";
+  PLAYER_ASPECTRATIOCHANGE: "pes_aspectratiochange";
+  PLAYER_CRITICALPATHREADY: "playback_ready";
+  PLAYER_END: "end";
+  PLAYER_ERROR: "error";
+  PLAYER_HEAVYADSINTERVENTION: "player_heavyadsintervention";
+  PLAYER_PIPEXPANDEDCHANGE: "pes_pipexpandedchange";
+  PLAYER_PLAYBACKPERMISSION: "playback_resolution";
+  PLAYER_PLAYBACKSPEEDCHANGE: "playbackspeedchange";
+  PLAYER_POSTERDISPLAY: "posterdisplay";
+  PLAYER_PRESENTATIONMODECHANGE: "pes_presentationmodechange";
+  PLAYER_RECODISPLAY: "recodisplay";
+  PLAYER_SCALEMODECHANGE: "pes_scalemodechange";
+  PLAYER_START: "start";
+  PLAYER_VIDEOCHANGE: "videochange";
+  PLAYER_VIDEOLISTCHANGE: "videolistchange";
+  PLAYER_VIEWABILITYCHANGE: "pes_viewabilitychange";
+  PLAYER_VOLUMECHANGE: "volumechange";
+  VIDEO_BUFFERING: "waiting";
+  VIDEO_DURATIONCHANGE: "video_durationchange";
+  VIDEO_END: "video_end";
+  VIDEO_PAUSE: "pause";
+  VIDEO_PLAY: "play";
+  VIDEO_PLAYING: "playing";
+  VIDEO_PROGRESS: "progress";
+  VIDEO_QUALITIESREADY: "qualitiesavailable";
+  VIDEO_QUALITYCHANGE: "qualitychange";
+  VIDEO_SEEKEND: "seeked";
+  VIDEO_SEEKSTART: "seeking";
+  VIDEO_START: "video_start";
+  VIDEO_SUBTITLESCHANGE: "subtitlechange";
+  VIDEO_SUBTITLESREADY: "subtitlesavailable";
+  VIDEO_TIMECHANGE: "timeupdate";
+  /** Optional; not present in all SDK versions. */
   VIDEO_ERROR?: string;
 }
 
 /**
- * Player state object from getState() and event callbacks (e.g. VIDEO_TIMECHANGE).
+ * Player state object from getState() and event callbacks (e.g. VIDEO_TIMECHANGE, PLAYER_VOLUMECHANGE).
+ * Payload shape when event is "playerstate" or from state-change events.
  * @see https://developers.dailymotion.com/reference/web-sdk-player-events
  */
 export interface DailymotionPlayerState {
@@ -70,6 +110,7 @@ export interface DailymotionPlayerState {
   videoCreatedTime?: number;
   videoDuration?: number;
   videoId?: string;
+  videoIsCreatedForKids?: boolean;
   videoIsPasswordRequired?: boolean;
   videoLoadedFrom?: string | null;
   videoOwnerAvatars?: Record<number, string>;
