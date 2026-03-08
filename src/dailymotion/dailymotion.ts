@@ -1,4 +1,5 @@
 import type { IEmbedPlayer, IEmbedProvider } from "../_base/index.js";
+import { REGEX_EMBED, REGEX_SHORT, REGEX_VIDEO } from "./constants.js";
 import { createPlayer as createDailymotionPlayer } from "./player.js";
 
 export class DailymotionEmbed implements IEmbedProvider {
@@ -63,11 +64,11 @@ export class DailymotionEmbed implements IEmbedProvider {
 
   parseSourceUrl(url: string) {
     const trimmed = url.trim();
-    const videoMatch = /dailymotion\.com\/video\/([a-zA-Z0-9]+)/.exec(trimmed);
+    const videoMatch = REGEX_VIDEO.exec(trimmed);
     if (videoMatch) return { id: videoMatch[1]!, provider: this.name };
-    const shortMatch = /dai\.ly\/([a-zA-Z0-9]+)/.exec(trimmed);
+    const shortMatch = REGEX_SHORT.exec(trimmed);
     if (shortMatch) return { id: shortMatch[1]!, provider: this.name };
-    const embedMatch = /dailymotion\.com\/embed\/video\/([a-zA-Z0-9]+)/.exec(trimmed);
+    const embedMatch = REGEX_EMBED.exec(trimmed);
     if (embedMatch) return { id: embedMatch[1]!, provider: this.name };
     return null;
   }

@@ -1,4 +1,5 @@
 import type { IEmbedPlayer, IEmbedProvider } from "../_base/index.js";
+import { REGEX_EMBED, REGEX_SHORT, REGEX_WATCH } from "./constants.js";
 import { createPlayer as createYouTubePlayer } from "./player.js";
 
 export class YouTubeEmbed implements IEmbedProvider {
@@ -63,11 +64,11 @@ export class YouTubeEmbed implements IEmbedProvider {
 
   parseSourceUrl(url: string) {
     const trimmed = url.trim();
-    const watchMatch = /(?:youtube\.com\/watch\?.*\bv=)([a-zA-Z0-9_-]{11})/.exec(trimmed);
+    const watchMatch = REGEX_WATCH.exec(trimmed);
     if (watchMatch) return { id: watchMatch[1]!, provider: this.name };
-    const shortMatch = /youtu\.be\/([a-zA-Z0-9_-]{11})/.exec(trimmed);
+    const shortMatch = REGEX_SHORT.exec(trimmed);
     if (shortMatch) return { id: shortMatch[1]!, provider: this.name };
-    const embedMatch = /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/.exec(trimmed);
+    const embedMatch = REGEX_EMBED.exec(trimmed);
     if (embedMatch) return { id: embedMatch[1]!, provider: this.name };
     return null;
   }

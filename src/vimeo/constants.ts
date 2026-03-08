@@ -9,6 +9,21 @@
  *    the `h=...` value from the URL; set VIMEO_HASH below or pass options.vimeoHash.
  */
 
+/** Regex to match player.vimeo.com/video/{id} URLs. */
+export const REGEX_PLAYER = /player\.vimeo\.com\/video\/(\d+)/;
+
+/** Regex to match h= hash param in URL (unlisted videos). */
+export const REGEX_HASH = /[?&]h=([^&]+)/;
+
+/** Regex to match vimeo.com/{id} direct URLs. */
+export const REGEX_DIRECT = /vimeo\.com\/(\d+)(?:\/|$|\?)/;
+
+/** Regex to match vimeo.com/channels/.../{id} URLs. */
+export const REGEX_CHANNELS = /vimeo\.com\/channels\/[\w-]+\/(\d+)/;
+
+/** Regex to match vimeo.com/groups/.../videos/{id} URLs. */
+export const REGEX_GROUPS = /vimeo\.com\/groups\/[\w-]+\/videos\/(\d+)/;
+
 /** Video ID for createPlayer and video-id attribute. */
 export const VIDEO_ID = "1170179436";
 

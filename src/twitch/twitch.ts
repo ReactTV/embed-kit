@@ -1,4 +1,10 @@
 import type { IEmbedPlayer, IEmbedProvider } from "../_base/index.js";
+import {
+  REGEX_CHANNEL,
+  REGEX_CLIP,
+  REGEX_CLIPS_HOST,
+  REGEX_VIDEO,
+} from "./constants.js";
 import { createPlayer as createTwitchPlayer } from "./player.js";
 
 export class TwitchEmbed implements IEmbedProvider {
@@ -80,13 +86,13 @@ export class TwitchEmbed implements IEmbedProvider {
 
   parseSourceUrl(url: string) {
     const trimmed = url.trim();
-    const videoMatch = /twitch\.tv\/videos\/(\d+)/.exec(trimmed);
+    const videoMatch = REGEX_VIDEO.exec(trimmed);
     if (videoMatch) return { id: videoMatch[1]!, provider: this.name };
-    const clipsHostMatch = /clips\.twitch\.tv\/([\w-]+)/.exec(trimmed);
+    const clipsHostMatch = REGEX_CLIPS_HOST.exec(trimmed);
     if (clipsHostMatch) return { id: clipsHostMatch[1]!, provider: this.name, options: { twitchType: "clip" } };
-    const clipMatch = /twitch\.tv\/(?:[\w-]+\/)?clip\/([\w-]+)/.exec(trimmed);
+    const clipMatch = REGEX_CLIP.exec(trimmed);
     if (clipMatch) return { id: clipMatch[1]!, provider: this.name, options: { twitchType: "clip" } };
-    const channelMatch = /twitch\.tv\/([a-zA-Z0-9_]+)(?:\/|$|\?)/.exec(trimmed);
+    const channelMatch = REGEX_CHANNEL.exec(trimmed);
     if (channelMatch) return { id: channelMatch[1]!, provider: this.name, options: { twitchType: "channel" } };
     return null;
   }

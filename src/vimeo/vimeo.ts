@@ -1,4 +1,11 @@
 import type { IEmbedPlayer, IEmbedProvider } from "../_base/index.js";
+import {
+  REGEX_CHANNELS,
+  REGEX_DIRECT,
+  REGEX_GROUPS,
+  REGEX_HASH,
+  REGEX_PLAYER,
+} from "./constants.js";
 import { createPlayer as createVimeoPlayer } from "./player.js";
 
 export class VimeoEmbed implements IEmbedProvider {
@@ -65,25 +72,25 @@ export class VimeoEmbed implements IEmbedProvider {
 
   parseSourceUrl(url: string) {
     const trimmed = url.trim();
-    const playerMatch = /player\.vimeo\.com\/video\/(\d+)/.exec(trimmed);
+    const playerMatch = REGEX_PLAYER.exec(trimmed);
     if (playerMatch) {
       const id = playerMatch[1]!;
-      const hashMatch = /[?&]h=([^&]+)/.exec(trimmed);
+      const hashMatch = REGEX_HASH.exec(trimmed);
       return hashMatch
         ? { id, provider: this.name, options: { vimeoHash: decodeURIComponent(hashMatch[1]!) } }
         : { id, provider: this.name };
     }
-    const directMatch = /vimeo\.com\/(\d+)(?:\/|$|\?)/.exec(trimmed);
+    const directMatch = REGEX_DIRECT.exec(trimmed);
     if (directMatch) {
       const id = directMatch[1]!;
-      const hashMatch = /[?&]h=([^&]+)/.exec(trimmed);
+      const hashMatch = REGEX_HASH.exec(trimmed);
       return hashMatch
         ? { id, provider: this.name, options: { vimeoHash: decodeURIComponent(hashMatch[1]!) } }
         : { id, provider: this.name };
     }
-    const channelsMatch = /vimeo\.com\/channels\/[\w-]+\/(\d+)/.exec(trimmed);
+    const channelsMatch = REGEX_CHANNELS.exec(trimmed);
     if (channelsMatch) return { id: channelsMatch[1]!, provider: this.name };
-    const groupsMatch = /vimeo\.com\/groups\/[\w-]+\/videos\/(\d+)/.exec(trimmed);
+    const groupsMatch = REGEX_GROUPS.exec(trimmed);
     if (groupsMatch) return { id: groupsMatch[1]!, provider: this.name };
     return null;
   }

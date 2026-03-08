@@ -1,4 +1,5 @@
 import type { IEmbedPlayer, IEmbedProvider } from "../_base/index.js";
+import { REGEX_EMBED, REGEX_PLAYER, REGEX_VIDEO, REGEX_VM } from "./constants.js";
 import { createPlayer as createTikTokPlayer } from "./player.js";
 
 export class TikTokEmbed implements IEmbedProvider {
@@ -63,13 +64,13 @@ export class TikTokEmbed implements IEmbedProvider {
 
   parseSourceUrl(url: string) {
     const trimmed = url.trim();
-    const playerMatch = /tiktok\.com\/player\/v1\/(\d+)/.exec(trimmed);
+    const playerMatch = REGEX_PLAYER.exec(trimmed);
     if (playerMatch) return { id: playerMatch[1]!, provider: this.name };
-    const vmMatch = /(?:vm|vt)\.tiktok\.com\/([\w-]+)/.exec(trimmed);
+    const vmMatch = REGEX_VM.exec(trimmed);
     if (vmMatch) return { id: vmMatch[1]!, provider: this.name };
-    const videoMatch = /tiktok\.com\/@[\w.-]+\/video\/(\d+)/.exec(trimmed);
+    const videoMatch = REGEX_VIDEO.exec(trimmed);
     if (videoMatch) return { id: videoMatch[1]!, provider: this.name };
-    const embedMatch = /tiktok\.com\/embed\/v2\/(\d+)/.exec(trimmed);
+    const embedMatch = REGEX_EMBED.exec(trimmed);
     if (embedMatch) return { id: embedMatch[1]!, provider: this.name };
     return null;
   }
