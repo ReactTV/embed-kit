@@ -33,14 +33,21 @@
   <div class="embed-wrap">
     <twitch-embed id="tw-clip" width="560" height="315" title="Twitch clip"></twitch-embed>
   </div>
+
+  <h2>Livestream (channel)</h2>
+  <p>By channel URL (<code>src</code>): <code>twitch.tv/&lt;channel&gt;</code></p>
+  <div class="embed-wrap">
+    <twitch-embed id="tw-channel" width="560" height="315" title="Twitch livestream"></twitch-embed>
+  </div>
   <p><a href="../../test/index.html">← Back to test index</a></p>
 
   <script type="module">
     import { registerTwitchEmbed } from "../../dist/twitch/index.js";
-    import { VIDEO_SOURCE_URL, CLIP_SOURCE_URL } from "../../dist/twitch/constants.js";
+    import { VIDEO_SOURCE_URL, CLIP_SOURCE_URL, CHANNEL_SOURCE_URL } from "../../dist/twitch/constants.js";
     registerTwitchEmbed();
     document.getElementById("tw-video").setAttribute("src", VIDEO_SOURCE_URL);
     document.getElementById("tw-clip").setAttribute("src", CLIP_SOURCE_URL);
+    document.getElementById("tw-channel").setAttribute("src", CHANNEL_SOURCE_URL);
     document.getElementById("tw-autoplay-btn").addEventListener("click", () => {
       const wrap = document.getElementById("tw-autoplay-wrap");
       if (wrap.querySelector("twitch-embed")) return;

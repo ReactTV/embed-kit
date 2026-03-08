@@ -14,3 +14,9 @@ export const CLIP_SLUG = "BrightResourcefulLeopardSeemsGood-CVvpRL5aVhKwP6_U";
 
 /** Full clip URL for src attribute. */
 export const CLIP_SOURCE_URL = `https://clips.twitch.tv/${CLIP_SLUG}`;
+
+/** Channel name for livestream embeds. */
+export const CHANNEL_NAME = "twitch";
+
+/** Full livestream URL for src attribute. */
+export const CHANNEL_SOURCE_URL = `https://www.twitch.tv/${CHANNEL_NAME}`;

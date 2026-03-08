@@ -31,7 +31,9 @@ export function createPlayer(
   const onEnded = (options as { onEnded?: () => void }).onEnded;
   const onProgress = (options as { onProgress?: (data: { currentTime: number; duration?: number }) => void }).onProgress;
   const onMute = (options as { onMute?: (data: { muted: boolean }) => void }).onMute;
-  const isClip = (options as { twitchType?: string }).twitchType === "clip";
+  const twitchOptions = options as { twitchType?: string };
+  const isClip = twitchOptions.twitchType === "clip";
+  const isChannel = twitchOptions.twitchType === "channel";
   const parent =
     typeof window !== "undefined" && window.location?.hostname
       ? window.location.hostname
@@ -84,8 +86,9 @@ export function createPlayer(
     parent === "localhost" || parent === "127.0.0.1"
       ? "parent=localhost&parent=127.0.0.1"
       : `parent=${encodeURIComponent(parent)}`;
+  const mediaParam = isChannel ? "channel" : "video";
   const iframe = createEmbedIframeElement({
-    src: `${EMBED_ORIGIN}/?video=${encodeURIComponent(videoId)}&${parentQuery}${autoplay ? "&autoplay=true" : ""}`,
+    src: `${EMBED_ORIGIN}/?${mediaParam}=${encodeURIComponent(videoId)}&${parentQuery}${autoplay ? "&autoplay=true" : ""}`,
     width: typeof width === "number" ? width : parseInt(String(width), 10) || 560,
     height: typeof height === "number" ? height : parseInt(String(height), 10) || 315,
     allow: "accelerometer; fullscreen; autoplay; encrypted-media; picture-in-picture",

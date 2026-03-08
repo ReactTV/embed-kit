@@ -7,7 +7,9 @@ export class TwitchEmbed implements EmbedProvider {
   #player: EmbedPlayer | null = null;
 
   getEmbedUrl(id: string, options?: EmbedOptions): string {
-    const isClip = options?.twitchType === "clip";
+    const twitchType = options?.twitchType as string | undefined;
+    const isClip = twitchType === "clip";
+    const isChannel = twitchType === "channel";
     const parent =
       (options?.twitchParent as string) ??
       (options?.parent as string) ??
@@ -20,7 +22,10 @@ export class TwitchEmbed implements EmbedProvider {
     if (isClip) {
       return `https://clips.twitch.tv/embed?clip=${encodeURIComponent(id)}&${parentParam}`;
     }
-    return `https://player.twitch.tv/?video=${id}&parent=${encodeURIComponent(parent)}`;
+    if (isChannel) {
+      return `https://player.twitch.tv/?channel=${encodeURIComponent(id)}&${parentParam}`;
+    }
+    return `https://player.twitch.tv/?video=${id}&${parentParam}`;
   }
 
   async createPlayer(
@@ -81,6 +86,8 @@ export class TwitchEmbed implements EmbedProvider {
     if (clipsHostMatch) return { id: clipsHostMatch[1]!, provider: this.name, options: { twitchType: "clip" } };
     const clipMatch = /twitch\.tv\/(?:[\w-]+\/)?clip\/([\w-]+)/.exec(trimmed);
     if (clipMatch) return { id: clipMatch[1]!, provider: this.name, options: { twitchType: "clip" } };
+    const channelMatch = /twitch\.tv\/([a-zA-Z0-9_]+)(?:\/|$|\?)/.exec(trimmed);
+    if (channelMatch) return { id: channelMatch[1]!, provider: this.name, options: { twitchType: "channel" } };
     return null;
   }
 }
