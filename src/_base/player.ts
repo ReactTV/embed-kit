@@ -37,6 +37,9 @@ export interface EmbedPlayer {
   /** Resolves to true if audio is muted, false otherwise. Unsupported providers may return false. */
   readonly muted: Promise<boolean>;
 
+  /** Last error from the player, if any. Set when onError fires; unsupported providers may always return null. */
+  readonly lastError: ErrorData | null;
+
   /** Optional: clean up player and listeners. */
   destroy?(): void | Promise<void>;
 }
@@ -62,6 +65,8 @@ export interface CreatePlayerOptions {
   onProgress?: (data: ProgressData) => void;
   /** Called when the mute state changes (e.g. after mute() or unmute(), or when the user toggles mute in the embed). */
   onMute?: (data: MuteData) => void;
+  /** Called when the player or embed encounters an error. Unsupported providers may not call. */
+  onError?: (data: ErrorData) => void;
   [key: string]: unknown;
 }
 
@@ -69,4 +74,12 @@ export interface CreatePlayerOptions {
 export interface MuteData {
   /** True if audio is muted, false if unmuted. */
   muted: boolean;
+}
+
+/** Normalized error payload: provider-specific code and optional message. */
+export interface ErrorData {
+  /** Provider-specific error code when available (e.g. YouTube: 2, 5, 100, 101, 150). */
+  code?: number | string;
+  /** Human-readable error message when available. */
+  message?: string;
 }

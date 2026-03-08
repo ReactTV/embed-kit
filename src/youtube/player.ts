@@ -20,6 +20,7 @@ interface YTOptions {
   events?: {
     onReady?: (ev: { target: YTPlayer }) => void;
     onStateChange?: (ev: { data: number }) => void;
+    onError?: (ev: { data: number }) => void;
   };
 }
 
@@ -66,6 +67,8 @@ export function createPlayer(
   const onEnded = (options as { onEnded?: () => void }).onEnded;
   const onProgress = (options as { onProgress?: (data: { currentTime: number; duration?: number }) => void }).onProgress;
   const onMute = (options as { onMute?: (data: { muted: boolean }) => void }).onMute;
+  const onError = (options as { onError?: (data: { code?: number | string; message?: string }) => void }).onError;
+  let lastError: { code?: number | string; message?: string } | null = null;
 
   return loadYTScript().then(
     () =>
@@ -81,7 +84,11 @@ export function createPlayer(
             height: typeof height === "number" ? height : parseInt(String(height), 10) || 315,
             playerVars: { autoplay: autoplay ? 1 : 0 },
             events: {
-                onReady(ev: { target: YTPlayer }) {
+              onError(ev: { data: number }) {
+                lastError = { code: ev.data };
+                onError?.(lastError);
+              },
+              onReady(ev: { target: YTPlayer }) {
                 const player = ev.target;
                 onReadyCallback?.();
                 let progressInterval: ReturnType<typeof setInterval> | undefined;
@@ -148,6 +155,9 @@ export function createPlayer(
                   },
                   get muted() {
                     return Promise.resolve(player.isMuted());
+                  },
+                  get lastError() {
+                    return lastError;
                   },
                   destroy() {
                     if (progressInterval) clearInterval(progressInterval);

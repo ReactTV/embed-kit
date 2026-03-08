@@ -38,6 +38,7 @@ export function createPlayer(
   const onEnded = (options as { onEnded?: () => void }).onEnded;
   const onProgress = (options as { onProgress?: (data: { currentTime: number; duration?: number }) => void }).onProgress;
   const onMute = (options as { onMute?: (data: { muted: boolean }) => void }).onMute;
+  const onError = (options as { onError?: (data: { code?: number | string; message?: string }) => void }).onError;
 
   // Vertical video: width is the narrow dimension, height the tall one (e.g. 325×575).
   const iframe = createEmbedIframeElement({
@@ -55,6 +56,7 @@ export function createPlayer(
   let lastState: number = STATE_PAUSED;
   let lastCurrentTime = 0;
   let lastDuration = 0;
+  let lastError: { code?: number | string; message?: string } | null = null;
   let resolveReady: () => void;
   const readyPromise = new Promise<void>((resolve) => {
     resolveReady = resolve;
@@ -89,6 +91,17 @@ export function createPlayer(
           onProgress?.({ currentTime: lastCurrentTime, duration: lastDuration });
         }
         break;
+      case "onError":
+      case "error": {
+        const err = data.value as { message?: string; code?: number | string } | undefined;
+        const errorData = {
+          ...(err?.message != null ? { message: err.message } : {}),
+          ...(err?.code != null ? { code: err.code } : {}),
+        };
+        lastError = Object.keys(errorData).length > 0 ? errorData : { message: "TikTok embed error" };
+        onError?.(lastError);
+        break;
+      }
     }
   };
 
@@ -132,6 +145,9 @@ export function createPlayer(
     },
     get muted(): Promise<boolean> {
       return Promise.resolve(lastMuted);
+    },
+    get lastError() {
+      return lastError;
     },
     destroy() {
       window.removeEventListener("message", handleMessage);

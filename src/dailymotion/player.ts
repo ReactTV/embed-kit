@@ -63,6 +63,7 @@ export function createPlayer(
   const onEnded = (options as { onEnded?: () => void }).onEnded;
   const onProgress = (options as { onProgress?: (data: { currentTime: number; duration?: number }) => void }).onProgress;
   const onMute = (options as { onMute?: (data: { muted: boolean }) => void }).onMute;
+  const onError = (options as { onError?: (data: { code?: number | string; message?: string }) => void }).onError;
   const widthStyle = typeof width === "number" ? `${width}px` : String(width);
   const heightStyle = typeof height === "number" ? `${height}px` : String(height);
 
@@ -90,6 +91,7 @@ export function createPlayer(
       let dmMuted = false;
       let cachedPaused = true;
       let lastPlayPauseTime = 0;
+      let lastError: { code?: number | string; message?: string } | null = null;
       const OPTIMISTIC_MS = 2500;
       let progressInterval: ReturnType<typeof setInterval> | undefined;
       if (onEnded) {
@@ -97,6 +99,19 @@ export function createPlayer(
           dmPlayer.on("video_end", onEnded);
         } else if (typeof dmPlayer.addEventListener === "function") {
           dmPlayer.addEventListener("video_end", onEnded);
+        }
+      }
+      if (onError) {
+        const handleError = (): void => {
+          lastError = { message: "Dailymotion playback error" };
+          onError(lastError);
+        };
+        if (typeof dmPlayer.on === "function") {
+          dmPlayer.on("error", handleError);
+          dmPlayer.on("video_error", handleError);
+        } else if (typeof dmPlayer.addEventListener === "function") {
+          dmPlayer.addEventListener("error", handleError);
+          dmPlayer.addEventListener("video_error", handleError);
         }
       }
       if (onProgress) {
@@ -188,6 +203,9 @@ export function createPlayer(
       },
       get muted() {
         return Promise.resolve(dmMuted);
+      },
+      get lastError() {
+        return lastError;
       },
       destroy() {
         if (progressInterval) clearInterval(progressInterval);

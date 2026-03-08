@@ -31,6 +31,7 @@ export function createPlayer(
   const onEnded = (options as { onEnded?: () => void }).onEnded;
   const onProgress = (options as { onProgress?: (data: { currentTime: number; duration?: number }) => void }).onProgress;
   const onMute = (options as { onMute?: (data: { muted: boolean }) => void }).onMute;
+  const onError = (options as { onError?: (data: { code?: number | string; message?: string }) => void }).onError;
   const twitchOptions = options as { twitchType?: string };
   const isClip = twitchOptions.twitchType === "clip";
   const isChannel = twitchOptions.twitchType === "channel";
@@ -76,6 +77,9 @@ export function createPlayer(
       get muted() {
         return Promise.resolve(false);
       },
+      get lastError() {
+        return null;
+      },
       destroy() {
         if (iframe.parentNode) iframe.remove();
       },
@@ -100,6 +104,7 @@ export function createPlayer(
   let currentTime = 0;
   let duration = 0;
   let isMuted = false;
+  let lastError: { code?: number | string; message?: string } | null = null;
   let readyResolve: () => void;
   const readyPromise = new Promise<void>((r) => {
     readyResolve = r;
@@ -113,6 +118,12 @@ export function createPlayer(
     if (data.namespace === NS_EMBED && data.eventName === "ready") {
       readyResolve();
       onReady?.();
+    } else if (data.namespace === NS_EMBED && data.eventName === "error") {
+      const msg = data.params && typeof data.params === "object" && !Array.isArray(data.params)
+        ? (data.params as { message?: string }).message
+        : undefined;
+      lastError = { message: msg ?? "Twitch embed error" };
+      onError?.(lastError);
     } else if (data.namespace === NS_PLAYER_PROXY && data.eventName === "UPDATE_STATE" && data.params && typeof data.params === "object" && !Array.isArray(data.params)) {
       const p = data.params as { playback?: string; currentTime?: number; duration?: number };
       if (p.playback !== undefined) {
@@ -183,6 +194,9 @@ export function createPlayer(
     },
     get muted() {
       return Promise.resolve(isMuted);
+    },
+    get lastError() {
+      return lastError;
     },
     destroy() {
       window.removeEventListener("message", onMessage);

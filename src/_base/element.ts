@@ -1,79 +1,8 @@
-import type { EmbedPlayer } from "./player.js";
+import type { EmbedPlayer, ErrorData } from "./player.js";
 import type { EmbedOptions, EmbedProvider } from "./provider.js";
-import { renderEmbedIframe } from "./iframe.js";
 
 const DEFAULT_WIDTH = "560";
 const DEFAULT_HEIGHT = "315";
-
-/**
- * Creates a custom element class that renders this provider's embed in a shadow root.
- * Use `src` (full URL) or `video-id` (media id). Optional: `width`, `height`, `title`.
- */
-export function createEmbedElement(
-  provider: EmbedProvider,
-  _tagName: string
-): CustomElementConstructor {
-  return class extends HTMLElement {
-    static get observedAttributes(): string[] {
-      return ["src", "video-id", "width", "height", "title"];
-    }
-
-    #shadow: ShadowRoot | null = null;
-
-    connectedCallback(): void {
-      if (!this.#shadow) {
-        this.#shadow = this.attachShadow({ mode: "open" });
-      }
-      this.#render();
-    }
-
-    attributeChangedCallback(): void {
-      this.#render();
-    }
-
-    #render(): void {
-      if (!this.#shadow) return;
-
-      const srcAttr = this.getAttribute("src");
-      const idAttr = this.getAttribute("video-id");
-
-      let embedUrl: string | null = null;
-
-      if (srcAttr) {
-        const parsed = provider.parseSourceUrl(srcAttr);
-        if (parsed) {
-          embedUrl = provider.getEmbedUrl(parsed.id, parsed.options);
-        }
-      } else if (idAttr) {
-        embedUrl = provider.getEmbedUrl(idAttr);
-      }
-
-      if (!embedUrl) {
-        this.#shadow.innerHTML = "";
-        return;
-      }
-
-      const width = this.getAttribute("width") ?? DEFAULT_WIDTH;
-      const height = this.getAttribute("height") ?? DEFAULT_HEIGHT;
-      const title = this.getAttribute("title") ?? "";
-
-      const html = renderEmbedIframe({
-        src: embedUrl,
-        width,
-        height,
-        title,
-      });
-
-      this.style.display = "block";
-      const w = String(width);
-      const h = String(height);
-      this.style.width = /^\d+$/.test(w) ? `${w}px` : w;
-      this.style.height = /^\d+$/.test(h) ? `${h}px` : h;
-
-      this.#shadow.innerHTML = `<style>:host{display:block;} iframe{display:block;border:0;}</style>${html}`;
-    }
-  };
-}
 
 /**
  * Creates a custom element class for a provider that implements createPlayer.
@@ -89,7 +18,6 @@ export function createControllableEmbedElement(
       options?: EmbedOptions
     ): Promise<EmbedPlayer>;
   },
-  _tagName: string
 ): CustomElementConstructor {
   return class extends HTMLElement {
     static get observedAttributes(): string[] {
@@ -99,6 +27,7 @@ export function createControllableEmbedElement(
     #playerPromise: Promise<EmbedPlayer> | null = null;
     #player: EmbedPlayer | null = null;
     #container: HTMLElement | null = null;
+    #lastError: ErrorData | null = null;
 
     connectedCallback(): void {
       this.#render();
@@ -159,6 +88,11 @@ export function createControllableEmbedElement(
       return p ? p.then((player) => player.ready) : new Promise<void>(() => {});
     }
 
+    /** Last error from the player, if any. Cleared when the embed is recreated (e.g. video-id change). */
+    get lastError(): ErrorData | null {
+      return this.#lastError;
+    }
+
     async #getPlayer(): Promise<EmbedPlayer | null> {
       if (this.#player) return this.#player;
       if (this.#playerPromise) return this.#playerPromise;
@@ -187,6 +121,7 @@ export function createControllableEmbedElement(
         this.#container = null;
         this.#playerPromise = null;
         this.#player = null;
+        this.#lastError = null;
         return;
       }
 
@@ -207,6 +142,7 @@ export function createControllableEmbedElement(
         this.#container = null;
         this.#playerPromise = null;
         this.#player = null;
+        this.#lastError = null;
         return;
       }
 
@@ -215,6 +151,7 @@ export function createControllableEmbedElement(
       }
       this.#player = null;
       this.#playerPromise = null;
+      this.#lastError = null;
 
       const container = document.createElement("div");
       container.style.display = "block";
@@ -231,11 +168,17 @@ export function createControllableEmbedElement(
       const autoplayAttr = this.getAttribute("autoplay");
       const autoplay = autoplayAttr !== null && autoplayAttr !== "false";
       const onMute = (this as unknown as { onMute?: (data: { muted: boolean }) => void }).onMute;
+      const userOnError = (this as unknown as { onError?: (data: ErrorData) => void }).onError;
+      const onError = (data: ErrorData): void => {
+        this.#lastError = data;
+        userOnError?.(data);
+      };
       this.#playerPromise = provider.createPlayer(container, id, {
         width,
         height,
         autoplay,
         ...(typeof onMute === "function" ? { onMute } : {}),
+        onError,
         ...options,
       }).then((player) => {
         this.#player = player;

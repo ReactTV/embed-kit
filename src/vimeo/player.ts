@@ -57,6 +57,7 @@ export function createPlayer(
   const onEnded = (options as { onEnded?: () => void }).onEnded;
   const onProgress = (options as { onProgress?: (data: { currentTime: number; duration?: number }) => void }).onProgress;
   const onMute = (options as { onMute?: (data: { muted: boolean }) => void }).onMute;
+  const onError = (options as { onError?: (data: { code?: number | string; message?: string }) => void }).onError;
 
   const vimeoHash = (options as { vimeoHash?: string }).vimeoHash;
   const query = new URLSearchParams({ api: "1" });
@@ -72,8 +73,19 @@ export function createPlayer(
   });
   container.appendChild(iframe);
 
+  let lastError: { code?: number | string; message?: string } | null = null;
   return loadVimeoScript().then(() => {
     const vimeoPlayer = new window.Vimeo!.Player(iframe);
+    if (onError && typeof vimeoPlayer.on === "function") {
+      vimeoPlayer.on("error", (err?: unknown) => {
+        const e = err as { message?: string; code?: number } | undefined;
+        lastError = {
+          ...(e?.message != null ? { message: e.message } : {}),
+          ...(e?.code != null ? { code: e.code } : {}),
+        };
+        onError?.(lastError);
+      });
+    }
     if (onEnded && typeof vimeoPlayer.on === "function") {
       vimeoPlayer.on("finish", onEnded);
       vimeoPlayer.on("ended", onEnded);
@@ -151,6 +163,9 @@ export function createPlayer(
       },
       get muted() {
         return vimeoPlayer.getMuted();
+      },
+      get lastError() {
+        return lastError;
       },
       destroy() {
         vimeoPlayer.destroy();
