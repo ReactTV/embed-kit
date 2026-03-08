@@ -77,7 +77,7 @@ export function createEmbedElement(
 
 /**
  * Creates a custom element class for a provider that implements createPlayer.
- * The element calls provider.createPlayer() and exposes play(), pause(), paused, currentTime, seek().
+ * The element calls provider.createPlayer() and exposes play(), pause(), paused, currentTime, seek(), autoplay.
  */
 export function createControllableEmbedElement(
   provider: EmbedProvider & {
@@ -91,7 +91,7 @@ export function createControllableEmbedElement(
 ): CustomElementConstructor {
   return class extends HTMLElement {
     static get observedAttributes(): string[] {
-      return ["src", "video-id", "width", "height", "title"];
+      return ["src", "video-id", "width", "height", "title", "autoplay"];
     }
 
     #shadow: ShadowRoot | null = null;
@@ -131,6 +131,10 @@ export function createControllableEmbedElement(
     async seek(seconds: number): Promise<void> {
       const player = await this.#getPlayer();
       if (player) player.seek(seconds);
+    }
+
+    get autoplay(): Promise<boolean> {
+      return this.#getPlayer().then((player) => (player ? player.autoplay : Promise.resolve(false)));
     }
 
     async #getPlayer(): Promise<EmbedPlayer | null> {
@@ -193,9 +197,12 @@ export function createControllableEmbedElement(
       this.#shadow.appendChild(container);
       this.#container = container;
 
+      const autoplayAttr = this.getAttribute("autoplay");
+      const autoplay = autoplayAttr !== null && autoplayAttr !== "false";
       this.#playerPromise = provider.createPlayer(container, id, {
         width,
         height,
+        autoplay,
         ...options,
       }).then((player) => {
         this.#player = player;

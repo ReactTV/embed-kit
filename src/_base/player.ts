@@ -1,5 +1,5 @@
 /**
- * Normalized embed player API (play, pause, paused, currentTime, seek).
+ * Normalized embed player API (play, pause, paused, currentTime, seek, autoplay).
  * Each provider that supports playback control implements this interface.
  */
 
@@ -19,6 +19,9 @@ export interface EmbedPlayer {
   /** Seek to the given time in seconds. Unsupported providers may no-op. */
   seek(seconds: number): void | Promise<void>;
 
+  /** Resolves to true if autoplay was requested when creating the player. */
+  readonly autoplay: Promise<boolean>;
+
   /** Optional: clean up player and listeners. */
   destroy?(): void | Promise<void>;
 }
@@ -26,5 +29,7 @@ export interface EmbedPlayer {
 export interface CreatePlayerOptions {
   width?: string | number;
   height?: string | number;
+  /** When true, the embed will start playing automatically when loaded (if supported). */
+  autoplay?: boolean;
   [key: string]: unknown;
 }

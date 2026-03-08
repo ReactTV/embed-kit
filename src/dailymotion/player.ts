@@ -47,48 +47,9 @@ function loadDailymotionScript(): Promise<void> {
 }
 
 /**
- * Position the SDK root over the container. Keep 16:9 aspect ratio and clip overflow.
- */
-function positionOverContainerWithCleanup(
-  sdkRoot: HTMLElement,
-  container: HTMLElement
-): () => void {
-  const update = (): void => {
-    const rect = container.getBoundingClientRect();
-    const width = rect.width;
-    const height = rect.height;
-    sdkRoot.style.position = "fixed";
-    sdkRoot.style.left = `${rect.left}px`;
-    sdkRoot.style.top = `${rect.top}px`;
-    sdkRoot.style.width = `${width}px`;
-    sdkRoot.style.height = `${height}px`;
-    sdkRoot.style.overflow = "hidden";
-    sdkRoot.style.zIndex = "1";
-    const inner = sdkRoot.querySelector(".dailymotion-player-wrapper") as HTMLElement | null;
-    if (inner) {
-      inner.style.position = "absolute";
-      inner.style.inset = "0";
-      inner.style.width = "100%";
-      inner.style.height = "100%";
-    }
-  };
-  update();
-  const ro = new ResizeObserver(update);
-  ro.observe(container);
-  window.addEventListener("scroll", update, { passive: true });
-  window.addEventListener("resize", update);
-  return () => {
-    ro.disconnect();
-    window.removeEventListener("scroll", update);
-    window.removeEventListener("resize", update);
-  };
-}
-
-/**
  * Create a controllable Dailymotion player. The SDK looks up the container by id via
- * document.getElementById, so the wrapper must be in the document (not in a shadow root).
- * When container is in the light DOM we append the wrapper there so the player stays
- * inside the component. When container is in a shadow root we append to body and overlay.
+ * document.getElementById, so we create the wrapper in document.body, then move it into
+ * the container once the SDK is ready so the player sits in the document flow.
  */
 export function createPlayer(
   container: HTMLElement,
@@ -97,10 +58,9 @@ export function createPlayer(
 ): Promise<EmbedPlayer> {
   const width = options.width ?? 560;
   const height = options.height ?? 315;
+  const autoplay = Boolean((options as { autoplay?: boolean }).autoplay);
   const widthStyle = typeof width === "number" ? `${width}px` : String(width);
   const heightStyle = typeof height === "number" ? `${height}px` : String(height);
-
-  const inLightDOM = container.getRootNode() === document;
 
   const containerId = `dailymotion-player-${Math.random().toString(36).slice(2, 11)}`;
   const wrapper = document.createElement("div");
@@ -108,38 +68,22 @@ export function createPlayer(
   wrapper.style.width = widthStyle;
   wrapper.style.height = heightStyle;
   wrapper.style.overflow = "hidden";
-
-  if (inLightDOM) {
-    container.appendChild(wrapper);
-  } else {
-    const placeholder = document.createElement("div");
-    placeholder.style.width = widthStyle;
-    placeholder.style.height = heightStyle;
-    placeholder.style.minWidth = widthStyle;
-    placeholder.style.minHeight = heightStyle;
-    placeholder.style.aspectRatio = "16 / 9";
-    container.appendChild(placeholder);
-    document.body.appendChild(wrapper);
-  }
+  document.body.appendChild(wrapper);
 
   return loadDailymotionScript()
     .then(() => {
       if (!window.dailymotion?.createPlayer) {
         wrapper.remove();
-        if (!inLightDOM && container.firstElementChild) container.firstElementChild?.remove();
         return Promise.reject(new Error("Dailymotion player API not available"));
       }
-      return window.dailymotion.createPlayer(containerId, { video: videoId });
+      return window.dailymotion.createPlayer(containerId, {
+        video: videoId,
+        ...(autoplay ? { params: { autoplay: true } } : {}),
+      });
     })
     .then((dmPlayer) => {
-      let positionCleanup: (() => void) | null = null;
-      if (!inLightDOM) {
-        const sdkRoot = document.getElementById(containerId) ?? wrapper;
-        if (sdkRoot) {
-          sdkRoot.style.overflow = "hidden";
-          positionCleanup = positionOverContainerWithCleanup(sdkRoot, container);
-        }
-      }
+      wrapper.remove();
+      container.appendChild(wrapper);
       return {
         play: () => dmPlayer.play(),
         pause: () => dmPlayer.pause(),
@@ -156,17 +100,17 @@ export function createPlayer(
             return dmPlayer.seek(seconds);
           }
         },
+        get autoplay() {
+          return Promise.resolve(autoplay);
+        },
         destroy() {
-          positionCleanup?.();
           dmPlayer.destroy();
           wrapper.remove();
-          if (!inLightDOM && container.firstElementChild) container.firstElementChild.remove();
         },
       };
     })
     .catch((err) => {
       wrapper.remove();
-      if (!inLightDOM && container.firstElementChild) container.firstElementChild.remove();
       throw err;
     });
 }

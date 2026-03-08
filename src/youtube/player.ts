@@ -13,6 +13,7 @@ interface YTOptions {
   videoId: string;
   width?: number | string;
   height?: number | string;
+  playerVars?: { autoplay?: 0 | 1 };
   events?: { onReady?: (ev: { target: YTPlayer }) => void };
 }
 
@@ -50,6 +51,7 @@ export function createPlayer(
 ): Promise<EmbedPlayer> {
   const width = options.width ?? 560;
   const height = options.height ?? 315;
+  const autoplay = Boolean((options as { autoplay?: boolean }).autoplay);
 
   return loadYTScript().then(
     () =>
@@ -63,6 +65,7 @@ export function createPlayer(
             videoId,
             width: typeof width === "number" ? width : parseInt(String(width), 10) || 560,
             height: typeof height === "number" ? height : parseInt(String(height), 10) || 315,
+            playerVars: { autoplay: autoplay ? 1 : 0 },
             events: {
               onReady(ev: { target: YTPlayer }) {
                 const player = ev.target;
@@ -77,6 +80,9 @@ export function createPlayer(
                   },
                   seek(seconds: number) {
                     player.seekTo(seconds, true);
+                  },
+                  get autoplay() {
+                    return Promise.resolve(autoplay);
                   },
                   destroy() {
                     if (div.parentNode) container.removeChild(div);

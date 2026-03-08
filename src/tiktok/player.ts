@@ -27,9 +27,10 @@ export function createPlayer(
 ): Promise<EmbedPlayer> {
   const width = options.width ?? 325;
   const height = options.height ?? 575;
+  const autoplay = Boolean((options as { autoplay?: boolean }).autoplay);
 
   const iframe = document.createElement("iframe");
-  iframe.src = `${EMBED_BASE}${postId}`;
+  iframe.src = `${EMBED_BASE}${postId}${autoplay ? "?autoplay=1" : ""}`;
   iframe.width = String(width);
   iframe.height = String(height);
   iframe.setAttribute("frameborder", "0");
@@ -69,6 +70,9 @@ export function createPlayer(
     },
     seek(_seconds: number) {
       // TikTok embed does not expose seek
+    },
+    get autoplay(): Promise<boolean> {
+      return Promise.resolve(autoplay);
     },
     destroy() {
       window.removeEventListener("message", handleMessage);

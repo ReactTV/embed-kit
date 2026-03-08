@@ -17,11 +17,15 @@
 <body>
   <h1>Vimeo embed</h1>
   <p class="server-hint">If embeds don’t appear, run <code>npx serve .</code> from the project root (ES modules require a server).</p>
-  <p>By URL (<code>src</code>):</p>
+  <h2>Autoplay</h2>
+  <div class="embed-wrap" id="vm-autoplay-wrap"></div>
+  <button type="button" id="vm-autoplay-btn">Load autoplay video</button>
+
+  <h2>By URL (<code>src</code>)</h2>
   <div class="embed-wrap">
     <vimeo-embed id="vm-by-src" width="560" height="315" title="Vimeo video"></vimeo-embed>
   </div>
-  <p>By video id (<code>video-id</code>):</p>
+  <h2>By video id (<code>video-id</code>)</h2>
   <div class="embed-wrap">
     <vimeo-embed id="vm-by-id" width="560" height="315" title="Vimeo video"></vimeo-embed>
   </div>
@@ -33,6 +37,18 @@
     registerVimeoEmbed();
     document.getElementById("vm-by-src").setAttribute("src", SOURCE_URL);
     document.getElementById("vm-by-id").setAttribute("video-id", VIDEO_ID);
+    document.getElementById("vm-autoplay-btn").addEventListener("click", () => {
+      const wrap = document.getElementById("vm-autoplay-wrap");
+      if (wrap.querySelector("vimeo-embed")) return;
+      const el = document.createElement("vimeo-embed");
+      el.setAttribute("width", "560");
+      el.setAttribute("height", "315");
+      el.setAttribute("title", "Vimeo video (autoplay)");
+      el.setAttribute("autoplay", "");
+      el.setAttribute("src", SOURCE_URL);
+      wrap.appendChild(el);
+      document.getElementById("vm-autoplay-btn").disabled = true;
+    });
   </script>
 </body>
 </html>

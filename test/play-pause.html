@@ -36,7 +36,7 @@
 
   <section id="twitch-section" style="margin-top: 2rem;">
     <h2>Twitch</h2>
-    <p><small>getPaused() is not supported by Twitch; only play/pause are tested.</small></p>
+    <p><small>Play may be blocked by the browser (autoplay policy) when not triggered by a direct user gesture.</small></p>
     <div id="twitch-container" class="player-container"></div>
     <div id="twitch-results" class="results"></div>
     <button id="twitch-run">Run tests</button>
@@ -93,14 +93,18 @@
         const currentTimeOk =
           typeof currentTime === "number" && !Number.isNaN(currentTime) && currentTime >= 0;
 
+        const SEEK_TIME = 5;
+        const SEEK_TOLERANCE = 1;
         let seekOk = true;
         try {
-          const seekResult = provider.seek(5);
+          const seekResult = provider.seek(SEEK_TIME);
           if (seekResult && typeof seekResult.then === "function") await seekResult;
           await delay(800);
           const timeAfterSeek = await provider.currentTime;
           seekOk =
-            typeof timeAfterSeek === "number" && !Number.isNaN(timeAfterSeek) && timeAfterSeek >= 0;
+            typeof timeAfterSeek === "number" &&
+            !Number.isNaN(timeAfterSeek) &&
+            Math.abs(timeAfterSeek - SEEK_TIME) <= SEEK_TOLERANCE;
         } catch (_e) {
           seekOk = false;
         }
@@ -109,7 +113,7 @@
           { label: skipGetPaused ? "Play (no throw)" : "Play (getPaused() false after play)", status: playOk ? "pass" : "fail" },
           { label: skipGetPaused ? "Pause (no throw)" : "Pause (getPaused() true after pause)", status: pauseOk ? "pass" : "fail" },
           { label: "currentTime (number ≥ 0)", status: currentTimeOk ? "pass" : "fail" },
-          { label: "seek(5) then currentTime ≥ 0", status: seekOk ? "pass" : "fail" },
+          { label: `seek(${SEEK_TIME}) then currentTime ≈ ${SEEK_TIME}`, status: seekOk ? "pass" : "fail" },
         ]);
       } catch (err) {
         showResults(resultsId, [
@@ -153,7 +157,23 @@
     document.getElementById("twitch-run").addEventListener("click", async () => {
       const { registerTwitchEmbed, twitchEmbedProvider } = await import("../dist/twitch/index.js");
       const { VIDEO_SOURCE_URL } = await import("../dist/twitch/constants.js");
-      await mountAndTest("twitch-container", "twitch-results", registerTwitchEmbed, twitchEmbedProvider, "twitch-embed", VIDEO_SOURCE_URL, { skipGetPaused: true });
+      const container = document.getElementById("twitch-container");
+      container.innerHTML = "";
+      registerTwitchEmbed();
+      const el = document.createElement("twitch-embed");
+      el.setAttribute("src", VIDEO_SOURCE_URL);
+      el.setAttribute("width", "560");
+      el.setAttribute("height", "315");
+      el.setAttribute("title", "Test");
+      container.appendChild(el);
+      await delay(INITIAL_DELAY);
+      const embedEl = container.querySelector("twitch-embed");
+      if (embedEl && typeof embedEl.play === "function") {
+        await embedEl.play();
+        if (typeof embedEl.pause === "function") await embedEl.pause();
+        await delay(400);
+      }
+      await runPlayPauseTests(twitchEmbedProvider, "twitch-results", { delayAfterPlay: 800, delayAfterPause: 800 });
     });
 
     document.getElementById("tiktok-run").addEventListener("click", async () => {

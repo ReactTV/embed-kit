@@ -17,11 +17,15 @@
 <body>
   <h1>TikTok embed</h1>
   <p class="server-hint">If embeds don’t appear, run <code>npx serve .</code> from the project root (ES modules require a server).</p>
-  <p>By URL (<code>src</code>):</p>
+  <h2>Autoplay</h2>
+  <div class="embed-wrap" id="tt-autoplay-wrap"></div>
+  <button type="button" id="tt-autoplay-btn">Load autoplay video</button>
+
+  <h2>By URL (<code>src</code>)</h2>
   <div class="embed-wrap">
     <tiktok-embed id="tt-by-src" width="325" height="575" title="TikTok video"></tiktok-embed>
   </div>
-  <p>By video id (<code>video-id</code>):</p>
+  <h2>By video id (<code>video-id</code>)</h2>
   <div class="embed-wrap">
     <tiktok-embed id="tt-by-id" width="325" height="575" title="TikTok video"></tiktok-embed>
   </div>
@@ -34,6 +38,18 @@
     registerTikTokEmbed();
     document.getElementById("tt-by-src").setAttribute("src", SOURCE_URL);
     document.getElementById("tt-by-id").setAttribute("video-id", VIDEO_ID);
+    document.getElementById("tt-autoplay-btn").addEventListener("click", () => {
+      const wrap = document.getElementById("tt-autoplay-wrap");
+      if (wrap.querySelector("tiktok-embed")) return;
+      const el = document.createElement("tiktok-embed");
+      el.setAttribute("width", "325");
+      el.setAttribute("height", "575");
+      el.setAttribute("title", "TikTok video (autoplay)");
+      el.setAttribute("autoplay", "");
+      el.setAttribute("src", SOURCE_URL);
+      wrap.appendChild(el);
+      document.getElementById("tt-autoplay-btn").disabled = true;
+    });
   </script>
 </body>
 </html>

@@ -6,15 +6,18 @@ declare global {
   interface Window {
     Twitch?: {
       Embed: new (divId: string, opts: TwitchEmbedOptions) => TwitchEmbedInstance;
+      Player?: { PLAY?: string; PAUSE?: string };
     };
   }
 }
 
 interface TwitchEmbedOptions {
   video?: string;
+  clip?: string;
   width?: number | string;
   height?: number | string;
   autoplay?: boolean;
+  parent?: string[];
 }
 
 interface TwitchEmbedInstance {
@@ -26,7 +29,7 @@ interface TwitchPlayer {
   play: () => void;
   pause: () => void;
   setMuted?: (muted: boolean) => void;
-  getCurrentTime?: () => number; // seconds; not documented on all embed types
+  getCurrentTime?: () => number;
   setCurrentTime?: (seconds: number) => void;
   videoSeek?: (seconds: number) => void;
 }
@@ -44,10 +47,10 @@ function loadTwitchScript(): Promise<void> {
 }
 
 /**
- * Create a controllable Twitch player in the given container (video by id).
- * Returns a normalized EmbedPlayer. paused is not supported by Twitch API and resolves to false.
- * Twitch.Embed only accepts an element id (document.getElementById), so we create the embed in
- * document.body then move the div (and injected iframe) into the container (e.g. shadow root).
+ * Create a controllable Twitch player in the given container (video by id, or clip by slug).
+ * Clips use the clips.twitch.tv/embed iframe (no interactive API). Videos use Twitch.Embed.
+ * The SDK requires getElementById, so we create the div in document.body, then move it into
+ * the container once the embed is ready so the player sits in the document flow.
  */
 export function createPlayer(
   container: HTMLElement,
@@ -56,9 +59,50 @@ export function createPlayer(
 ): Promise<EmbedPlayer> {
   const width = options.width ?? 560;
   const height = options.height ?? 315;
+  const autoplay = Boolean((options as { autoplay?: boolean }).autoplay);
+  const isClip = (options as { twitchType?: string }).twitchType === "clip";
+  const parent =
+    typeof window !== "undefined" && window.location?.hostname
+      ? [window.location.hostname]
+      : ["localhost"];
+
+  if (isClip) {
+    const host = parent[0] ?? "localhost";
+    const parentParams =
+      host === "localhost" || host === "127.0.0.1"
+        ? "parent=localhost&parent=127.0.0.1"
+        : `parent=${encodeURIComponent(host)}`;
+    const clipUrl = `https://clips.twitch.tv/embed?clip=${encodeURIComponent(videoId)}&${parentParams}`;
+    const iframe = document.createElement("iframe");
+    iframe.src = clipUrl;
+    iframe.width = String(typeof width === "number" ? width : parseInt(String(width), 10) || 560);
+    iframe.height = String(typeof height === "number" ? height : parseInt(String(height), 10) || 315);
+    iframe.setAttribute("frameborder", "0");
+    iframe.allowFullscreen = true;
+    container.appendChild(iframe);
+    return Promise.resolve({
+      play: () => {},
+      pause: () => {},
+      get paused() {
+        return Promise.resolve(false);
+      },
+      get currentTime() {
+        return Promise.resolve(0);
+      },
+      seek: () => {},
+      get autoplay() {
+        return Promise.resolve(autoplay);
+      },
+      destroy() {
+        if (iframe.parentNode) iframe.remove();
+      },
+    });
+  }
 
   const div = document.createElement("div");
   div.id = `twitch-player-${Math.random().toString(36).slice(2, 11)}`;
+  const widthNum = typeof width === "number" ? width : parseInt(String(width), 10) || 560;
+  const heightNum = typeof height === "number" ? height : parseInt(String(height), 10) || 315;
   document.body.appendChild(div);
 
   return loadTwitchScript().then(
@@ -67,9 +111,20 @@ export function createPlayer(
         try {
           const embed = new window.Twitch!.Embed(div.id, {
             video: videoId,
-            width: typeof width === "number" ? width : parseInt(String(width), 10) || 560,
-            height: typeof height === "number" ? height : parseInt(String(height), 10) || 315,
-            autoplay: false,
+            width: widthNum,
+            height: heightNum,
+            autoplay,
+            parent,
+          });
+
+          let isPaused = true;
+          const playEvent = window.Twitch?.Player?.PLAY ?? "Play";
+          const pauseEvent = window.Twitch?.Player?.PAUSE ?? "Pause";
+          embed.addEventListener(playEvent, () => {
+            isPaused = false;
+          });
+          embed.addEventListener(pauseEvent, () => {
+            isPaused = true;
           });
 
           const tryGetPlayer = (attempts = 0): void => {
@@ -87,7 +142,7 @@ export function createPlayer(
                   play: () => player.play(),
                   pause: () => player.pause(),
                   get paused() {
-                    return Promise.resolve(false); // Twitch embed does not expose paused state
+                    return Promise.resolve(isPaused);
                   },
                   get currentTime() {
                     return Promise.resolve(
@@ -100,6 +155,9 @@ export function createPlayer(
                     } else if (typeof player.videoSeek === "function") {
                       player.videoSeek(seconds);
                     }
+                  },
+                  get autoplay() {
+                    return Promise.resolve(autoplay);
                   },
                   destroy() {
                     if (div.parentNode) div.remove();

@@ -41,6 +41,10 @@ export class DailymotionEmbed implements EmbedProvider {
     return this.#player?.seek(seconds);
   }
 
+  get autoplay(): Promise<boolean> {
+    return this.#player?.autoplay ?? Promise.resolve(false);
+  }
+
   parseSourceUrl(url: string): ParsedEmbed | null {
     const trimmed = url.trim();
     const videoMatch = /dailymotion\.com\/video\/([a-zA-Z0-9]+)/.exec(trimmed);

@@ -8,8 +8,19 @@ export class TwitchEmbed implements EmbedProvider {
 
   getEmbedUrl(id: string, options?: EmbedOptions): string {
     const isClip = options?.twitchType === "clip";
-    const param = isClip ? "clip" : "video";
-    return `https://player.twitch.tv/?${param}=${id}`;
+    const parent =
+      (options?.twitchParent as string) ??
+      (options?.parent as string) ??
+      (typeof window !== "undefined" && window.location?.hostname) ??
+      "localhost";
+    const parentParam =
+      parent === "localhost" || parent === "127.0.0.1"
+        ? "parent=localhost&parent=127.0.0.1"
+        : `parent=${encodeURIComponent(parent)}`;
+    if (isClip) {
+      return `https://clips.twitch.tv/embed?clip=${encodeURIComponent(id)}&${parentParam}`;
+    }
+    return `https://player.twitch.tv/?video=${id}&parent=${encodeURIComponent(parent)}`;
   }
 
   async createPlayer(
@@ -42,10 +53,16 @@ export class TwitchEmbed implements EmbedProvider {
     this.#player?.seek(seconds);
   }
 
+  get autoplay(): Promise<boolean> {
+    return this.#player?.autoplay ?? Promise.resolve(false);
+  }
+
   parseSourceUrl(url: string): ParsedEmbed | null {
     const trimmed = url.trim();
     const videoMatch = /twitch\.tv\/videos\/(\d+)/.exec(trimmed);
     if (videoMatch) return { id: videoMatch[1]!, provider: this.name };
+    const clipsHostMatch = /clips\.twitch\.tv\/([\w-]+)/.exec(trimmed);
+    if (clipsHostMatch) return { id: clipsHostMatch[1]!, provider: this.name, options: { twitchType: "clip" } };
     const clipMatch = /twitch\.tv\/(?:[\w-]+\/)?clip\/([\w-]+)/.exec(trimmed);
     if (clipMatch) return { id: clipMatch[1]!, provider: this.name, options: { twitchType: "clip" } };
     return null;

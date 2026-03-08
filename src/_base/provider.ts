@@ -49,6 +49,9 @@ export interface EmbedProvider {
 
   /** Seek to the given time in seconds (optional; delegates to the active player). */
   seek?(seconds: number): void | Promise<void>;
+
+  /** Resolves to true if autoplay was requested (optional; delegates to the active player). */
+  readonly autoplay?: Promise<boolean>;
 }
 
 /** Provider that supports the normalized play/pause API. */
@@ -63,4 +66,5 @@ export type ControllableEmbedProvider = EmbedProvider & {
   readonly paused: Promise<boolean>;
   readonly currentTime: Promise<number>;
   seek(seconds: number): void | Promise<void>;
+  readonly autoplay: Promise<boolean>;
 };

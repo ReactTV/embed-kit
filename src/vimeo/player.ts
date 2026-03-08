@@ -41,10 +41,12 @@ export function createPlayer(
 ): Promise<EmbedPlayer> {
   const width = options.width ?? 560;
   const height = options.height ?? 315;
+  const autoplay = Boolean((options as { autoplay?: boolean }).autoplay);
 
   const vimeoHash = (options as { vimeoHash?: string }).vimeoHash;
   const query = new URLSearchParams({ api: "1" });
   if (vimeoHash) query.set("h", vimeoHash);
+  if (autoplay) query.set("autoplay", "1");
 
   const iframe = document.createElement("iframe");
   iframe.src = `${EMBED_BASE}${videoId}?${query.toString()}`;
@@ -68,6 +70,9 @@ export function createPlayer(
       },
       seek(seconds: number) {
         return vimeoPlayer.setCurrentTime(seconds).then(() => {});
+      },
+      get autoplay() {
+        return Promise.resolve(autoplay);
       },
       destroy() {
         vimeoPlayer.destroy();

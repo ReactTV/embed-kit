@@ -17,11 +17,19 @@
 <body>
   <h1>Twitch embed</h1>
   <p class="server-hint">If embeds don’t appear, run <code>npx serve .</code> from the project root (ES modules require a server).</p>
-  <p>By video URL (<code>src</code>):</p>
+
+  <h2>Autoplay</h2>
+  <div class="embed-wrap" id="tw-autoplay-wrap"></div>
+  <button type="button" id="tw-autoplay-btn">Load autoplay video</button>
+
+  <h2>Video format</h2>
+  <p>By video URL (<code>src</code>): <code>twitch.tv/videos/&lt;id&gt;</code></p>
   <div class="embed-wrap">
     <twitch-embed id="tw-video" width="560" height="315" title="Twitch video"></twitch-embed>
   </div>
-  <p>By clip URL:</p>
+
+  <h2>Clip format</h2>
+  <p>By clip URL (<code>src</code>): <code>clips.twitch.tv/&lt;slug&gt;</code></p>
   <div class="embed-wrap">
     <twitch-embed id="tw-clip" width="560" height="315" title="Twitch clip"></twitch-embed>
   </div>
@@ -33,6 +41,18 @@
     registerTwitchEmbed();
     document.getElementById("tw-video").setAttribute("src", VIDEO_SOURCE_URL);
     document.getElementById("tw-clip").setAttribute("src", CLIP_SOURCE_URL);
+    document.getElementById("tw-autoplay-btn").addEventListener("click", () => {
+      const wrap = document.getElementById("tw-autoplay-wrap");
+      if (wrap.querySelector("twitch-embed")) return;
+      const el = document.createElement("twitch-embed");
+      el.setAttribute("width", "560");
+      el.setAttribute("height", "315");
+      el.setAttribute("title", "Twitch video (autoplay)");
+      el.setAttribute("autoplay", "");
+      el.setAttribute("src", VIDEO_SOURCE_URL);
+      wrap.appendChild(el);
+      document.getElementById("tw-autoplay-btn").disabled = true;
+    });
   </script>
 </body>
 </html>
