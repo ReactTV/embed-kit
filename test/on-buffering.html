@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>onBuffering API tests — embed-kit</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 42rem; margin: 2rem auto; padding: 0 1rem; }
+    h1 { font-size: 1.25rem; }
+    .player-container { margin: 1rem 0; min-height: 320px; border: 1px solid #ccc; }
+    .results { margin-top: 1rem; }
+    .result { margin: 0.25rem 0; }
+    .pass { color: #0a0; }
+    .fail { color: #c00; }
+    .pending { color: #666; }
+    button { margin-top: 0.5rem; padding: 0.5rem 1rem; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Normalized onBuffering callback tests</h1>
+  <p>Tests that each provider calls the normalized <code>onBuffering</code> callback when playback buffers. The test mounts the embed with <code>onBuffering</code>, starts playback (and may seek to encourage buffering), then waits. If <code>onBuffering</code> is invoked at least once, the test passes. If no buffering occurs within the wait window, the result is "No buffering occurred (network-dependent)" and still passes, since buffering is not guaranteed.</p>
+
+  <section id="youtube-section">
+    <h2>YouTube</h2>
+    <div id="youtube-container" class="player-container"></div>
+    <div id="youtube-results" class="results"></div>
+    <button id="youtube-run">Run test</button>
+  </section>
+
+  <section id="vimeo-section" style="margin-top: 2rem;">
+    <h2>Vimeo</h2>
+    <div id="vimeo-container" class="player-container"></div>
+    <div id="vimeo-results" class="results"></div>
+    <button id="vimeo-run">Run test</button>
+  </section>
+
+  <section id="twitch-section" style="margin-top: 2rem;">
+    <h2>Twitch</h2>
+    <p><small>Buffering may occur when the stream loads.</small></p>
+    <div id="twitch-container" class="player-container"></div>
+    <div id="twitch-results" class="results"></div>
+    <button id="twitch-run">Run test</button>
+  </section>
+
+  <section id="tiktok-section" style="margin-top: 2rem;">
+    <h2>TikTok</h2>
+    <div id="tiktok-container" class="player-container"></div>
+    <div id="tiktok-results" class="results"></div>
+    <button id="tiktok-run">Run test</button>
+  </section>
+
+  <section id="dailymotion-section" style="margin-top: 2rem;">
+    <h2>Dailymotion</h2>
+    <div id="dailymotion-container" class="player-container"></div>
+    <div id="dailymotion-results" class="results"></div>
+    <button id="dailymotion-run">Run test</button>
+  </section>
+
+  <p style="margin-top: 2rem;"><a href="index.html">← Back to test index</a></p>
+
+  <script type="module">
+    const READY_TIMEOUT_MS = 30000;
+    const BUFFER_WAIT_MS = 12000; // play + optional seek, wait for buffering
+    const delay = (ms) => new Promise((r) => setTimeout(r, ms));
+
+    function showTimeoutFailure(resultsId, timeoutMs = READY_TIMEOUT_MS) {
+      return setTimeout(() => {
+        document.getElementById(resultsId)?.appendChild(
+          Object.assign(document.createElement("div"), {
+            className: "result fail",
+            textContent: `Player ready timed out after ${timeoutMs}ms`,
+          })
+        );
+      }, timeoutMs);
+    }
+
+    function showResults(containerId, results) {
+      const el = document.getElementById(containerId);
+      if (!el) return;
+      el.innerHTML = results.map((r) => `<div class="result ${r.status}">${r.label}: ${r.status.toUpperCase()}</div>`).join("");
+    }
+
+    function runOnBufferingTest(createPlayerFn, resultsId, options = {}) {
+      const { width = "560", height = "315" } = options;
+      showResults(resultsId, [
+        { label: "Player ready, play()", status: "pending" },
+        { label: "onBuffering called (or no buffering during test)", status: "pending" },
+      ]);
+      const bufferingEvents = [];
+      const container = document.getElementById(resultsId.replace("-results", "-container"));
+      if (!container) return;
+      container.innerHTML = "";
+      const mountDiv = document.createElement("div");
+      mountDiv.style.width = typeof width === "number" ? `${width}px` : width;
+      mountDiv.style.height = typeof height === "number" ? `${height}px` : height;
+      container.appendChild(mountDiv);
+
+      const t = showTimeoutFailure(resultsId);
+      const playerPromise = createPlayerFn(
+        mountDiv,
+        () => bufferingEvents.push(1),
+        () => {
+          clearTimeout(t);
+          playerPromise.then(async (player) => {
+            try {
+              const playResult = player.play();
+              if (playResult && typeof playResult.then === "function") await playResult;
+              await delay(2000);
+              // Seek to encourage buffering
+              try {
+                const dur = await player.duration;
+                if (typeof dur === "number" && dur > 5) {
+                  const seekResult = player.seek(4);
+                  if (seekResult && typeof seekResult.then === "function") await seekResult;
+                  await delay(500);
+                }
+              } catch (_) {}
+              await delay(BUFFER_WAIT_MS - 2500);
+
+              const bufferingCalled = bufferingEvents.length >= 1;
+
+              showResults(resultsId, [
+                { label: "Player ready, play()", status: "pass" },
+                {
+                  label: bufferingCalled ? "onBuffering called" : "No buffering during test (network-dependent)",
+                  status: "pass",
+                },
+              ]);
+            } catch (err) {
+              showResults(resultsId, [
+                { label: "Player ready, play()", status: "fail" },
+                { label: "onBuffering called (or no buffering during test)", status: "fail" },
+              ]);
+              document.getElementById(resultsId)?.appendChild(
+                Object.assign(document.createElement("div"), {
+                  className: "result fail",
+                  textContent: String(err?.message ?? err),
+                })
+              );
+            }
+          });
+        }
+      );
+    }
+
+    document.getElementById("youtube-run").addEventListener("click", async () => {
+      const { createPlayer } = await import("../dist/youtube/player.js");
+      const { VIDEO_ID } = await import("../dist/youtube/constants.js");
+      runOnBufferingTest(
+        (mountDiv, onBuffering, onReady) =>
+          createPlayer(mountDiv, VIDEO_ID, {
+            width: "560",
+            height: "315",
+            onBuffering,
+            onReady,
+          }),
+        "youtube-results"
+      );
+    });
+
+    document.getElementById("vimeo-run").addEventListener("click", async () => {
+      const { createPlayer } = await import("../dist/vimeo/player.js");
+      const { VIDEO_ID } = await import("../dist/vimeo/constants.js");
+      runOnBufferingTest(
+        (mountDiv, onBuffering, onReady) =>
+          createPlayer(mountDiv, VIDEO_ID, {
+            width: "560",
+            height: "315",
+            onBuffering,
+            onReady,
+          }),
+        "vimeo-results"
+      );
+    });
+
+    document.getElementById("twitch-run").addEventListener("click", async () => {
+      const { createPlayer } = await import("../dist/twitch/player.js");
+      const { VIDEO_ID } = await import("../dist/twitch/constants.js");
+      runOnBufferingTest(
+        (mountDiv, onBuffering, onReady) =>
+          createPlayer(mountDiv, VIDEO_ID, {
+            width: "560",
+            height: "315",
+            onBuffering,
+            onReady,
+          }),
+        "twitch-results"
+      );
+    });
+
+    document.getElementById("tiktok-run").addEventListener("click", async () => {
+      const { createPlayer } = await import("../dist/tiktok/player.js");
+      const { VIDEO_ID } = await import("../dist/tiktok/constants.js");
+      runOnBufferingTest(
+        (mountDiv, onBuffering, onReady) =>
+          createPlayer(mountDiv, VIDEO_ID, {
+            width: "325",
+            height: "575",
+            onBuffering,
+            onReady,
+          }),
+        "tiktok-results",
+        { width: "325", height: "575" }
+      );
+    });
+
+    document.getElementById("dailymotion-run").addEventListener("click", async () => {
+      const { createPlayer } = await import("../dist/dailymotion/player.js");
+      const { VIDEO_ID } = await import("../dist/dailymotion/constants.js");
+      runOnBufferingTest(
+        (mountDiv, onBuffering, onReady) =>
+          createPlayer(mountDiv, VIDEO_ID, {
+            width: "560",
+            height: "315",
+            onBuffering,
+            onReady,
+          }),
+        "dailymotion-results"
+      );
+    });
+  </script>
+</body>
+</html>

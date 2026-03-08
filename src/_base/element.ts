@@ -167,6 +167,7 @@ export function createEmbedElement(provider: IEmbedProvider): CustomElementConst
       const onMute = (this as unknown as { onMute?: (data: { muted: boolean }) => void }).onMute;
       const onPlay = (this as unknown as { onPlay?: () => void }).onPlay;
       const onPause = (this as unknown as { onPause?: () => void }).onPause;
+      const onBuffering = (this as unknown as { onBuffering?: () => void }).onBuffering;
       const userOnError = (this as unknown as { onError?: (data: IErrorData) => void }).onError;
       const onError = (data: IErrorData): void => {
         this.#lastError = data;
@@ -179,6 +180,7 @@ export function createEmbedElement(provider: IEmbedProvider): CustomElementConst
         ...(typeof onMute === "function" ? { onMute } : {}),
         ...(typeof onPlay === "function" ? { onPlay } : {}),
         ...(typeof onPause === "function" ? { onPause } : {}),
+        ...(typeof onBuffering === "function" ? { onBuffering } : {}),
         onError,
         ...options,
       }).then((player) => {

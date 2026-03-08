@@ -11,6 +11,7 @@ export interface ICreatePlayerOptions {
   onReady?: () => void;
   onPlay?: () => void;
   onPause?: () => void;
+  onBuffering?: () => void;
   onEnded?: () => void;
   onProgress?: (data: IProgressData) => void;
   onMute?: (data: IMuteData) => void;
