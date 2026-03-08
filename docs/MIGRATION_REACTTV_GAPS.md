@@ -28,13 +28,11 @@ c
 
 ---
 
-## 3. **Ref = player instance (play/pause/seek from ref)**
+## 3. **Ref = player instance (play/pause/seek from ref)** ✅ Implemented
 
 - **ReactTV usage:** `playerRef` is passed to the embed; code calls `playerRef.current?.play()`, `playerRef.current?.currentTime` (read and write for seeking), and `playerRef.current?.error` (for `onDetailedError`). The ref is typed as `HTMLVideoElement | null` but in practice it’s the react-player instance (or its internal player), which is used like a controllable handle.
-- **embed-kit:** `ReactEmbedKit` gives the player in `onReady(player)` only. There is no ref that gets set to the `IEmbedPlayer` instance. The custom element exposes `play()`, `pause()`, `seek()`, `lastError`, etc. on the element itself.
-- **Migration options:**
-  - In ReactTV: store the player in a ref inside `onReady`: `onReady={(p) => { playerRef.current = p; }}` and use that ref for play/pause/seek and for `error` (e.g. `playerRef.current?.error`). Use `lastError` if you use the custom element.
-  - Or add in embed-kit: support a ref on `ReactEmbedKit` that is set to the `IEmbedPlayer` when ready (and cleared on unmount), so ReactTV can keep a similar ref-based API.
+- **embed-kit:** `ReactEmbedKit` accepts an optional `playerRef?: React.Ref<IEmbedPlayer | null>`. When the player is ready, the ref is set to the `IEmbedPlayer`; on unmount or when the URL changes it is set to `null`. Use `playerRef.current?.play()`, `playerRef.current?.pause()`, `playerRef.current?.seek(seconds)`, `playerRef.current?.currentTime`, `playerRef.current?.error`, etc. The custom element also exposes `play()`, `pause()`, `seek()`, `lastError`, etc. on the element itself.
+- **Migration:** Pass `playerRef={playerRef}` to `ReactEmbedKit` and use it for play/pause/seek and `playerRef.current?.error` (e.g. for `onDetailedError`-style handling). For seeking, use `player.seek(seconds)` rather than writing to `currentTime`.
 
 ---
 

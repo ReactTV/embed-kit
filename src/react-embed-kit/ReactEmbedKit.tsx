@@ -13,6 +13,8 @@ export interface ReactEmbedKitProps {
   /** Initial volume 0–1. Not all providers support volume. */
   volume?: number;
   progressInterval?: number;
+  /** Ref set to the IEmbedPlayer when ready and cleared on unmount. Use for play/pause/seek and error (e.g. playerRef.current?.play(), playerRef.current?.error). */
+  playerRef?: React.Ref<IEmbedPlayer | null>;
   onUnsupportedUrl?: (url: string) => void;
   onError?: (data: IErrorData) => void;
   onReady?: (player: IEmbedPlayer) => void;
@@ -35,8 +37,18 @@ const defaultHeight = 315;
 
 const noop = () => {};
 
+function setRef<T>(ref: React.Ref<T> | undefined, value: T | null): void {
+  if (ref == null) return;
+  if (typeof ref === "function") {
+    ref(value);
+  } else {
+    (ref as React.MutableRefObject<T | null>).current = value;
+  }
+}
+
 export function ReactEmbedKit({
   url,
+  playerRef: playerRefProp,
   onUnsupportedUrl,
   onError = () => {},
   onReady = () => {},
@@ -80,6 +92,7 @@ export function ReactEmbedKit({
           return;
         }
         playerRef.current = player;
+        setRef(playerRefProp, player);
         onReady(player);
       })
       .catch((err) => {
@@ -92,9 +105,10 @@ export function ReactEmbedKit({
       cancelled = true;
       const p = playerRef.current;
       playerRef.current = null;
+      setRef(playerRefProp, null);
       p?.destroy?.();
     };
-  }, [url, playerOptions.width, playerOptions.height, playerOptions.autoplay]);
+  }, [url, playerRefProp, playerOptions.width, playerOptions.height, playerOptions.autoplay]);
 
   return <div ref={containerRef} className={className} style={style} />;
 }
