@@ -26,6 +26,7 @@ interface TwitchPlayer {
   play: () => void;
   pause: () => void;
   setMuted?: (muted: boolean) => void;
+  getCurrentTime?: () => number; // seconds; not documented on all embed types
 }
 
 function loadTwitchScript(): Promise<void> {
@@ -42,7 +43,7 @@ function loadTwitchScript(): Promise<void> {
 
 /**
  * Create a controllable Twitch player in the given container (video by id).
- * Returns a normalized EmbedPlayer. getPaused() is not supported by Twitch API and resolves to false.
+ * Returns a normalized EmbedPlayer. paused is not supported by Twitch API and resolves to false.
  * Twitch.Embed only accepts an element id (document.getElementById), so we create the embed in
  * document.body then move the div (and injected iframe) into the container (e.g. shadow root).
  */
@@ -83,7 +84,14 @@ export function createPlayer(
                 resolve({
                   play: () => player.play(),
                   pause: () => player.pause(),
-                  getPaused: () => Promise.resolve(false), // Twitch embed does not expose paused state
+                  get paused() {
+                    return Promise.resolve(false); // Twitch embed does not expose paused state
+                  },
+                  get currentTime() {
+                    return Promise.resolve(
+                      typeof player.getCurrentTime === "function" ? player.getCurrentTime()! : 0
+                    );
+                  },
                   destroy() {
                     if (div.parentNode) div.remove();
                   },

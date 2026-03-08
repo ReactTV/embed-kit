@@ -20,6 +20,7 @@ interface YTPlayer {
   playVideo: () => void;
   pauseVideo: () => void;
   getPlayerState: () => number; // 1=playing, 2=paused, etc.
+  getCurrentTime: () => number; // seconds
 }
 
 function loadYTScript(): Promise<void> {
@@ -67,8 +68,12 @@ export function createPlayer(
                 resolve({
                   play: () => player.playVideo(),
                   pause: () => player.pauseVideo(),
-                  getPaused: () =>
-                    Promise.resolve(player.getPlayerState() === 2), // 2 = paused
+                  get paused() {
+                    return Promise.resolve(player.getPlayerState() === 2); // 2 = paused
+                  },
+                  get currentTime() {
+                    return Promise.resolve(player.getCurrentTime());
+                  },
                   destroy() {
                     if (div.parentNode) container.removeChild(div);
                   },

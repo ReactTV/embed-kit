@@ -13,6 +13,7 @@ interface VimeoPlayer {
   play: () => Promise<void>;
   pause: () => Promise<void>;
   getPaused: () => Promise<boolean>;
+  getCurrentTime: () => Promise<number>;
   destroy: () => void;
 }
 
@@ -30,7 +31,7 @@ function loadVimeoScript(): Promise<void> {
 
 /**
  * Create a controllable Vimeo player in the given container.
- * Returns a normalized EmbedPlayer (play, pause, getPaused).
+ * Returns a normalized EmbedPlayer (play, pause, paused, currentTime).
  */
 export function createPlayer(
   container: HTMLElement,
@@ -58,7 +59,12 @@ export function createPlayer(
     return {
       play: () => vimeoPlayer.play(),
       pause: () => vimeoPlayer.pause(),
-      getPaused: () => vimeoPlayer.getPaused(),
+      get paused() {
+        return vimeoPlayer.getPaused();
+      },
+      get currentTime() {
+        return vimeoPlayer.getCurrentTime();
+      },
       destroy() {
         vimeoPlayer.destroy();
         if (iframe.parentNode) container.removeChild(iframe);

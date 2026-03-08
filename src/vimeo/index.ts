@@ -6,7 +6,7 @@ export { createPlayer } from "./player.js";
 
 const provider = new VimeoEmbed();
 
-/** The default Vimeo embed provider (used by the custom element). Use for provider.play(), provider.pause(), provider.getPaused(). */
+/** The default Vimeo embed provider (used by the custom element). Use provider.play(), provider.pause(), await provider.paused, await provider.currentTime. */
 export { provider as vimeoEmbedProvider };
 
 /** Register the custom element `<vimeo-embed>`. No-op if customElements is unavailable (e.g. Node). */

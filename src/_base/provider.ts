@@ -42,7 +42,10 @@ export interface EmbedProvider {
   pause?(): void | Promise<void>;
 
   /** Resolves to true if paused, false if playing (optional; delegates to the active player). */
-  getPaused?(): Promise<boolean>;
+  readonly paused?: Promise<boolean>;
+
+  /** Resolves to current playback time in seconds (optional; delegates to the active player). */
+  readonly currentTime?: Promise<number>;
 }
 
 /** Provider that supports the normalized play/pause API. */
@@ -54,5 +57,6 @@ export type ControllableEmbedProvider = EmbedProvider & {
   ): Promise<EmbedPlayer>;
   play(): void | Promise<void>;
   pause(): void | Promise<void>;
-  getPaused(): Promise<boolean>;
+  readonly paused: Promise<boolean>;
+  readonly currentTime: Promise<number>;
 };

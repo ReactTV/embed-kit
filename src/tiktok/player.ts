@@ -18,7 +18,7 @@ function post(iframe: HTMLIFrameElement, type: string, value?: unknown): void {
 
 /**
  * Create a controllable TikTok player in the given container.
- * Uses postMessage to the embed iframe for play/pause; tracks state from onStateChange for getPaused().
+ * Uses postMessage to the embed iframe for play/pause; tracks state from onStateChange for paused.
  */
 export function createPlayer(
   container: HTMLElement,
@@ -61,8 +61,11 @@ export function createPlayer(
     async pause() {
       post(iframe, "pause");
     },
-    getPaused(): Promise<boolean> {
+    get paused(): Promise<boolean> {
       return Promise.resolve(lastState === STATE_PAUSED);
+    },
+    get currentTime(): Promise<number> {
+      return Promise.resolve(0); // TikTok embed does not expose current time
     },
     destroy() {
       window.removeEventListener("message", handleMessage);

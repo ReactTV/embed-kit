@@ -18,6 +18,7 @@ interface DailymotionPlayer {
   play: () => void;
   pause: () => void;
   getState: () => Promise<{ playerIsPlaying?: boolean }>;
+  getPosition?: () => Promise<number>; // seconds; optional in SDK
   destroy: () => void;
 }
 
@@ -141,8 +142,14 @@ export function createPlayer(
       return {
         play: () => dmPlayer.play(),
         pause: () => dmPlayer.pause(),
-        getPaused: () =>
-          dmPlayer.getState().then((state) => Boolean(state.playerIsPlaying === false)),
+        get paused() {
+          return dmPlayer.getState().then((state) => Boolean(state.playerIsPlaying === false));
+        },
+        get currentTime() {
+          return typeof dmPlayer.getPosition === "function"
+            ? dmPlayer.getPosition!()
+            : Promise.resolve(0);
+        },
         destroy() {
           positionCleanup?.();
           dmPlayer.destroy();

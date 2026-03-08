@@ -1,5 +1,5 @@
 /**
- * Normalized embed player API (play, pause, getPaused).
+ * Normalized embed player API (play, pause, paused, currentTime).
  * Each provider that supports playback control implements this interface.
  */
 
@@ -11,7 +11,10 @@ export interface EmbedPlayer {
   pause(): void | Promise<void>;
 
   /** Resolves to true if playback is paused, false if playing. */
-  getPaused(): Promise<boolean>;
+  readonly paused: Promise<boolean>;
+
+  /** Resolves to current playback time in seconds. Unsupported providers may return 0. */
+  readonly currentTime: Promise<number>;
 
   /** Optional: clean up player and listeners. */
   destroy?(): void | Promise<void>;

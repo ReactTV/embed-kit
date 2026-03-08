@@ -31,8 +31,12 @@ export class VimeoEmbed implements EmbedProvider {
     return this.#player?.pause();
   }
 
-  getPaused(): Promise<boolean> {
-    return this.#player?.getPaused() ?? Promise.resolve(true);
+  get paused(): Promise<boolean> {
+    return this.#player?.paused ?? Promise.resolve(true);
+  }
+
+  get currentTime(): Promise<number> {
+    return this.#player?.currentTime ?? Promise.resolve(0);
   }
 
   parseSourceUrl(url: string): ParsedEmbed | null {
