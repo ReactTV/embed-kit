@@ -16,14 +16,19 @@ declare global {
 interface DailymotionPlayerState {
   playerIsPlaying?: boolean;
   videoTime?: number; // current playback position in seconds (from getState / VIDEO_TIMECHANGE)
+  videoDuration?: number; // total duration in seconds
 }
 
 interface DailymotionPlayer {
   play: () => void;
   pause: () => void;
   getState: () => Promise<DailymotionPlayerState>;
+  getDuration?: () => Promise<number>; // seconds; optional in SDK
   getPosition?: () => Promise<number>; // seconds; optional in SDK
   seek?: (seconds: number) => void | Promise<void>;
+  /** Preferred: SDK uses .on(eventName, callback) for events (e.g. "video_end"). */
+  on?: (event: string, callback: () => void) => void;
+  addEventListener?: (event: string, callback: () => void) => void;
   destroy: () => void;
 }
 
@@ -52,6 +57,7 @@ export function createPlayer(
   const width = options.width ?? 560;
   const height = options.height ?? 315;
   const autoplay = Boolean((options as { autoplay?: boolean }).autoplay);
+  const onEnded = (options as { onEnded?: () => void }).onEnded;
   const widthStyle = typeof width === "number" ? `${width}px` : String(width);
   const heightStyle = typeof height === "number" ? `${height}px` : String(height);
 
@@ -74,7 +80,15 @@ export function createPlayer(
         ...(autoplay ? { params: { autoplay: true } } : {}),
       });
     })
-    .then((dmPlayer) => ({
+    .then((dmPlayer) => {
+      if (onEnded) {
+        if (typeof dmPlayer.on === "function") {
+          dmPlayer.on("video_end", onEnded);
+        } else if (typeof dmPlayer.addEventListener === "function") {
+          dmPlayer.addEventListener("video_end", onEnded);
+        }
+      }
+      return {
       get ready() {
         return Promise.resolve();
       },
@@ -94,6 +108,16 @@ export function createPlayer(
           return 0;
         });
       },
+      get duration() {
+        if (typeof dmPlayer.getDuration === "function") {
+          return dmPlayer.getDuration();
+        }
+        return dmPlayer.getState().then((state) =>
+          typeof state.videoDuration === "number" && !Number.isNaN(state.videoDuration)
+            ? state.videoDuration
+            : 0
+        );
+      },
       seek(seconds: number) {
         if (typeof dmPlayer.seek === "function") {
           return dmPlayer.seek(seconds);
@@ -106,7 +130,8 @@ export function createPlayer(
         dmPlayer.destroy();
         wrapper.remove();
       },
-    }))
+    };
+    })
     .catch((err) => {
       wrapper.remove();
       throw err;

@@ -4,6 +4,7 @@ const EMBED_ORIGIN = "https://www.tiktok.com";
 const EMBED_BASE = "https://www.tiktok.com/player/v1/";
 
 /** TikTok onStateChange values: -1 init, 0 ended, 1 playing, 2 paused, 3 buffering */
+const STATE_ENDED = 0;
 const STATE_PAUSED = 2;
 
 function post(iframe: HTMLIFrameElement, type: string, value?: unknown): void {
@@ -33,7 +34,9 @@ export function createPlayer(
   const width = options.width ?? 325;
   const height = options.height ?? 575;
   const autoplay = Boolean((options as { autoplay?: boolean }).autoplay);
+  const onEnded = (options as { onEnded?: () => void }).onEnded;
 
+  // Vertical video: width is the narrow dimension, height the tall one (e.g. 325×575).
   const iframe = createEmbedIframeElement({
     src: `${EMBED_BASE}${postId}${autoplay ? "?autoplay=1" : ""}`,
     width,
@@ -41,10 +44,14 @@ export function createPlayer(
     allow: "autoplay; fullscreen",
     allowFullScreen: true,
   });
+  iframe.style.display = "block";
+  iframe.style.maxWidth = "100%";
+  iframe.style.maxHeight = "100%";
   container.appendChild(iframe);
 
   let lastState: number = STATE_PAUSED;
   let lastCurrentTime = 0;
+  let lastDuration = 0;
   let resolveReady: () => void;
   const readyPromise = new Promise<void>((resolve) => {
     resolveReady = resolve;
@@ -60,11 +67,17 @@ export function createPlayer(
         resolveReady();
         break;
       case "onStateChange":
-        if (typeof data.value === "number") lastState = data.value;
+        if (typeof data.value === "number") {
+          lastState = data.value;
+          if (data.value === STATE_ENDED) onEnded?.();
+        }
         break;
       case "onCurrentTime":
         const t = data.value as OnCurrentTimeValue | undefined;
-        if (t && typeof t.currentTime === "number") lastCurrentTime = t.currentTime;
+        if (t) {
+          if (typeof t.currentTime === "number") lastCurrentTime = t.currentTime;
+          if (typeof t.duration === "number") lastDuration = t.duration;
+        }
         break;
     }
   };
@@ -86,6 +99,9 @@ export function createPlayer(
     },
     get currentTime(): Promise<number> {
       return Promise.resolve(lastCurrentTime);
+    },
+    get duration(): Promise<number> {
+      return Promise.resolve(lastDuration);
     },
     seek(seconds: number) {
       post(iframe, "seekTo", seconds);

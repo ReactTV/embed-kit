@@ -68,6 +68,7 @@ export type ControllableEmbedProvider = EmbedProvider & {
   pause(): void | Promise<void>;
   readonly paused: Promise<boolean>;
   readonly currentTime: Promise<number>;
+  readonly duration: Promise<number>;
   seek(seconds: number): void | Promise<void>;
   readonly autoplay: Promise<boolean>;
   readonly ready: Promise<void>;

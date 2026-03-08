@@ -7,7 +7,7 @@
   <style>
     body { font-family: system-ui, sans-serif; max-width: 42rem; margin: 2rem auto; padding: 0 1rem; }
     h1 { font-size: 1.25rem; }
-    .embed-wrap { margin: 1rem 0; }
+    .embed-wrap { margin: 1rem 0; overflow: hidden; }
     tiktok-embed { display: block; }
     tiktok-embed:not(:defined) { min-height: 200px; background: #eee; display: flex; align-items: center; justify-content: center; color: #666; }
     tiktok-embed:not(:defined)::before { content: "Loading… (use npx serve . if this stays)"; }

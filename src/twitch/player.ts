@@ -26,6 +26,7 @@ export function createPlayer(
   const width = options.width ?? 560;
   const height = options.height ?? 315;
   const autoplay = Boolean((options as { autoplay?: boolean }).autoplay);
+  const onEnded = (options as { onEnded?: () => void }).onEnded;
   const isClip = (options as { twitchType?: string }).twitchType === "clip";
   const parent =
     typeof window !== "undefined" && window.location?.hostname
@@ -57,6 +58,9 @@ export function createPlayer(
       get currentTime() {
         return Promise.resolve(0);
       },
+      get duration() {
+        return Promise.resolve(0);
+      },
       seek: () => {},
       get autoplay() {
         return Promise.resolve(autoplay);
@@ -82,6 +86,7 @@ export function createPlayer(
 
   let isPaused = true;
   let currentTime = 0;
+  let duration = 0;
   let readyResolve: () => void;
   const readyPromise = new Promise<void>((r) => {
     readyResolve = r;
@@ -98,9 +103,13 @@ export function createPlayer(
       const p = data.params;
       if (p.playback !== undefined) {
         isPaused = p.playback !== "Playing";
+        if (p.playback === "Ended") onEnded?.();
       }
       if (typeof p.currentTime === "number") {
         currentTime = p.currentTime;
+      }
+      if (typeof p.duration === "number") {
+        duration = p.duration;
       }
     }
   };
@@ -130,6 +139,9 @@ export function createPlayer(
     },
     get currentTime() {
       return Promise.resolve(currentTime);
+    },
+    get duration() {
+      return Promise.resolve(duration);
     },
     seek(seconds: number) {
       send(CMD_SEEK, seconds);

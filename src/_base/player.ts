@@ -19,6 +19,9 @@ export interface EmbedPlayer {
   /** Resolves to current playback time in seconds. Unsupported providers may return 0. */
   readonly currentTime: Promise<number>;
 
+  /** Resolves to total duration in seconds. Unsupported providers may return 0. */
+  readonly duration: Promise<number>;
+
   /** Seek to the given time in seconds. Unsupported providers may no-op. */
   seek(seconds: number): void | Promise<void>;
 
@@ -34,5 +37,7 @@ export interface CreatePlayerOptions {
   height?: string | number;
   /** When true, the embed will start playing automatically when loaded (if supported). */
   autoplay?: boolean;
+  /** Called when playback reaches the end of the media. */
+  onEnded?: () => void;
   [key: string]: unknown;
 }

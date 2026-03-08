@@ -126,6 +126,10 @@ export function createControllableEmbedElement(
       return this.#getPlayer().then((player) => (player ? player.currentTime : Promise.resolve(0)));
     }
 
+    get duration(): Promise<number> {
+      return this.#getPlayer().then((player) => (player ? player.duration : Promise.resolve(0)));
+    }
+
     async seek(seconds: number): Promise<void> {
       const player = await this.#getPlayer();
       if (player) player.seek(seconds);
@@ -206,6 +210,7 @@ export function createControllableEmbedElement(
       container.style.height = heightPx;
       container.style.minWidth = widthPx;
       container.style.minHeight = heightPx;
+      container.style.overflow = "hidden";
       this.appendChild(container);
       this.#container = container;
 

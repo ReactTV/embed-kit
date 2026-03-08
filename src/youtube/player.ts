@@ -9,12 +9,18 @@ declare global {
   }
 }
 
+/** YouTube player state: 0 = ended, 1 = playing, 2 = paused, 3 = buffering, 5 = cued */
+const YT_STATE_ENDED = 0;
+
 interface YTOptions {
   videoId: string;
   width?: number | string;
   height?: number | string;
   playerVars?: { autoplay?: 0 | 1 };
-  events?: { onReady?: (ev: { target: YTPlayer }) => void };
+  events?: {
+    onReady?: (ev: { target: YTPlayer }) => void;
+    onStateChange?: (ev: { data: number }) => void;
+  };
 }
 
 interface YTPlayer {
@@ -22,6 +28,7 @@ interface YTPlayer {
   pauseVideo: () => void;
   getPlayerState: () => number; // 1=playing, 2=paused, etc.
   getCurrentTime: () => number; // seconds
+  getDuration: () => number; // seconds (0 until metadata loaded)
   seekTo: (seconds: number, allowSeekAhead: boolean) => void;
 }
 
@@ -52,6 +59,7 @@ export function createPlayer(
   const width = options.width ?? 560;
   const height = options.height ?? 315;
   const autoplay = Boolean((options as { autoplay?: boolean }).autoplay);
+  const onEnded = (options as { onEnded?: () => void }).onEnded;
 
   return loadYTScript().then(
     () =>
@@ -81,6 +89,9 @@ export function createPlayer(
                   get currentTime() {
                     return Promise.resolve(player.getCurrentTime());
                   },
+                  get duration() {
+                    return Promise.resolve(player.getDuration());
+                  },
                   seek(seconds: number) {
                     player.seekTo(seconds, true);
                   },
@@ -91,6 +102,9 @@ export function createPlayer(
                     if (div.parentNode) container.removeChild(div);
                   },
                 });
+              },
+              onStateChange(ev: { data: number }) {
+                if (ev.data === YT_STATE_ENDED) onEnded?.();
               },
             },
           });
