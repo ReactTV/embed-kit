@@ -1,8 +1,8 @@
 import {
   createEmbedIframeElement,
   type IEmbedPlayer,
-  type IErrorData,
   type TCreatePlayer,
+  type TPlayerState,
 } from "../_base/index.js";
 import {
   EMBED_ORIGIN,
@@ -55,12 +55,17 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
   });
   container.appendChild(iframe);
 
-  let isPaused = true;
-  let currentTime = 0;
-  let duration = 0;
-  let muted = false;
-  let error: IErrorData | null = null;
-  let lastPlayback: string | undefined;
+  interface TwitchPlayerState extends TPlayerState {
+    isPlaying: boolean;
+  }
+  const playerState: TwitchPlayerState = {
+    isPaused: true,
+    currentTime: 0,
+    duration: 0,
+    muted: false,
+    error: null,
+    isPlaying: false,
+  };
 
   const onMessage = (event: MessageEvent): void => {
     if (event.source !== iframe.contentWindow || event.origin !== EMBED_ORIGIN) return;
@@ -73,12 +78,12 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
 
       if (message.eventName === "error") {
         const msg = message.params?.message ?? "Twitch embed error";
-        error = { message: msg };
-        onError(error);
+        playerState.error = { message: msg };
+        onError(playerState.error);
       }
 
       if (message.eventName === "seek") {
-        currentTime = message.params.position;
+        playerState.currentTime = message.params.position;
         onSeek(message.params.position);
       }
 
@@ -93,27 +98,18 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
 
     if (message.namespace === NS_PLAYER_PROXY && message.eventName === "UPDATE_STATE") {
       const p = message.params;
-      if (p.playback === PlaybackState.PLAYING && lastPlayback !== PlaybackState.PLAYING) {
-        onPlay();
-      }
-
-      if (
-        (p.playback === PlaybackState.PAUSED ||
-          p.playback === PlaybackState.READY ||
-          p.playback === PlaybackState.IDLE) &&
-        lastPlayback === PlaybackState.PLAYING
-      ) {
-        onPause();
-      }
+      const isPlaying = p.playback === PlaybackState.PLAYING;
+      if (isPlaying && !playerState.isPlaying) onPlay();
+      if (!isPlaying && playerState.isPlaying) onPause();
 
       if (p.playback === PlaybackState.BUFFERING) onBuffering();
       if (p.playback === PlaybackState.ENDED) onEnded();
 
-      lastPlayback = p.playback;
-      isPaused = p.playback !== PlaybackState.PLAYING;
-      currentTime = p.currentTime;
-      duration = p.duration;
-      if (typeof p.muted === "boolean") muted = p.muted;
+      playerState.isPlaying = isPlaying;
+      playerState.isPaused = !isPlaying;
+      playerState.currentTime = p.currentTime;
+      playerState.duration = p.duration;
+      if (typeof p.muted === "boolean") playerState.muted = p.muted;
       onProgress(p.currentTime);
     }
   };
@@ -124,50 +120,50 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     if (!iframe.contentWindow) return;
     iframe.contentWindow.postMessage(
       { eventName: command, params, namespace: NS_PLAYER_PROXY },
-      EMBED_ORIGIN
+      EMBED_ORIGIN,
     );
   };
 
   const player: IEmbedPlayer = {
     play() {
-      isPaused = false;
+      playerState.isPaused = false;
       send(PlayerCommands.PLAY);
       onPlay();
     },
     pause() {
-      isPaused = true;
+      playerState.isPaused = true;
       send(PlayerCommands.PAUSE);
       onPause();
     },
     get paused() {
-      return Promise.resolve(isPaused);
+      return Promise.resolve(playerState.isPaused);
     },
     get currentTime() {
-      return Promise.resolve(currentTime);
+      return Promise.resolve(playerState.currentTime);
     },
     get duration() {
-      return Promise.resolve(duration);
+      return Promise.resolve(playerState.duration);
     },
     seek(seconds: number) {
       send(PlayerCommands.SEEK, seconds);
-      currentTime = seconds;
+      playerState.currentTime = seconds;
       onSeek(seconds);
     },
     mute() {
-      muted = true;
+      playerState.muted = true;
       send(PlayerCommands.SET_MUTED, true);
       onMute(true);
     },
     unmute() {
-      muted = false;
+      playerState.muted = false;
       send(PlayerCommands.SET_MUTED, false);
       onMute(false);
     },
     get muted() {
-      return muted;
+      return playerState.muted;
     },
     get error() {
-      return error;
+      return playerState.error;
     },
     destroy() {
       window.removeEventListener("message", onMessage);

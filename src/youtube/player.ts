@@ -1,4 +1,4 @@
-import type { IEmbedPlayer, IErrorData, TCreatePlayer } from "../_base/index.js";
+import type { IEmbedPlayer, TCreatePlayer, TPlayerState } from "../_base/index.js";
 import { createPlayerContainer, loadScript } from "../_base/index.js";
 
 const YT_SCRIPT = "https://www.youtube.com/iframe_api";
@@ -84,8 +84,13 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
   const needsProgressOrMute =
     options.onProgress !== undefined || options.onMute !== undefined;
 
-  let currentTime = 0;
-  let error: IErrorData | null = null;
+  const playerState: TPlayerState = {
+    currentTime: 0,
+    duration: 0,
+    isPaused: true,
+    muted: false,
+    error: null,
+  };
 
   return loadYTScript().then(() => {
     const { element: div } = createPlayerContainer(container, "yt-player");
@@ -98,30 +103,32 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
         playerVars: { autoplay: autoplay ? 1 : 0 },
         events: {
           onError(ev: { data: number }) {
-            error = { code: ev.data };
-            onError(error);
+            playerState.error = { code: ev.data };
+            onError(playerState.error);
           },
           onReady(ev: { target: YTPlayer }) {
             const player = ev.target;
             onReady();
 
-            let progressIntervalId: ReturnType<typeof setInterval> | undefined;
-            let destroyed = false;
-            let muted: boolean | null = null;
+            const readyState = {
+              progressIntervalId: undefined as ReturnType<typeof setInterval> | undefined,
+              destroyed: false,
+              muted: null as boolean | null,
+            };
             // YouTube IFrame API has no timeupdate/progress event and no volume/mute event; polling required.
             if (needsProgressOrMute) {
-              progressIntervalId = setInterval(() => {
-                if (destroyed) return;
+              readyState.progressIntervalId = setInterval(() => {
+                if (readyState.destroyed) return;
 
-                currentTime = player.getCurrentTime();
-                if (typeof currentTime === "number" && !Number.isNaN(currentTime)) {
-                  onProgress(currentTime);
+                playerState.currentTime = player.getCurrentTime();
+                if (typeof playerState.currentTime === "number" && !Number.isNaN(playerState.currentTime)) {
+                  onProgress(playerState.currentTime);
                 }
 
                 const isMuted = player.isMuted();
-                if (muted !== isMuted) {
-                  muted = isMuted;
-                  onMute(muted);
+                if (readyState.muted !== isMuted) {
+                  readyState.muted = isMuted;
+                  onMute(readyState.muted);
                 }
               }, progressInterval);
             }
@@ -153,11 +160,11 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
                 return Promise.resolve(player.isMuted());
               },
               get error() {
-                return error;
+                return playerState.error;
               },
               destroy() {
-                destroyed = true;
-                if (progressIntervalId) clearInterval(progressIntervalId);
+                readyState.destroyed = true;
+                if (readyState.progressIntervalId) clearInterval(readyState.progressIntervalId);
                 if (div.parentNode) div.remove();
               },
             });

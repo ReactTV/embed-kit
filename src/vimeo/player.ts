@@ -1,4 +1,4 @@
-import { createEmbedIframeElement, loadScript, type IErrorData, type TCreatePlayer } from "../_base/index.js";
+import { createEmbedIframeElement, loadScript, type TCreatePlayer, type TPlayerState } from "../_base/index.js";
 
 const VIMEO_SCRIPT = "https://player.vimeo.com/api/player.js";
 const EMBED_BASE = "https://player.vimeo.com/video/";
@@ -62,7 +62,14 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
   });
   container.appendChild(iframe);
 
-  let lastError: IErrorData | null = null;
+  const playerState: TPlayerState & { endedFired: boolean } = {
+    currentTime: 0,
+    duration: 0,
+    isPaused: true,
+    muted: false,
+    error: null,
+    endedFired: false,
+  };
   return loadScript(VIMEO_SCRIPT, {
     isLoaded: () => !!window.Vimeo?.Player,
     errorMessage: "Failed to load Vimeo player script",
@@ -71,24 +78,23 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     if (typeof vimeoPlayer.on === "function") {
       vimeoPlayer.on("error", (err?: unknown) => {
         const e = err as { message?: string; code?: number } | undefined;
-        lastError = {
+        playerState.error = {
           ...(e?.message != null ? { message: e.message } : {}),
           ...(e?.code != null ? { code: e.code } : {}),
         };
-        onError(lastError);
+        onError(playerState.error);
       });
       vimeoPlayer.on("play", onPlay);
       vimeoPlayer.on("pause", onPause);
       vimeoPlayer.on("bufferstart", onBuffering);
       vimeoPlayer.on("finish", onEnded);
       vimeoPlayer.on("ended", onEnded);
-      let endedFired = false;
       vimeoPlayer.on("timeupdate", (data?: VimeoTimeupdateData) => {
         if (data != null) {
           const sec = data.seconds ?? 0;
           onProgress(typeof sec === "number" ? sec : 0);
         }
-        if (endedFired) return;
+        if (playerState.endedFired) return;
         const p = data?.percent;
         const sec = data?.seconds;
         const dur = data?.duration;
@@ -96,7 +102,7 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
           (typeof p === "number" && p >= 0.99) ||
           (typeof sec === "number" && typeof dur === "number" && dur > 0 && sec >= dur - 0.5);
         if (atEnd) {
-          endedFired = true;
+          playerState.endedFired = true;
           onEnded();
         }
       });
@@ -139,7 +145,7 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
         return vimeoPlayer.getMuted();
       },
       get error() {
-        return lastError;
+        return playerState.error;
       },
       destroy() {
         vimeoPlayer.destroy();

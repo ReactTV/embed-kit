@@ -36,6 +36,19 @@ export interface IErrorData {
   message?: string;
 }
 
+/**
+ * Normalized player state shape shared across embed providers.
+ * Providers use this type (or extend it with & { ... }) for their internal state object.
+ */
+export interface TPlayerState {
+  currentTime: number;
+  duration: number;
+  isPlaying: boolean;
+  isPaused: boolean;
+  muted: boolean;
+  error: IErrorData | null;
+}
+
 /** Returned by createPlayer(); normalized API across all providers. */
 export interface IEmbedPlayer {
   play(): void | Promise<void>;

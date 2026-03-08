@@ -1,9 +1,9 @@
 import {
   createEmbedIframeElement,
   type IEmbedPlayer,
-  type IErrorData,
   type IProgressData,
   type TCreatePlayer,
+  type TPlayerState,
 } from "../_base/index.js";
 
 const EMBED_ORIGIN = "https://www.tiktok.com";
@@ -56,10 +56,14 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
   iframe.style.maxHeight = "100%";
   container.appendChild(iframe);
 
-  let lastState: number = STATE_PAUSED;
-  let lastCurrentTime = 0;
-  let lastDuration = 0;
-  let lastError: IErrorData | null = null;
+  const playerState: TPlayerState & { lastState: number } = {
+    lastState: STATE_PAUSED,
+    currentTime: 0,
+    duration: 0,
+    isPaused: true,
+    muted: false,
+    error: null,
+  };
   let resolveReady: () => void;
   new Promise<void>((resolve) => {
     resolveReady = resolve;
@@ -82,7 +86,8 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
         break;
       case "onStateChange":
         if (typeof data.value === "number") {
-          lastState = data.value;
+          playerState.lastState = data.value;
+          playerState.isPaused = data.value === STATE_PAUSED;
           if (data.value === 1) onPlay(); // 1 = playing
           if (data.value === STATE_PAUSED) onPause();
           if (data.value === 3) onBuffering(); // 3 = buffering
@@ -92,9 +97,9 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
       case "onCurrentTime":
         const t = data.value as Partial<IProgressData> | undefined;
         if (t) {
-          if (typeof t.currentTime === "number") lastCurrentTime = t.currentTime;
-          if (typeof t.duration === "number") lastDuration = t.duration;
-          onProgress(lastCurrentTime);
+          if (typeof t.currentTime === "number") playerState.currentTime = t.currentTime;
+          if (typeof t.duration === "number") playerState.duration = t.duration;
+          onProgress(playerState.currentTime);
         }
         break;
       case "onError":
@@ -104,9 +109,9 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
           ...(err?.message != null ? { message: err.message } : {}),
           ...(err?.code != null ? { code: err.code } : {}),
         };
-        lastError =
+        playerState.error =
           Object.keys(errorData).length > 0 ? errorData : { message: "TikTok embed error" };
-        onError(lastError);
+        onError(playerState.error);
         break;
       }
     }
@@ -114,7 +119,6 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
 
   window.addEventListener("message", handleMessage);
 
-  let lastMuted = false;
   const player: IEmbedPlayer = {
     async play() {
       post(iframe, "play");
@@ -123,34 +127,34 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
       post(iframe, "pause");
     },
     get paused(): Promise<boolean> {
-      return Promise.resolve(lastState === STATE_PAUSED);
+      return Promise.resolve(playerState.isPaused);
     },
     get currentTime(): Promise<number> {
-      return Promise.resolve(lastCurrentTime);
+      return Promise.resolve(playerState.currentTime);
     },
     get duration(): Promise<number> {
-      return Promise.resolve(lastDuration);
+      return Promise.resolve(playerState.duration);
     },
     seek(seconds: number) {
       post(iframe, "seekTo", seconds);
-      lastCurrentTime = seconds;
+      playerState.currentTime = seconds;
       onSeek(seconds);
     },
     mute() {
-      lastMuted = true;
+      playerState.muted = true;
       post(iframe, "mute", true);
       onMute(true);
     },
     unmute() {
-      lastMuted = false;
+      playerState.muted = false;
       post(iframe, "mute", false);
       onMute(false);
     },
     get muted(): Promise<boolean> {
-      return Promise.resolve(lastMuted);
+      return Promise.resolve(playerState.muted);
     },
     get error() {
-      return lastError;
+      return playerState.error;
     },
     destroy() {
       window.removeEventListener("message", handleMessage);
