@@ -81,8 +81,6 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     progressInterval = 50,
   } = options;
 
-  const needsProgressOrMute = options.onProgress !== undefined || options.onMute !== undefined;
-
   const playerState: TPlayerState = {
     currentTime: 0,
     duration: 0,
@@ -97,15 +95,57 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     const YT = window.YT!;
     const { PlayerState } = YT;
 
-    let resolveReady!: (api: IEmbedPlayer) => void;
-    const readyPromise = new Promise<IEmbedPlayer>((resolve) => {
-      resolveReady = resolve;
+    let player: YTPlayer | null = null;
+    let resolveWhenReady!: () => void;
+    const whenReady = new Promise<void>((r) => {
+      resolveWhenReady = r;
     });
 
     const readyState = {
       progressIntervalId: undefined as ReturnType<typeof setInterval> | undefined,
       destroyed: false,
       muted: null as boolean | null,
+    };
+
+    const api: IEmbedPlayer = {
+      play: () => whenReady.then(() => player!.playVideo()),
+      pause: () => whenReady.then(() => player!.pauseVideo()),
+      get paused() {
+        return whenReady.then(() => player!.getPlayerState() === PlayerState.PAUSED);
+      },
+      get currentTime() {
+        return whenReady.then(() => player!.getCurrentTime());
+      },
+      get duration() {
+        return whenReady.then(() => player!.getDuration());
+      },
+      seek(seconds: number) {
+        whenReady.then(() => {
+          player!.seekTo(seconds, true);
+          onSeek(seconds);
+        });
+      },
+      mute: () =>
+        whenReady.then(() => {
+          player!.mute();
+          onMute(true);
+        }),
+      unmute: () =>
+        whenReady.then(() => {
+          player!.unMute();
+          onMute(false);
+        }),
+      get muted() {
+        return readyState.muted ?? false;
+      },
+      get error() {
+        return playerState.error;
+      },
+      destroy() {
+        readyState.destroyed = true;
+        if (readyState.progressIntervalId) clearInterval(readyState.progressIntervalId);
+        if (div.parentNode) div.remove();
+      },
     };
 
     new YT.Player(div, {
@@ -119,66 +159,28 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
           onError(playerState.error);
         },
         onReady(ev: { target: YTPlayer }) {
-          const player = ev.target;
+          player = ev.target;
           onReady();
+          resolveWhenReady();
 
           // YouTube IFrame API has no timeupdate/progress event and no volume/mute event; polling required.
-          if (needsProgressOrMute) {
-            readyState.progressIntervalId = setInterval(() => {
-              if (readyState.destroyed) return;
+          readyState.progressIntervalId = setInterval(() => {
+            if (readyState.destroyed || !player) return;
 
-              playerState.currentTime = player.getCurrentTime();
-              if (
-                typeof playerState.currentTime === "number" &&
-                !Number.isNaN(playerState.currentTime)
-              ) {
-                onProgress(playerState.currentTime);
-              }
+            playerState.currentTime = player.getCurrentTime();
+            if (
+              typeof playerState.currentTime === "number" &&
+              !Number.isNaN(playerState.currentTime)
+            ) {
+              onProgress(playerState.currentTime);
+            }
 
-              const isMuted = player.isMuted();
-              if (readyState.muted !== isMuted) {
-                readyState.muted = isMuted;
-                onMute(readyState.muted);
-              }
-            }, progressInterval);
-          }
-
-          resolveReady({
-            play: () => player.playVideo(),
-            pause: () => player.pauseVideo(),
-            get paused() {
-              return Promise.resolve(player.getPlayerState() === PlayerState.PAUSED);
-            },
-            get currentTime() {
-              return Promise.resolve(player.getCurrentTime());
-            },
-            get duration() {
-              return Promise.resolve(player.getDuration());
-            },
-            seek(seconds: number) {
-              player.seekTo(seconds, true);
-              onSeek(seconds);
-            },
-            mute: () => {
-              player.mute();
-              onMute(true);
-            },
-            unmute: () => {
-              player.unMute();
-              onMute(false);
-            },
-            get muted() {
-              return player.isMuted();
-            },
-            get error() {
-              return playerState.error;
-            },
-            destroy() {
-              readyState.destroyed = true;
-              if (readyState.progressIntervalId) clearInterval(readyState.progressIntervalId);
-              if (div.parentNode) div.remove();
-            },
-          });
+            const isMuted = player.isMuted();
+            if (readyState.muted !== isMuted) {
+              readyState.muted = isMuted;
+              onMute(readyState.muted);
+            }
+          }, progressInterval);
         },
         onStateChange(ev: { data: number }) {
           if (ev.data === PlayerState.PLAYING) onPlay();
@@ -201,7 +203,7 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
       },
     });
 
-    return readyPromise.catch((err: unknown) => {
+    return Promise.resolve(api).catch((err: unknown) => {
       div.remove();
       throw err;
     });

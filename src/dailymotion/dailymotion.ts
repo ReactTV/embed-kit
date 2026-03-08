@@ -50,8 +50,8 @@ export class DailymotionEmbed implements IEmbedProvider {
     this.#player?.unmute();
   }
 
-  get muted(): Promise<boolean> {
-    return this.#player?.muted ?? Promise.resolve(false);
+  get muted(): boolean {
+    return this.#player?.muted ?? false;
   }
 
   parseSourceUrl(url: string) {
