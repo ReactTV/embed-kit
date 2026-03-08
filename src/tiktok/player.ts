@@ -38,18 +38,13 @@ export function createPlayer(
   container.appendChild(iframe);
 
   let lastState: number = STATE_PAUSED;
-  let loadCompleteResolve: () => void;
-  const loadComplete = new Promise<void>((resolve) => {
-    loadCompleteResolve = resolve;
-  });
-
   const handleMessage = (event: MessageEvent): void => {
     if (event.origin !== EMBED_ORIGIN || event.source !== iframe.contentWindow) return;
     const data = event.data;
     if (!data || typeof data !== "object" || !("type" in data)) return;
+
     switch (data.type) {
       case "onPlayerReady":
-        loadCompleteResolve();
         break;
       case "onStateChange":
         if (typeof data.value === "number") lastState = data.value;
@@ -61,11 +56,9 @@ export function createPlayer(
 
   const player: EmbedPlayer = {
     async play() {
-      await loadComplete;
       post(iframe, "play");
     },
     async pause() {
-      await loadComplete;
       post(iframe, "pause");
     },
     getPaused(): Promise<boolean> {

@@ -39,16 +39,6 @@
       "import": "./dist/tiktok/constants.js",
       "default": "./dist/tiktok/constants.js"
     },
-    "./internet-archive": {
-      "types": "./dist/internet-archive/index.d.ts",
-      "import": "./dist/internet-archive/index.js",
-      "default": "./dist/internet-archive/index.js"
-    },
-    "./internet-archive/constants": {
-      "types": "./dist/internet-archive/constants.d.ts",
-      "import": "./dist/internet-archive/constants.js",
-      "default": "./dist/internet-archive/constants.js"
-    },
     "./dailymotion": {
       "types": "./dist/dailymotion/index.d.ts",
       "import": "./dist/dailymotion/index.js",
