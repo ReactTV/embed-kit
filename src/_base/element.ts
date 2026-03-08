@@ -230,10 +230,12 @@ export function createControllableEmbedElement(
 
       const autoplayAttr = this.getAttribute("autoplay");
       const autoplay = autoplayAttr !== null && autoplayAttr !== "false";
+      const onMute = (this as unknown as { onMute?: (data: { muted: boolean }) => void }).onMute;
       this.#playerPromise = provider.createPlayer(container, id, {
         width,
         height,
         autoplay,
+        ...(typeof onMute === "function" ? { onMute } : {}),
         ...options,
       }).then((player) => {
         this.#player = player;

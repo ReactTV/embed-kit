@@ -56,6 +56,7 @@ export function createPlayer(
   const onReady = (options as { onReady?: () => void }).onReady;
   const onEnded = (options as { onEnded?: () => void }).onEnded;
   const onProgress = (options as { onProgress?: (data: { currentTime: number; duration?: number }) => void }).onProgress;
+  const onMute = (options as { onMute?: (data: { muted: boolean }) => void }).onMute;
 
   const vimeoHash = (options as { vimeoHash?: string }).vimeoHash;
   const query = new URLSearchParams({ api: "1" });
@@ -139,10 +140,14 @@ export function createPlayer(
         return Promise.resolve(autoplay);
       },
       mute() {
-        return vimeoPlayer.setMuted(true);
+        return vimeoPlayer.setMuted(true).then(() => {
+          onMute?.({ muted: true });
+        });
       },
       unmute() {
-        return vimeoPlayer.setMuted(false);
+        return vimeoPlayer.setMuted(false).then(() => {
+          onMute?.({ muted: false });
+        });
       },
       get muted() {
         return vimeoPlayer.getMuted();

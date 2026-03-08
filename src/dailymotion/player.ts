@@ -62,6 +62,7 @@ export function createPlayer(
   const onReady = (options as { onReady?: () => void }).onReady;
   const onEnded = (options as { onEnded?: () => void }).onEnded;
   const onProgress = (options as { onProgress?: (data: { currentTime: number; duration?: number }) => void }).onProgress;
+  const onMute = (options as { onMute?: (data: { muted: boolean }) => void }).onMute;
   const widthStyle = typeof width === "number" ? `${width}px` : String(width);
   const heightStyle = typeof height === "number" ? `${height}px` : String(height);
 
@@ -87,6 +88,9 @@ export function createPlayer(
     .then((dmPlayer) => {
       onReady?.();
       let dmMuted = false;
+      let cachedPaused = true;
+      let lastPlayPauseTime = 0;
+      const OPTIMISTIC_MS = 2500;
       let progressInterval: ReturnType<typeof setInterval> | undefined;
       if (onEnded) {
         if (typeof dmPlayer.on === "function") {
@@ -106,6 +110,9 @@ export function createPlayer(
               typeof state.videoDuration === "number" && !Number.isNaN(state.videoDuration)
                 ? state.videoDuration
                 : undefined;
+            if (Date.now() - lastPlayPauseTime > OPTIMISTIC_MS) {
+              cachedPaused = state.playerIsPlaying === false;
+            }
             onProgress({
               currentTime,
               ...(dur !== undefined ? { duration: dur } : {}),
@@ -117,10 +124,24 @@ export function createPlayer(
       get ready() {
         return Promise.resolve();
       },
-      play: () => dmPlayer.play(),
-      pause: () => dmPlayer.pause(),
+      play() {
+        cachedPaused = false;
+        lastPlayPauseTime = Date.now();
+        dmPlayer.play();
+      },
+      pause() {
+        cachedPaused = true;
+        lastPlayPauseTime = Date.now();
+        dmPlayer.pause();
+      },
       get paused() {
-        return dmPlayer.getState().then((state) => Boolean(state.playerIsPlaying === false));
+        if (Date.now() - lastPlayPauseTime < OPTIMISTIC_MS) {
+          return Promise.resolve(cachedPaused);
+        }
+        return dmPlayer.getState().then((state) => {
+          cachedPaused = state.playerIsPlaying === false;
+          return cachedPaused;
+        });
       },
       get currentTime() {
         return dmPlayer.getState().then(async (state) => {
@@ -155,12 +176,14 @@ export function createPlayer(
         if (typeof dmPlayer.setMute === "function") {
           dmPlayer.setMute(true);
           dmMuted = true;
+          onMute?.({ muted: true });
         }
       },
       unmute() {
         if (typeof dmPlayer.setMute === "function") {
           dmPlayer.setMute(false);
           dmMuted = false;
+          onMute?.({ muted: false });
         }
       },
       get muted() {

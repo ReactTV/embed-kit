@@ -4,7 +4,7 @@ export type {
   EmbedProvider,
   ParsedEmbed,
 } from "./provider.js";
-export type { CreatePlayerOptions, EmbedPlayer, ProgressData } from "./player.js";
+export type { CreatePlayerOptions, EmbedPlayer, MuteData, ProgressData } from "./player.js";
 export type { IframeEmbedProps } from "./iframe.js";
 export { createControllableEmbedElement, createEmbedElement } from "./element.js";
 export { createEmbedIframeElement, renderEmbedIframe } from "./iframe.js";

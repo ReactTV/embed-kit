@@ -60,5 +60,13 @@ export interface CreatePlayerOptions {
   onEnded?: () => void;
   /** Called during playback with current time (and duration when available). Unsupported providers may not call. */
   onProgress?: (data: ProgressData) => void;
+  /** Called when the mute state changes (e.g. after mute() or unmute(), or when the user toggles mute in the embed). */
+  onMute?: (data: MuteData) => void;
   [key: string]: unknown;
+}
+
+/** Normalized mute payload: current muted state. */
+export interface MuteData {
+  /** True if audio is muted, false if unmuted. */
+  muted: boolean;
 }

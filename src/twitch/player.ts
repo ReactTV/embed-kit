@@ -30,6 +30,7 @@ export function createPlayer(
   const onReady = (options as { onReady?: () => void }).onReady;
   const onEnded = (options as { onEnded?: () => void }).onEnded;
   const onProgress = (options as { onProgress?: (data: { currentTime: number; duration?: number }) => void }).onProgress;
+  const onMute = (options as { onMute?: (data: { muted: boolean }) => void }).onMute;
   const isClip = (options as { twitchType?: string }).twitchType === "clip";
   const parent =
     typeof window !== "undefined" && window.location?.hostname
@@ -145,9 +146,11 @@ export function createPlayer(
       return readyPromise;
     },
     play() {
+      isPaused = false;
       send(CMD_PLAY);
     },
     pause() {
+      isPaused = true;
       send(CMD_PAUSE);
     },
     get paused() {
@@ -168,10 +171,12 @@ export function createPlayer(
     mute() {
       isMuted = true;
       send(CMD_SET_MUTED, true);
+      onMute?.({ muted: true });
     },
     unmute() {
       isMuted = false;
       send(CMD_SET_MUTED, false);
+      onMute?.({ muted: false });
     },
     get muted() {
       return Promise.resolve(isMuted);

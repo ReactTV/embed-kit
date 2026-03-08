@@ -65,6 +65,7 @@ export function createPlayer(
   const onReadyCallback = (options as { onReady?: () => void }).onReady;
   const onEnded = (options as { onEnded?: () => void }).onEnded;
   const onProgress = (options as { onProgress?: (data: { currentTime: number; duration?: number }) => void }).onProgress;
+  const onMute = (options as { onMute?: (data: { muted: boolean }) => void }).onMute;
 
   return loadYTScript().then(
     () =>
@@ -80,22 +81,37 @@ export function createPlayer(
             height: typeof height === "number" ? height : parseInt(String(height), 10) || 315,
             playerVars: { autoplay: autoplay ? 1 : 0 },
             events: {
-              onReady(ev: { target: YTPlayer }) {
+                onReady(ev: { target: YTPlayer }) {
                 const player = ev.target;
                 onReadyCallback?.();
                 let progressInterval: ReturnType<typeof setInterval> | undefined;
-                if (onProgress) {
+                let lastMuted: boolean | null = null;
+                const pollMute = (): void => {
+                  try {
+                    const muted = player.isMuted();
+                    if (onMute && lastMuted !== null && lastMuted !== muted) {
+                      onMute({ muted });
+                    }
+                    lastMuted = muted;
+                  } catch {
+                    // Player may be destroyed
+                  }
+                };
+                if (onProgress || onMute) {
                   progressInterval = setInterval(() => {
                     try {
-                      const currentTime = player.getCurrentTime();
-                      const duration = player.getDuration();
-                      if (typeof currentTime === "number" && !Number.isNaN(currentTime)) {
-                        const dur = typeof duration === "number" && !Number.isNaN(duration) && duration > 0 ? duration : undefined;
-                        onProgress({
-                          currentTime,
-                          ...(dur !== undefined ? { duration: dur } : {}),
-                        });
+                      if (onProgress) {
+                        const currentTime = player.getCurrentTime();
+                        const duration = player.getDuration();
+                        if (typeof currentTime === "number" && !Number.isNaN(currentTime)) {
+                          const dur = typeof duration === "number" && !Number.isNaN(duration) && duration > 0 ? duration : undefined;
+                          onProgress({
+                            currentTime,
+                            ...(dur !== undefined ? { duration: dur } : {}),
+                          });
+                        }
                       }
+                      if (onMute) pollMute();
                     } catch {
                       // Player may be destroyed
                     }
@@ -122,8 +138,14 @@ export function createPlayer(
                   get autoplay() {
                     return Promise.resolve(autoplay);
                   },
-                  mute: () => player.mute(),
-                  unmute: () => player.unMute(),
+                  mute: () => {
+                    player.mute();
+                    onMute?.({ muted: true });
+                  },
+                  unmute: () => {
+                    player.unMute();
+                    onMute?.({ muted: false });
+                  },
                   get muted() {
                     return Promise.resolve(player.isMuted());
                   },

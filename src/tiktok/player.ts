@@ -37,6 +37,7 @@ export function createPlayer(
   const onReady = (options as { onReady?: () => void }).onReady;
   const onEnded = (options as { onEnded?: () => void }).onEnded;
   const onProgress = (options as { onProgress?: (data: { currentTime: number; duration?: number }) => void }).onProgress;
+  const onMute = (options as { onMute?: (data: { muted: boolean }) => void }).onMute;
 
   // Vertical video: width is the narrow dimension, height the tall one (e.g. 325×575).
   const iframe = createEmbedIframeElement({
@@ -122,10 +123,12 @@ export function createPlayer(
     mute() {
       lastMuted = true;
       post(iframe, "mute", true);
+      onMute?.({ muted: true });
     },
     unmute() {
       lastMuted = false;
       post(iframe, "mute", false);
+      onMute?.({ muted: false });
     },
     get muted(): Promise<boolean> {
       return Promise.resolve(lastMuted);
