@@ -86,11 +86,7 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
       vimeoPlayer.on("timeupdate", (data?: VimeoTimeupdateData) => {
         if (data != null) {
           const sec = data.seconds ?? 0;
-          const dur = data.duration;
-          onProgress({
-            currentTime: typeof sec === "number" ? sec : 0,
-            ...(typeof dur === "number" ? { duration: dur } : {}),
-          });
+          onProgress(typeof sec === "number" ? sec : 0);
         }
         if (endedFired) return;
         const p = data?.percent;
@@ -129,23 +125,23 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
       },
       seek(seconds: number) {
         return vimeoPlayer.setCurrentTime(seconds).then(() => {
-          onSeek({ currentTime: seconds });
+          onSeek(seconds);
         });
       },
       mute() {
         return vimeoPlayer.setMuted(true).then(() => {
-          onMute({ muted: true });
+          onMute(true);
         });
       },
       unmute() {
         return vimeoPlayer.setMuted(false).then(() => {
-          onMute({ muted: false });
+          onMute(false);
         });
       },
       get muted() {
         return vimeoPlayer.getMuted();
       },
-      get lastError() {
+      get error() {
         return lastError;
       },
       destroy() {

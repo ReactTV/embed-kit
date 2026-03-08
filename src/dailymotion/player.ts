@@ -111,7 +111,7 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
           if (typeof dmPlayer.setMute === "function") {
             dmPlayer.setMute(true);
             muted = true;
-            onMute({ muted: true });
+            onMute(true);
           }
         },
         pause() {
@@ -129,14 +129,14 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
         seek(seconds: number) {
           if (typeof dmPlayer.seek === "function") {
             dmPlayer.seek(seconds);
-            onSeek({ currentTime: seconds });
+            onSeek(seconds);
           }
         },
         unmute() {
           if (typeof dmPlayer.setMute === "function") {
             dmPlayer.setMute(false);
             muted = false;
-            onMute({ muted: false });
+            onMute(false);
           }
         },
       };
