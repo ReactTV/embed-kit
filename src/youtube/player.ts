@@ -56,7 +56,7 @@ function loadYTScript(): Promise<void> {
  * Returns a normalized IEmbedPlayer (play, pause, getPaused).
  */
 export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
-  const { width = 560, height = 315, autoplay = false, onReady: onReadyCallback, onPlay, onPause, onBuffering, onEnded, onProgress, onMute, onError } = options;
+  const { width = 560, height = 315, autoplay = false, onReady: onReadyCallback, onPlay, onPause, onBuffering, onEnded, onProgress, onSeek, onMute, onError } = options;
   let lastError: IErrorData | null = null;
 
   return loadYTScript().then(
@@ -82,17 +82,6 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
                 onReadyCallback?.();
                 let progressInterval: ReturnType<typeof setInterval> | undefined;
                 let lastMuted: boolean | null = null;
-                const pollMute = (): void => {
-                  try {
-                    const muted = player.isMuted();
-                    if (onMute && lastMuted !== null && lastMuted !== muted) {
-                      onMute({ muted });
-                    }
-                    lastMuted = muted;
-                  } catch {
-                    // Player may be destroyed
-                  }
-                };
                 if (onProgress || onMute) {
                   progressInterval = setInterval(() => {
                     try {
@@ -107,7 +96,13 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
                           });
                         }
                       }
-                      if (onMute) pollMute();
+                      if (onMute) {
+                        const muted = player.isMuted();
+                        if (lastMuted !== null && lastMuted !== muted) {
+                          onMute({ muted });
+                        }
+                        lastMuted = muted;
+                      }
                     } catch {
                       // Player may be destroyed
                     }
@@ -130,6 +125,7 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
                   },
                   seek(seconds: number) {
                     player.seekTo(seconds, true);
+                    onSeek?.({ currentTime: seconds });
                   },
                   get autoplay() {
                     return Promise.resolve(autoplay);

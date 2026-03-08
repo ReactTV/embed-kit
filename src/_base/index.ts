@@ -1,5 +1,5 @@
 // Player: createPlayer options, callback payloads, and returned player
-export type { TCreatePlayer, ICreatePlayerOptions, IEmbedPlayer, IErrorData, IMuteData, IProgressData } from "./player.js";
+export type { TCreatePlayer, ICreatePlayerOptions, IEmbedPlayer, IErrorData, IMuteData, IProgressData, ISeekData } from "./player.js";
 
 // Iframe helpers (for provider implementations)
 export type { IIframeEmbedProps } from "./iframe.js";

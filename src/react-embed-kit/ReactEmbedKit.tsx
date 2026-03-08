@@ -5,6 +5,7 @@ import type {
   IErrorData,
   IMuteData,
   IProgressData,
+  ISeekData,
 } from "../_base/index.js";
 import { getProviderForUrl } from "./providers.js";
 
@@ -51,6 +52,8 @@ export function ReactEmbedKit({
   onBuffering,
   onEnded,
   onProgress,
+  onSeeking,
+  onSeek,
   onMute,
   onError,
   onUnsupportedUrl,
@@ -94,6 +97,8 @@ export function ReactEmbedKit({
     if (typeof onBuffering === "function") mergedOptions.onBuffering = onBuffering as () => void;
     if (typeof onEnded === "function") mergedOptions.onEnded = onEnded as () => void;
     if (typeof onProgress === "function") mergedOptions.onProgress = onProgress as (data: IProgressData) => void;
+    if (typeof onSeeking === "function") mergedOptions.onSeeking = onSeeking as () => void;
+    if (typeof onSeek === "function") mergedOptions.onSeek = onSeek as (data: ISeekData) => void;
     if (typeof onMute === "function") mergedOptions.onMute = onMute as (data: IMuteData) => void;
 
     let cancelled = false;

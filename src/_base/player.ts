@@ -14,6 +14,9 @@ export interface ICreatePlayerOptions {
   onBuffering?: () => void;
   onEnded?: () => void;
   onProgress?: (data: IProgressData) => void;
+  /** Fired when a seek starts (e.g. user drags the progress bar). Use with onSeek (seek complete) for isSeeking UI. */
+  onSeeking?: () => void;
+  onSeek?: (data: ISeekData) => void;
   onMute?: (data: IMuteData) => void;
   onError?: (data: IErrorData) => void;
   [key: string]: unknown;
@@ -22,6 +25,10 @@ export interface ICreatePlayerOptions {
 export interface IProgressData {
   currentTime: number;
   duration?: number;
+}
+
+export interface ISeekData {
+  currentTime: number;
 }
 
 export interface IMuteData {

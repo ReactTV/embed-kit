@@ -165,6 +165,8 @@ export function createEmbedElement(provider: IEmbedProvider): CustomElementConst
       const autoplayAttr = this.getAttribute("autoplay");
       const autoplay = autoplayAttr !== null && autoplayAttr !== "false";
       const onMute = (this as unknown as { onMute?: (data: { muted: boolean }) => void }).onMute;
+      const onSeeking = (this as unknown as { onSeeking?: () => void }).onSeeking;
+      const onSeek = (this as unknown as { onSeek?: (data: { currentTime: number }) => void }).onSeek;
       const onPlay = (this as unknown as { onPlay?: () => void }).onPlay;
       const onPause = (this as unknown as { onPause?: () => void }).onPause;
       const onBuffering = (this as unknown as { onBuffering?: () => void }).onBuffering;
@@ -178,6 +180,8 @@ export function createEmbedElement(provider: IEmbedProvider): CustomElementConst
         height,
         autoplay,
         ...(typeof onMute === "function" ? { onMute } : {}),
+        ...(typeof onSeeking === "function" ? { onSeeking } : {}),
+        ...(typeof onSeek === "function" ? { onSeek } : {}),
         ...(typeof onPlay === "function" ? { onPlay } : {}),
         ...(typeof onPause === "function" ? { onPause } : {}),
         ...(typeof onBuffering === "function" ? { onBuffering } : {}),

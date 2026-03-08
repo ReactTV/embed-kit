@@ -10,6 +10,7 @@
     .section { margin: 1.5rem 0; }
     .section h2 { font-size: 1rem; margin-bottom: 0.5rem; }
     .player-wrap { margin: 0.5rem 0; border: 1px solid #ccc; }
+    .section select { width: 100%; padding: 0.5rem; font-size: 14px; box-sizing: border-box; margin-top: 0.25rem; }
     input[type="url"] { width: 100%; padding: 0.5rem; font-size: 14px; box-sizing: border-box; }
     label { display: block; margin-top: 0.5rem; font-weight: 500; }
     .hint { font-size: 12px; color: #666; margin-top: 0.25rem; }
@@ -40,141 +41,11 @@
 
   <script type="module">
     import { createRoot } from "react-dom/client";
-    import React, { useState, useEffect } from "react";
-    import { ReactEmbedKit } from "../dist/react-embed-kit/index.js";
-
-    const EXAMPLE_URLS = [
-      "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-      "https://youtu.be/dQw4w9WgXcQ",
-      "https://player.vimeo.com/video/148751763",
-      "https://www.twitch.tv/videos/2156437342",
-      "https://www.tiktok.com/@user/video/1234567890",
-      "https://www.dailymotion.com/video/x8f3k2a",
-    ];
-
-    function formatTime(seconds) {
-      if (seconds == null || Number.isNaN(seconds)) return "—";
-      const m = Math.floor(seconds / 60);
-      const s = Math.floor(seconds % 60);
-      return m + ":" + String(s).padStart(2, "0");
-    }
-
-    function App() {
-      const [url, setUrl] = useState(EXAMPLE_URLS[0]);
-      const [player, setPlayer] = useState(null);
-      const [buffering, setBuffering] = useState(false);
-      const [data, setData] = useState({ currentTime: null, duration: null, paused: null, muted: null });
-
-      useEffect(() => {
-        setPlayer(null);
-        setBuffering(false);
-      }, [url]);
-
-      useEffect(() => {
-        if (!player) {
-          setData({ currentTime: null, duration: null, paused: null, muted: null });
-          return;
-        }
-        let cancelled = false;
-        const poll = async () => {
-          if (cancelled) return;
-          try {
-            const [currentTime, duration, paused, muted] = await Promise.all([
-              player.currentTime,
-              player.duration,
-              player.paused,
-              player.muted,
-            ]);
-            if (!cancelled) setData({ currentTime, duration, paused, muted });
-          } catch (_) {}
-        };
-        poll();
-        const id = setInterval(poll, 500);
-        return () => {
-          cancelled = true;
-          clearInterval(id);
-        };
-      }, [player]);
-
-      return React.createElement(
-        "div",
-        { className: "section" },
-        React.createElement("label", { htmlFor: "url" }, "Video URL"),
-        React.createElement("input", {
-          id: "url",
-          type: "url",
-          value: url,
-          onChange: (e) => setUrl(e.target.value),
-          placeholder: "https://www.youtube.com/watch?v=...",
-        }),
-        React.createElement("p", { className: "hint" },
-          "Try: YouTube, youtu.be, Vimeo, Twitch videos/clips/channel, TikTok, Dailymotion"
-        ),
-        React.createElement("div", { className: "player-wrap" },
-          React.createElement(ReactEmbedKit, {
-            url,
-            width: "560",
-            height: "315",
-            onReady: (p) => { setPlayer(p); console.log("Embed ready"); },
-            onBuffering: () => setBuffering(true),
-            onPlay: () => setBuffering(false),
-            onError: (d) => console.warn("Embed error:", d),
-            onUnsupportedUrl: (u) => { setPlayer(null); console.warn("Unsupported URL:", u); },
-          })
-        ),
-        React.createElement("div", { className: "controls" },
-          React.createElement("button", {
-            type: "button",
-            disabled: !player,
-            onClick: () => player?.play(),
-          }, "Play"),
-          React.createElement("button", {
-            type: "button",
-            disabled: !player,
-            onClick: () => player?.pause(),
-          }, "Pause"),
-          React.createElement("button", {
-            type: "button",
-            disabled: !player,
-            onClick: () => player?.seek(0),
-          }, "Seek to 0:00"),
-          React.createElement("button", {
-            type: "button",
-            disabled: !player,
-            onClick: () => player?.seek(30),
-          }, "Seek to 0:30"),
-          React.createElement("button", {
-            type: "button",
-            disabled: !player,
-            onClick: () => player?.mute(),
-          }, "Mute"),
-          React.createElement("button", {
-            type: "button",
-            disabled: !player,
-            onClick: () => player?.unmute(),
-          }, "Unmute")
-        ),
-        React.createElement("div", { className: "data-panel" },
-          player
-            ? React.createElement("dl", null,
-                React.createElement("dt", null, "currentTime"),
-                React.createElement("dd", null, formatTime(data.currentTime)),
-                React.createElement("dt", null, "duration"),
-                React.createElement("dd", null, formatTime(data.duration)),
-                React.createElement("dt", null, "paused"),
-                React.createElement("dd", null, String(data.paused)),
-                React.createElement("dt", null, "muted"),
-                React.createElement("dd", null, String(data.muted)),
-                React.createElement("dt", null, "isBuffering"),
-                React.createElement("dd", null, String(buffering))
-              )
-            : React.createElement("p", { className: "no-player" }, "Load a supported URL to see live data.")
-        )
-      );
-    }
+    import React from "react";
+    import { ReactEmbedKitTestPage } from "../dist/react-embed-kit/index.js";
 
     const root = createRoot(document.getElementById("root"));
-    root.render(React.createElement(App));
+    root.render(React.createElement(ReactEmbedKitTestPage));
   </script>
 </body>
 </html>

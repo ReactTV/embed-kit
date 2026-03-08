@@ -20,7 +20,7 @@ interface TwitchMessage {
  * Clips use clips.twitch.tv/embed (no control API).
  */
 export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
-  const { width = 560, height = 315, autoplay = false, onReady, onPlay, onPause, onBuffering, onEnded, onProgress, onMute, onError } = options;
+  const { width = 560, height = 315, autoplay = false, onReady, onPlay, onPause, onBuffering, onEnded, onProgress, onSeek, onMute, onError } = options;
   const { twitchType } = options as typeof options & { twitchType?: string };
   const isClip = twitchType === "clip";
   const isChannel = twitchType === "channel";
@@ -174,6 +174,8 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     },
     seek(seconds: number) {
       send(CMD_SEEK, seconds);
+      currentTime = seconds;
+      onSeek?.({ currentTime: seconds });
     },
     get autoplay() {
       return Promise.resolve(autoplay);
