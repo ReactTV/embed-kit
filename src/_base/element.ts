@@ -18,7 +18,7 @@ export interface IEmbedProvider {
 
 /**
  * Creates a custom element class that mounts the provider's player and exposes
- * play(), pause(), paused, currentTime, duration, seek(), mute(), unmute(), muted, ready, lastError.
+ * play(), pause(), paused, currentTime, duration, seek(), mute(), unmute(), muted, lastError.
  */
 export function createEmbedElement(provider: IEmbedProvider): CustomElementConstructor {
   return class extends HTMLElement {
@@ -80,11 +80,6 @@ export function createEmbedElement(provider: IEmbedProvider): CustomElementConst
 
     get muted(): Promise<boolean> {
       return this.player.then((p) => p?.muted ?? Promise.resolve(false));
-    }
-
-    /** Resolves when the embed player is ready for playback control. */
-    get ready(): Promise<void> {
-      return this.player.then((p) => p?.ready ?? new Promise<void>(() => {}));
     }
 
     /** Last error from the player, if any. Cleared when the embed is recreated (e.g. video-id change). */

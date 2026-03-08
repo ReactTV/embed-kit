@@ -107,9 +107,6 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
         : vimeoPlayer.getPaused().then(() => undefined);
     readyPromise.then(() => onReady());
     return {
-      get ready() {
-        return readyPromise;
-      },
       play: () => vimeoPlayer.play(),
       pause: () => vimeoPlayer.pause(),
       get paused() {

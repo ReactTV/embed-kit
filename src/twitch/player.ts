@@ -4,25 +4,19 @@ import {
   type IErrorData,
   type TCreatePlayer,
 } from "../_base/index.js";
-
-const EMBED_ORIGIN = "https://player.twitch.tv";
-const NS_EMBED = "twitch-embed";
-const NS_PLAYER_PROXY = "twitch-embed-player-proxy";
-const CMD_PLAY = 3;
-const CMD_PAUSE = 2;
-const CMD_SEEK = 4;
-const CMD_SET_MUTED = 10;
-
-interface TwitchMessage {
-  namespace?: string;
-  eventName?: string | number;
-  params?: { playback?: string; currentTime?: number; duration?: number } | boolean;
-}
+import {
+  EMBED_ORIGIN,
+  NS_EMBED,
+  NS_PLAYER_PROXY,
+  PlaybackState,
+  PlayerCommands,
+} from "./constants.js";
+import type { TTwitchMessage } from "./player.types.js";
 
 /**
- * Create a controllable Twitch player in the given container (video by id, or clip by slug).
- * Uses the player.twitch.tv iframe and postMessage API; no Twitch Embed SDK.
- * Clips use clips.twitch.tv/embed (no control API).
+ * Create a Twitch player in the given container (video by id, channel by name, or clip by slug).
+ * Uses player.twitch.tv for VOD/channel (postMessage API) or clips.twitch.tv/embed for clips (no control API).
+ * Same player interface; clip embeds do not respond to play/pause/seek/mute.
  */
 export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
   const {
@@ -42,64 +36,21 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
   const { twitchType } = options as typeof options & { twitchType?: string };
   const isClip = twitchType === "clip";
   const isChannel = twitchType === "channel";
-  const parent =
-    typeof window !== "undefined" && window.location?.hostname
-      ? window.location.hostname
-      : "localhost";
-  const parentParam =
-    parent === "localhost" || parent === "127.0.0.1"
-      ? "parent=localhost&parent=127.0.0.1"
-      : `parent=${encodeURIComponent(parent)}`;
 
-  if (isClip) {
-    const clipUrl = `https://clips.twitch.tv/embed?clip=${encodeURIComponent(id)}&${parentParam}`;
-    const iframe = createEmbedIframeElement({
-      src: clipUrl,
-      width,
-      height,
-      allowFullScreen: true,
-    });
-    container.appendChild(iframe);
-    return Promise.resolve({
-      get ready() {
-        return Promise.resolve();
-      },
-      play: () => {},
-      pause: () => {},
-      get paused() {
-        return Promise.resolve(false);
-      },
-      get currentTime() {
-        return Promise.resolve(0);
-      },
-      get duration() {
-        return Promise.resolve(0);
-      },
-      seek: () => {},
-      mute() {},
-      unmute() {},
-      get muted() {
-        return Promise.resolve(false);
-      },
-      get error() {
-        return null;
-      },
-      destroy() {
-        if (iframe.parentNode) iframe.remove();
-      },
-    });
-  }
-
-  const parentQuery =
-    parent === "localhost" || parent === "127.0.0.1"
-      ? "parent=localhost&parent=127.0.0.1"
-      : `parent=${encodeURIComponent(parent)}`;
   const mediaParam = isChannel ? "channel" : "video";
+  const embedUrl = isClip
+    ? `https://clips.twitch.tv/embed?clip=${encodeURIComponent(id)}&parent=${encodeURIComponent(window.location.hostname)}`
+    : `${EMBED_ORIGIN}/?${mediaParam}=${encodeURIComponent(id)}&parent=${encodeURIComponent(window.location.hostname)}${autoplay ? "&autoplay=true" : ""}`;
+
   const iframe = createEmbedIframeElement({
-    src: `${EMBED_ORIGIN}/?${mediaParam}=${encodeURIComponent(id)}&${parentQuery}${autoplay ? "&autoplay=true" : ""}`,
+    src: embedUrl,
     width,
     height,
-    allow: "accelerometer; fullscreen; autoplay; encrypted-media; picture-in-picture",
+    ...(isClip
+      ? {}
+      : {
+          allow: "accelerometer; fullscreen; autoplay; encrypted-media; picture-in-picture",
+        }),
     allowFullScreen: true,
   });
   container.appendChild(iframe);
@@ -107,80 +58,85 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
   let isPaused = true;
   let currentTime = 0;
   let duration = 0;
-  let isMuted = false;
+  let muted = false;
   let error: IErrorData | null = null;
   let lastPlayback: string | undefined;
-  let readyResolve: () => void;
-  const readyPromise = new Promise<void>((r) => {
-    readyResolve = r;
-  });
 
   const onMessage = (event: MessageEvent): void => {
     if (event.source !== iframe.contentWindow || event.origin !== EMBED_ORIGIN) return;
-    const data = event.data as TwitchMessage;
-    if (!data?.namespace) return;
+    const message = event.data as TTwitchMessage;
 
-    if (data.namespace === NS_EMBED && data.eventName === "ready") {
-      readyResolve();
-      onReady();
-    } else if (data.namespace === NS_EMBED && data.eventName === "error") {
-      const msg =
-        data.params && typeof data.params === "object" && !Array.isArray(data.params)
-          ? (data.params as { message?: string }).message
-          : undefined;
-      error = { message: msg ?? "Twitch embed error" };
-      onError(error);
-    } else if (
-      data.namespace === NS_PLAYER_PROXY &&
-      data.eventName === "UPDATE_STATE" &&
-      data.params &&
-      typeof data.params === "object" &&
-      !Array.isArray(data.params)
-    ) {
-      const p = data.params as { playback?: string; currentTime?: number; duration?: number };
-      if (p.playback !== undefined) {
-        if (p.playback === "Playing" && lastPlayback !== "Playing") onPlay();
-        if ((p.playback === "Paused" || p.playback === "Ready") && lastPlayback === "Playing")
-          onPause();
-        if (p.playback === "Buffering") onBuffering();
-        lastPlayback = p.playback;
-        isPaused = p.playback !== "Playing";
-        if (p.playback === "Ended") onEnded();
+    if (message.namespace === NS_EMBED) {
+      if (message.eventName === "ready") {
+        onReady();
       }
-      if (typeof p.currentTime === "number") {
-        currentTime = p.currentTime;
+
+      if (message.eventName === "error") {
+        const msg = message.params?.message ?? "Twitch embed error";
+        error = { message: msg };
+        onError(error);
       }
-      if (typeof p.duration === "number") {
-        duration = p.duration;
+
+      if (message.eventName === "seek") {
+        currentTime = message.params.position;
+        onSeek(message.params.position);
       }
-      if (typeof p.currentTime === "number" || typeof p.duration === "number") {
-        onProgress(typeof p.currentTime === "number" ? p.currentTime : currentTime);
+
+      if (
+        message.eventName === "play" ||
+        message.eventName === "playing" ||
+        message.eventName === "video.play"
+      ) {
+        onPlay();
       }
+    }
+
+    if (message.namespace === NS_PLAYER_PROXY && message.eventName === "UPDATE_STATE") {
+      const p = message.params;
+      if (p.playback === PlaybackState.PLAYING && lastPlayback !== PlaybackState.PLAYING) {
+        onPlay();
+      }
+
+      if (
+        (p.playback === PlaybackState.PAUSED ||
+          p.playback === PlaybackState.READY ||
+          p.playback === PlaybackState.IDLE) &&
+        lastPlayback === PlaybackState.PLAYING
+      ) {
+        onPause();
+      }
+
+      if (p.playback === PlaybackState.BUFFERING) onBuffering();
+      if (p.playback === PlaybackState.ENDED) onEnded();
+
+      lastPlayback = p.playback;
+      isPaused = p.playback !== PlaybackState.PLAYING;
+      currentTime = p.currentTime;
+      duration = p.duration;
+      if (typeof p.muted === "boolean") muted = p.muted;
+      onProgress(p.currentTime);
     }
   };
 
   window.addEventListener("message", onMessage);
 
-  const send = (eventName: number, params?: number | boolean): void => {
+  const send = (command: number, params?: number | boolean): void => {
     if (!iframe.contentWindow) return;
     iframe.contentWindow.postMessage(
-      { eventName, params, namespace: NS_PLAYER_PROXY },
+      { eventName: command, params, namespace: NS_PLAYER_PROXY },
       EMBED_ORIGIN
     );
   };
 
   const player: IEmbedPlayer = {
-    get ready() {
-      return readyPromise;
-    },
     play() {
       isPaused = false;
-      send(CMD_PLAY);
+      send(PlayerCommands.PLAY);
       onPlay();
     },
     pause() {
       isPaused = true;
-      send(CMD_PAUSE);
+      send(PlayerCommands.PAUSE);
       onPause();
     },
     get paused() {
@@ -193,22 +149,22 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
       return Promise.resolve(duration);
     },
     seek(seconds: number) {
-      send(CMD_SEEK, seconds);
+      send(PlayerCommands.SEEK, seconds);
       currentTime = seconds;
       onSeek(seconds);
     },
     mute() {
-      isMuted = true;
-      send(CMD_SET_MUTED, true);
+      muted = true;
+      send(PlayerCommands.SET_MUTED, true);
       onMute(true);
     },
     unmute() {
-      isMuted = false;
-      send(CMD_SET_MUTED, false);
+      muted = false;
+      send(PlayerCommands.SET_MUTED, false);
       onMute(false);
     },
     get muted() {
-      return Promise.resolve(isMuted);
+      return muted;
     },
     get error() {
       return error;

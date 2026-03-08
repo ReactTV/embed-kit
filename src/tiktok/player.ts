@@ -61,7 +61,7 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
   let lastDuration = 0;
   let lastError: IErrorData | null = null;
   let resolveReady: () => void;
-  const readyPromise = new Promise<void>((resolve) => {
+  new Promise<void>((resolve) => {
     resolveReady = resolve;
   });
   let resolvePlayer: (p: IEmbedPlayer) => void;
@@ -116,9 +116,6 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
 
   let lastMuted = false;
   const player: IEmbedPlayer = {
-    get ready() {
-      return readyPromise;
-    },
     async play() {
       post(iframe, "play");
     },

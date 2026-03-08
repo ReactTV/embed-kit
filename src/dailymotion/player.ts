@@ -123,9 +123,6 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
         play() {
           dmPlayer.play();
         },
-        get ready() {
-          return Promise.resolve();
-        },
         seek(seconds: number) {
           if (typeof dmPlayer.seek === "function") {
             dmPlayer.seek(seconds);

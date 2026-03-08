@@ -38,7 +38,6 @@ export interface IErrorData {
 
 /** Returned by createPlayer(); normalized API across all providers. */
 export interface IEmbedPlayer {
-  readonly ready: Promise<void>;
   play(): void | Promise<void>;
   pause(): void | Promise<void>;
   readonly paused: Promise<boolean>;
@@ -47,7 +46,7 @@ export interface IEmbedPlayer {
   seek(seconds: number): void | Promise<void>;
   mute(): void | Promise<void>;
   unmute(): void | Promise<void>;
-  readonly muted: Promise<boolean>;
+  readonly muted: boolean;
   readonly error: IErrorData | null;
   destroy?(): void | Promise<void>;
 }

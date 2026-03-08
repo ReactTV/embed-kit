@@ -126,9 +126,6 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
               }, progressInterval);
             }
             resolve({
-              get ready() {
-                return Promise.resolve();
-              },
               play: () => player.playVideo(),
               pause: () => player.pauseVideo(),
               get paused() {

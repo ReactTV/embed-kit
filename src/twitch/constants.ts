@@ -3,6 +3,47 @@
  * Use these in tests and test pages so videos stay valid in one place.
  */
 
+/** Embed origin for postMessage validation. */
+export const EMBED_ORIGIN = "https://player.twitch.tv";
+
+/** postMessage namespace for embed lifecycle events (ready, seek, play, etc.). */
+export const NS_EMBED = "twitch-embed";
+
+/** postMessage namespace for player control and UPDATE_STATE. */
+export const NS_PLAYER_PROXY = "twitch-embed-player-proxy";
+
+/**
+ * Playback state strings from Twitch embed UPDATE_STATE.params.playback.
+ * @see https://github.com/muxinc/media-elements/blob/main/packages/twitch-video-element/twitch-video-element.js
+ */
+export const PlaybackState = {
+  BUFFERING: "Buffering",
+  ENDED: "Ended",
+  IDLE: "Idle",
+  PAUSED: "Paused",
+  PLAYING: "Playing",
+  READY: "Ready",
+} as const;
+
+/**
+ * Numeric command codes for postMessage to the embed (namespace twitch-embed-player-proxy).
+ * @see https://github.com/twitchdev/issues/issues/125
+ */
+export const PlayerCommands = {
+  DISABLE_CAPTIONS: 0,
+  ENABLE_CAPTIONS: 1,
+  PAUSE: 2,
+  PLAY: 3,
+  SEEK: 4,
+  SET_CHANNEL: 5,
+  SET_CHANNEL_ID: 6,
+  SET_COLLECTION: 7,
+  SET_QUALITY: 8,
+  SET_VIDEO: 9,
+  SET_MUTED: 10,
+  SET_VOLUME: 11,
+} as const;
+
 /** Regex to match twitch.tv/videos/{id} URLs. */
 export const REGEX_VIDEO = /twitch\.tv\/videos\/(\d+)/;
 
