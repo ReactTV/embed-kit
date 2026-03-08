@@ -42,10 +42,7 @@ function escapeHtmlAttr(value: string): string {
 }
 
 /** Emit an attribute string, or null if value is missing/false. */
-function attr(
-  name: string,
-  value: string | number | boolean | undefined | null
-): string | null {
+function attr(name: string, value: string | number | boolean | undefined | null): string | null {
   if (value === undefined || value === null) return null;
   if (typeof value === "boolean") return value ? name : null;
   return `${name}="${escapeHtmlAttr(String(value))}"`;
@@ -95,9 +92,10 @@ export function renderEmbedIframe(props: IIframeEmbedProps): string {
     .filter(([, value]) => value !== undefined && value !== null)
     .map(([key, value]) => {
       const name = key.toLowerCase().replace(/([a-z])([A-Z])/g, "$1-$2");
-      return typeof value === "boolean"
-        ? (value ? name : null)
-        : `${name}="${escapeHtmlAttr(String(value))}"`;
+      if (typeof value === "boolean") {
+        return value ? name : null;
+      }
+      return `${name}="${escapeHtmlAttr(String(value))}"`;
     })
     .filter(Boolean) as string[];
 

@@ -20,8 +20,29 @@ export interface IEmbedProvider {
  * Creates a custom element class that mounts the provider's player and exposes
  * play(), pause(), paused, currentTime, duration, seek(), mute(), unmute(), muted, lastError.
  */
+/** Callback props that consumers may set on the element (e.g. via ref). */
+interface EmbedElementCallbacks {
+  onReady?: () => void;
+  onPlay?: () => void;
+  onPause?: () => void;
+  onBuffering?: () => void;
+  onSeeking?: () => void;
+  onSeek?: (currentTime: number) => void;
+  onMute?: (data: { muted: boolean }) => void;
+  onError?: (data: IErrorData) => void;
+}
+
 export function createEmbedElement(provider: IEmbedProvider): CustomElementConstructor {
-  return class extends HTMLElement {
+  return class extends HTMLElement implements EmbedElementCallbacks {
+    declare onReady?: () => void;
+    declare onPlay?: () => void;
+    declare onPause?: () => void;
+    declare onBuffering?: () => void;
+    declare onSeeking?: () => void;
+    declare onSeek?: (currentTime: number) => void;
+    declare onMute?: (data: { muted: boolean }) => void;
+    declare onError?: (data: IErrorData) => void;
+
     static get observedAttributes(): string[] {
       return ["src", "video-id", "width", "height", "title", "autoplay"];
     }
@@ -153,35 +174,26 @@ export function createEmbedElement(provider: IEmbedProvider): CustomElementConst
 
       const autoplayAttr = this.getAttribute("autoplay");
       const autoplay = autoplayAttr !== null && autoplayAttr !== "false";
-      const onMute = (this as unknown as { onMute?: (data: { muted: boolean }) => void }).onMute;
-      const onSeeking = (this as unknown as { onSeeking?: () => void }).onSeeking;
-      const onSeek = (this as unknown as { onSeek?: (data: { currentTime: number }) => void }).onSeek;
-      const onPlay = (this as unknown as { onPlay?: () => void }).onPlay;
-      const onPause = (this as unknown as { onPause?: () => void }).onPause;
-      const onBuffering = (this as unknown as { onBuffering?: () => void }).onBuffering;
-      const userOnError =
-        (this as unknown as { onError?: (data: IErrorData) => void }).onError ?? (() => {});
-      const onError = (data: IErrorData): void => {
-        this.#lastError = data;
-        userOnError(data);
-      };
+      const noop = (): void => {};
+      const userOnError = this.onError ?? noop;
       this.#playerPromise = provider.createPlayer(container, id, {
         width,
         height,
         autoplay,
-        ...(typeof onMute === "function" ? { onMute } : {}),
-        ...(typeof onSeeking === "function" ? { onSeeking } : {}),
-        ...(typeof onSeek === "function" ? { onSeek } : {}),
-        ...(typeof onPlay === "function" ? { onPlay } : {}),
-        ...(typeof onPause === "function" ? { onPause } : {}),
-        ...(typeof onBuffering === "function" ? { onBuffering } : {}),
-        onError,
+        onReady: this.onReady ?? noop,
+        onPlay: this.onPlay ?? noop,
+        onPause: this.onPause ?? noop,
+        onBuffering: this.onBuffering ?? noop,
+        onSeeking: this.onSeeking ?? noop,
+        onSeek: this.onSeek ?? noop,
+        onMute: this.onMute ?? noop,
+        onError: (data: IErrorData) => {
+          this.#lastError = data;
+          userOnError(data);
+        },
         ...options,
       }).then((player) => {
         this.#player = player;
-        const onReady =
-          (this as unknown as { onReady?: () => void }).onReady ?? (() => {});
-        onReady();
         return player;
       });
     }
