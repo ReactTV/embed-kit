@@ -10,6 +10,7 @@ declare global {
 }
 
 interface VimeoPlayer {
+  ready?: () => Promise<void>;
   play: () => Promise<void>;
   pause: () => Promise<void>;
   getPaused: () => Promise<boolean>;
@@ -59,7 +60,10 @@ export function createPlayer(
 
   return loadVimeoScript().then(() => {
     const vimeoPlayer = new window.Vimeo!.Player(iframe);
-    const readyPromise = vimeoPlayer.getPaused().then(() => undefined);
+    const readyPromise =
+      typeof vimeoPlayer.ready === "function"
+        ? vimeoPlayer.ready()
+        : vimeoPlayer.getPaused().then(() => undefined);
     return {
       get ready() {
         return readyPromise;

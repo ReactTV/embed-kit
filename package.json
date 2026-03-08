@@ -66,11 +66,13 @@
   ],
   "scripts": {
     "build": "tsc",
+    "build:watch": "tsc --watch",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run clean && npm run build",
-    "test": "npm run build && npx serve . --listen 3333"
+    "test": "npm run build && concurrently \"npm run build:watch\" \"npx serve . --listen 3333\""
   },
   "devDependencies": {
+    "concurrently": "^9.1.0",
     "typescript": "^5.7.2"
   },
   "engines": {

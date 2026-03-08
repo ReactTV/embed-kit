@@ -9,7 +9,6 @@ declare global {
         containerId: string,
         options: { video: string; params?: Record<string, unknown> }
       ) => Promise<DailymotionPlayer>;
-      onScriptLoaded?: (callback: () => void) => void;
     };
   }
 }
@@ -29,18 +28,7 @@ function loadDailymotionScript(): Promise<void> {
     const script = document.createElement("script");
     script.src = DAILYMOTION_LIB;
     script.async = true;
-    script.onload = () => {
-      if (window.dailymotion?.onScriptLoaded) {
-        window.dailymotion.onScriptLoaded(() => resolve());
-      } else {
-        const waitForApi = (attempts = 0): void => {
-          if (window.dailymotion?.createPlayer) return resolve();
-          if (attempts > 50) return resolve();
-          setTimeout(() => waitForApi(attempts + 1), 100);
-        };
-        waitForApi();
-      }
-    };
+    script.onload = () => resolve();
     script.onerror = () => reject(new Error("Failed to load Dailymotion player script"));
     document.head.appendChild(script);
   });

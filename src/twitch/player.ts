@@ -1,55 +1,22 @@
 import type { CreatePlayerOptions, EmbedPlayer } from "../_base/index.js";
 
-const TWITCH_SCRIPT = "https://embed.twitch.tv/embed/v1.js";
+const EMBED_ORIGIN = "https://player.twitch.tv";
+const NS_EMBED = "twitch-embed";
+const NS_PLAYER_PROXY = "twitch-embed-player-proxy";
+const CMD_PLAY = 3;
+const CMD_PAUSE = 2;
+const CMD_SEEK = 4;
 
-declare global {
-  interface Window {
-    Twitch?: {
-      Embed: new (divId: string, opts: TwitchEmbedOptions) => TwitchEmbedInstance;
-      Player?: { PLAY?: string; PAUSE?: string };
-    };
-  }
-}
-
-interface TwitchEmbedOptions {
-  video?: string;
-  clip?: string;
-  width?: number | string;
-  height?: number | string;
-  autoplay?: boolean;
-  parent?: string[];
-}
-
-interface TwitchEmbedInstance {
-  getPlayer: () => TwitchPlayer;
-  addEventListener: (event: string, cb: () => void) => void;
-}
-
-interface TwitchPlayer {
-  play: () => void;
-  pause: () => void;
-  setMuted?: (muted: boolean) => void;
-  getCurrentTime?: () => number;
-  setCurrentTime?: (seconds: number) => void;
-  videoSeek?: (seconds: number) => void;
-}
-
-function loadTwitchScript(): Promise<void> {
-  if (window.Twitch?.Embed) return Promise.resolve();
-  return new Promise((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src = TWITCH_SCRIPT;
-    script.async = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Failed to load Twitch embed script"));
-    document.head.appendChild(script);
-  });
+interface TwitchMessage {
+  namespace?: string;
+  eventName?: string;
+  params?: { playback?: string; currentTime?: number; duration?: number };
 }
 
 /**
  * Create a controllable Twitch player in the given container (video by id, or clip by slug).
- * Clips use the clips.twitch.tv/embed iframe (no interactive API). Videos use Twitch.Embed.
- * The SDK uses getElementById; the container must be in the light DOM (base controllable element mounts there).
+ * Uses the player.twitch.tv iframe and postMessage API; no Twitch Embed SDK.
+ * Clips use clips.twitch.tv/embed (no control API).
  */
 export function createPlayer(
   container: HTMLElement,
@@ -62,16 +29,15 @@ export function createPlayer(
   const isClip = (options as { twitchType?: string }).twitchType === "clip";
   const parent =
     typeof window !== "undefined" && window.location?.hostname
-      ? [window.location.hostname]
-      : ["localhost"];
+      ? window.location.hostname
+      : "localhost";
+  const parentParam =
+    parent === "localhost" || parent === "127.0.0.1"
+      ? "parent=localhost&parent=127.0.0.1"
+      : `parent=${encodeURIComponent(parent)}`;
 
   if (isClip) {
-    const host = parent[0] ?? "localhost";
-    const parentParams =
-      host === "localhost" || host === "127.0.0.1"
-        ? "parent=localhost&parent=127.0.0.1"
-        : `parent=${encodeURIComponent(host)}`;
-    const clipUrl = `https://clips.twitch.tv/embed?clip=${encodeURIComponent(videoId)}&${parentParams}`;
+    const clipUrl = `https://clips.twitch.tv/embed?clip=${encodeURIComponent(videoId)}&${parentParam}`;
     const iframe = document.createElement("iframe");
     iframe.src = clipUrl;
     iframe.width = String(typeof width === "number" ? width : parseInt(String(width), 10) || 560);
@@ -101,83 +67,81 @@ export function createPlayer(
     });
   }
 
-  const div = document.createElement("div");
-  div.id = `twitch-player-${Math.random().toString(36).slice(2, 11)}`;
-  const widthNum = typeof width === "number" ? width : parseInt(String(width), 10) || 560;
-  const heightNum = typeof height === "number" ? height : parseInt(String(height), 10) || 315;
-  container.appendChild(div);
+  const parentQuery =
+    parent === "localhost" || parent === "127.0.0.1"
+      ? "parent=localhost&parent=127.0.0.1"
+      : `parent=${encodeURIComponent(parent)}`;
+  const iframe = document.createElement("iframe");
+  iframe.src = `${EMBED_ORIGIN}/?video=${encodeURIComponent(videoId)}&${parentQuery}${autoplay ? "&autoplay=true" : ""}`;
+  iframe.width = String(typeof width === "number" ? width : parseInt(String(width), 10) || 560);
+  iframe.height = String(typeof height === "number" ? height : parseInt(String(height), 10) || 315);
+  iframe.setAttribute("frameborder", "0");
+  iframe.allowFullscreen = true;
+  iframe.allow = "accelerometer; fullscreen; autoplay; encrypted-media; picture-in-picture";
+  container.appendChild(iframe);
 
-  return loadTwitchScript().then(
-    () =>
-      new Promise((resolve, reject) => {
-        try {
-          const embed = new window.Twitch!.Embed(div.id, {
-            video: videoId,
-            width: widthNum,
-            height: heightNum,
-            autoplay,
-            parent,
-          });
+  let isPaused = true;
+  let currentTime = 0;
+  let readyResolve: () => void;
+  const readyPromise = new Promise<void>((r) => {
+    readyResolve = r;
+  });
 
-          let isPaused = true;
-          const playEvent = window.Twitch?.Player?.PLAY ?? "Play";
-          const pauseEvent = window.Twitch?.Player?.PAUSE ?? "Pause";
-          embed.addEventListener(playEvent, () => {
-            isPaused = false;
-          });
-          embed.addEventListener(pauseEvent, () => {
-            isPaused = true;
-          });
+  const onMessage = (event: MessageEvent): void => {
+    if (event.source !== iframe.contentWindow || event.origin !== EMBED_ORIGIN) return;
+    const data = event.data as TwitchMessage;
+    if (!data?.namespace) return;
 
-          const tryGetPlayer = (attempts = 0): void => {
-            if (attempts > 50) {
-              div.remove();
-              reject(new Error("Twitch player not ready"));
-              return;
-            }
-            try {
-              const player = embed.getPlayer();
-              if (player) {
-                resolve({
-                  get ready() {
-                    return Promise.resolve();
-                  },
-                  play: () => player.play(),
-                  pause: () => player.pause(),
-                  get paused() {
-                    return Promise.resolve(isPaused);
-                  },
-                  get currentTime() {
-                    return Promise.resolve(
-                      typeof player.getCurrentTime === "function" ? player.getCurrentTime()! : 0
-                    );
-                  },
-                  seek(seconds: number) {
-                    if (typeof player.setCurrentTime === "function") {
-                      player.setCurrentTime(seconds);
-                    } else if (typeof player.videoSeek === "function") {
-                      player.videoSeek(seconds);
-                    }
-                  },
-                  get autoplay() {
-                    return Promise.resolve(autoplay);
-                  },
-                  destroy() {
-                    if (div.parentNode) div.remove();
-                  },
-                });
-                return;
-              }
-            } catch {
-              // not ready yet
-            }
-            setTimeout(() => tryGetPlayer(attempts + 1), 100);
-          };
-          tryGetPlayer();
-        } catch (err) {
-          div.remove();
-          reject(err);
-        }
-      })
-  );
+    if (data.namespace === NS_EMBED && data.eventName === "ready") {
+      readyResolve();
+    } else if (data.namespace === NS_PLAYER_PROXY && data.eventName === "UPDATE_STATE" && data.params) {
+      const p = data.params;
+      if (p.playback !== undefined) {
+        isPaused = p.playback !== "Playing";
+      }
+      if (typeof p.currentTime === "number") {
+        currentTime = p.currentTime;
+      }
+    }
+  };
+
+  window.addEventListener("message", onMessage);
+
+  const send = (eventName: number, params?: number): void => {
+    if (!iframe.contentWindow) return;
+    iframe.contentWindow.postMessage(
+      { eventName, params, namespace: NS_PLAYER_PROXY },
+      EMBED_ORIGIN
+    );
+  };
+
+  const player: EmbedPlayer = {
+    get ready() {
+      return readyPromise;
+    },
+    play() {
+      send(CMD_PLAY);
+    },
+    pause() {
+      send(CMD_PAUSE);
+    },
+    get paused() {
+      return Promise.resolve(isPaused);
+    },
+    get currentTime() {
+      return Promise.resolve(currentTime);
+    },
+    seek(seconds: number) {
+      send(CMD_SEEK, seconds);
+    },
+    get autoplay() {
+      return Promise.resolve(autoplay);
+    },
+    destroy() {
+      window.removeEventListener("message", onMessage);
+      if (iframe.parentNode) iframe.remove();
+    },
+  };
+
+  return Promise.resolve(player);
 }
