@@ -83,6 +83,7 @@ export function renderEmbedIframe(props: IframeEmbedProps): string {
     attr("title", title || null),
     attr("allow", allow),
     boolAttr("allowfullscreen", allowFullScreen),
+    attr("frameborder", "0"),
     attr("sandbox", sandbox),
     attr("loading", loading),
     attr("referrerpolicy", referrerPolicy),
@@ -102,4 +103,17 @@ export function renderEmbedIframe(props: IframeEmbedProps): string {
 
   const allAttrs = [...knownAttrs.filter(Boolean), ...extraAttrs] as string[];
   return `<iframe ${allAttrs.join(" ")}></iframe>`;
+}
+
+/**
+ * Create an iframe element from normalized props. Use this when you need a live
+ * HTMLIFrameElement (e.g. for Vimeo.Player(iframe) or postMessage). Uses
+ * renderEmbedIframe and parses the result so attribute logic lives in one place.
+ */
+export function createEmbedIframeElement(props: IframeEmbedProps): HTMLIFrameElement {
+  const div = document.createElement("div");
+  div.innerHTML = renderEmbedIframe(props);
+  const iframe = div.querySelector("iframe");
+  if (!iframe) throw new Error("renderEmbedIframe did not produce an iframe");
+  return iframe;
 }

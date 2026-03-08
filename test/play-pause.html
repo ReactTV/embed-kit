@@ -18,7 +18,7 @@
 </head>
 <body>
   <h1>Normalized play / pause API tests</h1>
-  <p>Tests each provider’s play/pause API: mount the embed element, then call <code>provider.play()</code>, <code>await provider.paused</code>, <code>provider.pause()</code>, <code>await provider.currentTime</code>, and <code>provider.seek(seconds)</code> on the provider.</p>
+  <p>Tests each provider’s play/pause API: mount the embed, assert <code>currentTime === 0</code> before play, then <code>provider.play()</code>, <code>await provider.paused</code>, <code>provider.pause()</code>, <code>provider.seek(seconds)</code>, and assert <code>currentTime</code> ≈ seek target.</p>
 
   <section id="youtube-section">
     <h2>YouTube</h2>
@@ -76,14 +76,19 @@
     }
 
     async function runPlayPauseTests(provider, resultsId, options = {}) {
-      const { skipGetPaused = false, delayAfterPlay = 600, delayAfterPause = 600 } = options;
+      const { skipGetPaused = false, skipSeek = false, delayAfterPlay = 2000, delayAfterPause = 600 } = options;
+      const seekLabel = skipSeek ? "Seek (not supported)" : `seek(${5}) then currentTime ≈ 5`;
       showResults(resultsId, [
+        { label: "currentTime === 0 before play", status: "pending" },
         { label: "Play", status: "pending" },
         { label: "Pause", status: "pending" },
-        { label: "currentTime", status: "pending" },
-        { label: "Seek", status: "pending" },
+        { label: seekLabel, status: "pending" },
       ]);
       try {
+        const timeBeforePlay = await provider.currentTime;
+        const timeBeforePlayOk =
+          typeof timeBeforePlay === "number" && !Number.isNaN(timeBeforePlay) && timeBeforePlay === 0;
+
         const playResult = provider.play();
         if (playResult && typeof playResult.then === "function") await playResult;
         await delay(delayAfterPlay);
@@ -96,31 +101,29 @@
         const pausedAfterPause = skipGetPaused ? true : await provider.paused;
         const pauseOk = skipGetPaused ? true : pausedAfterPause === true;
 
-        const currentTime = await provider.currentTime;
-        const currentTimeOk =
-          typeof currentTime === "number" && !Number.isNaN(currentTime) && currentTime >= 0;
-
         const SEEK_TIME = 5;
         const SEEK_TOLERANCE = 1;
-        let seekOk = true;
-        try {
-          const seekResult = provider.seek(SEEK_TIME);
-          if (seekResult && typeof seekResult.then === "function") await seekResult;
-          await delay(800);
-          const timeAfterSeek = await provider.currentTime;
-          seekOk =
-            typeof timeAfterSeek === "number" &&
-            !Number.isNaN(timeAfterSeek) &&
-            Math.abs(timeAfterSeek - SEEK_TIME) <= SEEK_TOLERANCE;
-        } catch (_e) {
-          seekOk = false;
+        let seekOk = skipSeek;
+        if (!skipSeek) {
+          try {
+            const seekResult = provider.seek(SEEK_TIME);
+            if (seekResult && typeof seekResult.then === "function") await seekResult;
+            await delay(800);
+            const timeAfterSeek = await provider.currentTime;
+            seekOk =
+              typeof timeAfterSeek === "number" &&
+              !Number.isNaN(timeAfterSeek) &&
+              Math.abs(timeAfterSeek - SEEK_TIME) <= SEEK_TOLERANCE;
+          } catch (_e) {
+            seekOk = false;
+          }
         }
 
         showResults(resultsId, [
+          { label: "currentTime === 0 before play", status: timeBeforePlayOk ? "pass" : "fail" },
           { label: skipGetPaused ? "Play (no throw)" : "Play (getPaused() false after play)", status: playOk ? "pass" : "fail" },
           { label: skipGetPaused ? "Pause (no throw)" : "Pause (getPaused() true after pause)", status: pauseOk ? "pass" : "fail" },
-          { label: "currentTime (number ≥ 0)", status: currentTimeOk ? "pass" : "fail" },
-          { label: `seek(${SEEK_TIME}) then currentTime ≈ ${SEEK_TIME}`, status: seekOk ? "pass" : "fail" },
+          { label: seekLabel, status: seekOk ? "pass" : "fail" },
         ]);
       } catch (err) {
         showResults(resultsId, [

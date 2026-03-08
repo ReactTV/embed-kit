@@ -1,4 +1,4 @@
-import type { CreatePlayerOptions, EmbedPlayer } from "../_base/index.js";
+import { createEmbedIframeElement, type CreatePlayerOptions, type EmbedPlayer } from "../_base/index.js";
 
 const VIMEO_SCRIPT = "https://player.vimeo.com/api/player.js";
 const EMBED_BASE = "https://player.vimeo.com/video/";
@@ -49,13 +49,13 @@ export function createPlayer(
   if (vimeoHash) query.set("h", vimeoHash);
   if (autoplay) query.set("autoplay", "1");
 
-  const iframe = document.createElement("iframe");
-  iframe.src = `${EMBED_BASE}${videoId}?${query.toString()}`;
-  iframe.width = String(width);
-  iframe.height = String(height);
-  iframe.setAttribute("frameborder", "0");
-  iframe.allow = "autoplay; fullscreen; picture-in-picture";
-  iframe.allowFullscreen = true;
+  const iframe = createEmbedIframeElement({
+    src: `${EMBED_BASE}${videoId}?${query.toString()}`,
+    width,
+    height,
+    allow: "autoplay; fullscreen; picture-in-picture",
+    allowFullScreen: true,
+  });
   container.appendChild(iframe);
 
   return loadVimeoScript().then(() => {

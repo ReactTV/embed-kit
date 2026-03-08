@@ -1,4 +1,4 @@
-import type { CreatePlayerOptions, EmbedPlayer } from "../_base/index.js";
+import { createEmbedIframeElement, type CreatePlayerOptions, type EmbedPlayer } from "../_base/index.js";
 
 const EMBED_ORIGIN = "https://player.twitch.tv";
 const NS_EMBED = "twitch-embed";
@@ -38,12 +38,12 @@ export function createPlayer(
 
   if (isClip) {
     const clipUrl = `https://clips.twitch.tv/embed?clip=${encodeURIComponent(videoId)}&${parentParam}`;
-    const iframe = document.createElement("iframe");
-    iframe.src = clipUrl;
-    iframe.width = String(typeof width === "number" ? width : parseInt(String(width), 10) || 560);
-    iframe.height = String(typeof height === "number" ? height : parseInt(String(height), 10) || 315);
-    iframe.setAttribute("frameborder", "0");
-    iframe.allowFullscreen = true;
+    const iframe = createEmbedIframeElement({
+      src: clipUrl,
+      width: typeof width === "number" ? width : parseInt(String(width), 10) || 560,
+      height: typeof height === "number" ? height : parseInt(String(height), 10) || 315,
+      allowFullScreen: true,
+    });
     container.appendChild(iframe);
     return Promise.resolve({
       get ready() {
@@ -71,13 +71,13 @@ export function createPlayer(
     parent === "localhost" || parent === "127.0.0.1"
       ? "parent=localhost&parent=127.0.0.1"
       : `parent=${encodeURIComponent(parent)}`;
-  const iframe = document.createElement("iframe");
-  iframe.src = `${EMBED_ORIGIN}/?video=${encodeURIComponent(videoId)}&${parentQuery}${autoplay ? "&autoplay=true" : ""}`;
-  iframe.width = String(typeof width === "number" ? width : parseInt(String(width), 10) || 560);
-  iframe.height = String(typeof height === "number" ? height : parseInt(String(height), 10) || 315);
-  iframe.setAttribute("frameborder", "0");
-  iframe.allowFullscreen = true;
-  iframe.allow = "accelerometer; fullscreen; autoplay; encrypted-media; picture-in-picture";
+  const iframe = createEmbedIframeElement({
+    src: `${EMBED_ORIGIN}/?video=${encodeURIComponent(videoId)}&${parentQuery}${autoplay ? "&autoplay=true" : ""}`,
+    width: typeof width === "number" ? width : parseInt(String(width), 10) || 560,
+    height: typeof height === "number" ? height : parseInt(String(height), 10) || 315,
+    allow: "accelerometer; fullscreen; autoplay; encrypted-media; picture-in-picture",
+    allowFullScreen: true,
+  });
   container.appendChild(iframe);
 
   let isPaused = true;

@@ -1,4 +1,4 @@
-import type { CreatePlayerOptions, EmbedPlayer } from "../_base/index.js";
+import { createEmbedIframeElement, type CreatePlayerOptions, type EmbedPlayer } from "../_base/index.js";
 
 const EMBED_ORIGIN = "https://www.tiktok.com";
 const EMBED_BASE = "https://www.tiktok.com/player/v1/";
@@ -16,9 +16,14 @@ function post(iframe: HTMLIFrameElement, type: string, value?: unknown): void {
   iframe.contentWindow.postMessage(message, "*");
 }
 
+interface OnCurrentTimeValue {
+  currentTime?: number;
+  duration?: number;
+}
+
 /**
  * Create a controllable TikTok player in the given container.
- * Uses postMessage to the embed iframe for play/pause; tracks state from onStateChange for paused.
+ * Uses postMessage: play, pause, seekTo; listens for onStateChange and onCurrentTime.
  */
 export function createPlayer(
   container: HTMLElement,
@@ -29,16 +34,17 @@ export function createPlayer(
   const height = options.height ?? 575;
   const autoplay = Boolean((options as { autoplay?: boolean }).autoplay);
 
-  const iframe = document.createElement("iframe");
-  iframe.src = `${EMBED_BASE}${postId}${autoplay ? "?autoplay=1" : ""}`;
-  iframe.width = String(width);
-  iframe.height = String(height);
-  iframe.setAttribute("frameborder", "0");
-  iframe.allow = "autoplay; fullscreen";
-  iframe.allowFullscreen = true;
+  const iframe = createEmbedIframeElement({
+    src: `${EMBED_BASE}${postId}${autoplay ? "?autoplay=1" : ""}`,
+    width,
+    height,
+    allow: "autoplay; fullscreen",
+    allowFullScreen: true,
+  });
   container.appendChild(iframe);
 
   let lastState: number = STATE_PAUSED;
+  let lastCurrentTime = 0;
   let resolveReady: () => void;
   const readyPromise = new Promise<void>((resolve) => {
     resolveReady = resolve;
@@ -55,6 +61,10 @@ export function createPlayer(
         break;
       case "onStateChange":
         if (typeof data.value === "number") lastState = data.value;
+        break;
+      case "onCurrentTime":
+        const t = data.value as OnCurrentTimeValue | undefined;
+        if (t && typeof t.currentTime === "number") lastCurrentTime = t.currentTime;
         break;
     }
   };
@@ -75,10 +85,10 @@ export function createPlayer(
       return Promise.resolve(lastState === STATE_PAUSED);
     },
     get currentTime(): Promise<number> {
-      return Promise.resolve(0); // TikTok embed does not expose current time
+      return Promise.resolve(lastCurrentTime);
     },
-    seek(_seconds: number) {
-      // TikTok embed does not expose seek
+    seek(seconds: number) {
+      post(iframe, "seekTo", seconds);
     },
     get autoplay(): Promise<boolean> {
       return Promise.resolve(autoplay);

@@ -13,10 +13,15 @@ declare global {
   }
 }
 
+interface DailymotionPlayerState {
+  playerIsPlaying?: boolean;
+  videoTime?: number; // current playback position in seconds (from getState / VIDEO_TIMECHANGE)
+}
+
 interface DailymotionPlayer {
   play: () => void;
   pause: () => void;
-  getState: () => Promise<{ playerIsPlaying?: boolean }>;
+  getState: () => Promise<DailymotionPlayerState>;
   getPosition?: () => Promise<number>; // seconds; optional in SDK
   seek?: (seconds: number) => void | Promise<void>;
   destroy: () => void;
@@ -79,9 +84,15 @@ export function createPlayer(
         return dmPlayer.getState().then((state) => Boolean(state.playerIsPlaying === false));
       },
       get currentTime() {
-        return typeof dmPlayer.getPosition === "function"
-          ? dmPlayer.getPosition!()
-          : Promise.resolve(0);
+        return dmPlayer.getState().then(async (state) => {
+          if (typeof state.videoTime === "number" && !Number.isNaN(state.videoTime)) {
+            return state.videoTime;
+          }
+          if (typeof dmPlayer.getPosition === "function") {
+            return dmPlayer.getPosition!();
+          }
+          return 0;
+        });
       },
       seek(seconds: number) {
         if (typeof dmPlayer.seek === "function") {
