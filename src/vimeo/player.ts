@@ -46,7 +46,7 @@ function loadVimeoScript(): Promise<void> {
  * Returns a normalized IEmbedPlayer (play, pause, paused, currentTime).
  */
 export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
-  const { width = 560, height = 315, autoplay = false, onReady, onEnded, onProgress, onMute, onError, vimeoHash } = options as typeof options & { vimeoHash?: string };
+  const { width = 560, height = 315, autoplay = false, onReady, onPlay, onPause, onEnded, onProgress, onMute, onError, vimeoHash } = options as typeof options & { vimeoHash?: string };
   const query = new URLSearchParams({ api: "1" });
   if (vimeoHash) query.set("h", vimeoHash);
   if (autoplay) query.set("autoplay", "1");
@@ -72,6 +72,12 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
         };
         onError?.(lastError);
       });
+    }
+    if (onPlay && typeof vimeoPlayer.on === "function") {
+      vimeoPlayer.on("play", onPlay);
+    }
+    if (onPause && typeof vimeoPlayer.on === "function") {
+      vimeoPlayer.on("pause", onPause);
     }
     if (onEnded && typeof vimeoPlayer.on === "function") {
       vimeoPlayer.on("finish", onEnded);

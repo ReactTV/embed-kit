@@ -20,7 +20,7 @@ interface TwitchMessage {
  * Clips use clips.twitch.tv/embed (no control API).
  */
 export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
-  const { width = 560, height = 315, autoplay = false, onReady, onEnded, onProgress, onMute, onError } = options;
+  const { width = 560, height = 315, autoplay = false, onReady, onPlay, onPause, onEnded, onProgress, onMute, onError } = options;
   const { twitchType } = options as typeof options & { twitchType?: string };
   const isClip = twitchType === "clip";
   const isChannel = twitchType === "channel";
@@ -94,6 +94,7 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
   let duration = 0;
   let isMuted = false;
   let lastError: IErrorData | null = null;
+  let lastPlayback: string | undefined;
   let readyResolve: () => void;
   const readyPromise = new Promise<void>((r) => {
     readyResolve = r;
@@ -116,6 +117,9 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     } else if (data.namespace === NS_PLAYER_PROXY && data.eventName === "UPDATE_STATE" && data.params && typeof data.params === "object" && !Array.isArray(data.params)) {
       const p = data.params as { playback?: string; currentTime?: number; duration?: number };
       if (p.playback !== undefined) {
+        if (p.playback === "Playing" && lastPlayback !== "Playing") onPlay?.();
+        if ((p.playback === "Paused" || p.playback === "Ready") && lastPlayback === "Playing") onPause?.();
+        lastPlayback = p.playback;
         isPaused = p.playback !== "Playing";
         if (p.playback === "Ended") onEnded?.();
       }
@@ -151,10 +155,12 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     play() {
       isPaused = false;
       send(CMD_PLAY);
+      onPlay?.();
     },
     pause() {
       isPaused = true;
       send(CMD_PAUSE);
+      onPause?.();
     },
     get paused() {
       return Promise.resolve(isPaused);

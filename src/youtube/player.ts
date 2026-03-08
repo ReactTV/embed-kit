@@ -56,7 +56,7 @@ function loadYTScript(): Promise<void> {
  * Returns a normalized IEmbedPlayer (play, pause, getPaused).
  */
 export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
-  const { width = 560, height = 315, autoplay = false, onReady: onReadyCallback, onEnded, onProgress, onMute, onError } = options;
+  const { width = 560, height = 315, autoplay = false, onReady: onReadyCallback, onPlay, onPause, onEnded, onProgress, onMute, onError } = options;
   let lastError: IErrorData | null = null;
 
   return loadYTScript().then(
@@ -155,6 +155,8 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
                 });
               },
               onStateChange(ev: { data: number }) {
+                if (ev.data === 1) onPlay?.(); // 1 = playing
+                if (ev.data === 2) onPause?.(); // 2 = paused
                 if (ev.data === YT_STATE_ENDED) onEnded?.();
               },
             },

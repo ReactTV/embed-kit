@@ -52,7 +52,7 @@ function loadDailymotionScript(): Promise<void> {
  * of the host element) so the SDK can find it; the base controllable element mounts there.
  */
 export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
-  const { width = 560, height = 315, autoplay = false, onReady, onEnded, onProgress, onMute, onError } = options;
+  const { width = 560, height = 315, autoplay = false, onReady, onPlay, onPause, onEnded, onProgress, onMute, onError } = options;
   const widthStyle = typeof width === "number" ? `${width}px` : String(width);
   const heightStyle = typeof height === "number" ? `${height}px` : String(height);
 
@@ -83,6 +83,20 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
       let lastError: IErrorData | null = null;
       const OPTIMISTIC_MS = 2500;
       let progressInterval: ReturnType<typeof setInterval> | undefined;
+      if (onPlay) {
+        if (typeof dmPlayer.on === "function") {
+          dmPlayer.on("play", onPlay);
+        } else if (typeof dmPlayer.addEventListener === "function") {
+          dmPlayer.addEventListener("play", onPlay);
+        }
+      }
+      if (onPause) {
+        if (typeof dmPlayer.on === "function") {
+          dmPlayer.on("pause", onPause);
+        } else if (typeof dmPlayer.addEventListener === "function") {
+          dmPlayer.addEventListener("pause", onPause);
+        }
+      }
       if (onEnded) {
         if (typeof dmPlayer.on === "function") {
           dmPlayer.on("video_end", onEnded);

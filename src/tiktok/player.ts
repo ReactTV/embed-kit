@@ -22,7 +22,7 @@ function post(iframe: HTMLIFrameElement, type: string, value?: unknown): void {
  * Uses postMessage: play, pause, seekTo; listens for onStateChange and onCurrentTime.
  */
 export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
-  const { width = 325, height = 575, autoplay = false, onReady, onEnded, onProgress, onMute, onError } = options;
+  const { width = 325, height = 575, autoplay = false, onReady, onPlay, onPause, onEnded, onProgress, onMute, onError } = options;
 
   // Vertical video: width is the narrow dimension, height the tall one (e.g. 325×575).
   const iframe = createEmbedIframeElement({
@@ -64,6 +64,8 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
       case "onStateChange":
         if (typeof data.value === "number") {
           lastState = data.value;
+          if (data.value === 1) onPlay?.(); // 1 = playing
+          if (data.value === STATE_PAUSED) onPause?.();
           if (data.value === STATE_ENDED) onEnded?.();
         }
         break;

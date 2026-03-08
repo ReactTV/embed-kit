@@ -9,6 +9,8 @@ export interface ICreatePlayerOptions {
   height?: string | number;
   autoplay?: boolean;
   onReady?: () => void;
+  onPlay?: () => void;
+  onPause?: () => void;
   onEnded?: () => void;
   onProgress?: (data: IProgressData) => void;
   onMute?: (data: IMuteData) => void;

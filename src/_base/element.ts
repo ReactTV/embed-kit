@@ -165,6 +165,8 @@ export function createEmbedElement(provider: IEmbedProvider): CustomElementConst
       const autoplayAttr = this.getAttribute("autoplay");
       const autoplay = autoplayAttr !== null && autoplayAttr !== "false";
       const onMute = (this as unknown as { onMute?: (data: { muted: boolean }) => void }).onMute;
+      const onPlay = (this as unknown as { onPlay?: () => void }).onPlay;
+      const onPause = (this as unknown as { onPause?: () => void }).onPause;
       const userOnError = (this as unknown as { onError?: (data: IErrorData) => void }).onError;
       const onError = (data: IErrorData): void => {
         this.#lastError = data;
@@ -175,6 +177,8 @@ export function createEmbedElement(provider: IEmbedProvider): CustomElementConst
         height,
         autoplay,
         ...(typeof onMute === "function" ? { onMute } : {}),
+        ...(typeof onPlay === "function" ? { onPlay } : {}),
+        ...(typeof onPause === "function" ? { onPause } : {}),
         onError,
         ...options,
       }).then((player) => {

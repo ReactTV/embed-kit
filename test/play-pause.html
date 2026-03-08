@@ -18,7 +18,7 @@
 </head>
 <body>
   <h1>Normalized play / pause and mute API tests</h1>
-  <p>Tests each provider’s play/pause API: mount the embed, assert <code>currentTime === 0</code> before play, then <code>provider.play()</code>, <code>await provider.paused</code>, <code>provider.pause()</code>, <code>provider.seek(seconds)</code>, and assert <code>currentTime</code> ≈ seek target. Also tests <code>provider.mute()</code>, <code>provider.muted</code>, and <code>provider.unmute()</code> where supported.</p>
+  <p>Tests each provider’s play/pause API: mount the embed, assert <code>currentTime === 0</code> before play, then <code>provider.play()</code>, <code>onPlay</code> fired, <code>await provider.paused</code>, <code>provider.pause()</code>, <code>onPause</code> fired, <code>provider.seek(seconds)</code>, and assert <code>currentTime</code> ≈ seek target. Also tests <code>provider.mute()</code>, <code>provider.muted</code>, and <code>provider.unmute()</code> where supported.</p>
 
   <p><button id="run-all" type="button">Run all tests</button> <span id="run-all-status"></span></p>
 
@@ -88,11 +88,16 @@
       const seekLabel = skipSeek ? "Seek (not supported)" : `seek(${5}) then currentTime ≈ 5`;
       const muteLabel = skipMute ? "Mute/Unmute (not supported)" : "Mute then unmute (muted true/false)";
       const muteEvents = Array.isArray(options.muteEvents) ? options.muteEvents : null;
+      const playEvents = Array.isArray(options.playEvents) ? options.playEvents : null;
+      const pauseEvents = Array.isArray(options.pauseEvents) ? options.pauseEvents : null;
       const testOnMuteEvent = muteEvents != null && !skipMute;
+      const testOnPlayPauseEvents = playEvents != null && pauseEvents != null;
       showResults(resultsId, [
         { label: "currentTime === 0 before play", status: "pending" },
         { label: "Play", status: "pending" },
+        ...(testOnPlayPauseEvents ? [{ label: "onPlay fired when playing", status: "pending" }] : []),
         { label: "Pause", status: "pending" },
+        ...(testOnPlayPauseEvents ? [{ label: "onPause fired when paused", status: "pending" }] : []),
         { label: seekLabel, status: "pending" },
         { label: muteLabel, status: "pending" },
         ...(testOnMuteEvent ? [{ label: "onMute fired when mute state changed", status: "pending" }] : []),
@@ -108,6 +113,7 @@
         await delay(delayAfterPlay);
         const pausedAfterPlay = skipGetPaused ? false : await provider.paused;
         const playOk = skipGetPaused ? true : pausedAfterPlay === false;
+        const onPlayOk = !testOnPlayPauseEvents || playEvents.length >= 1;
 
         await delay(INTER_STEP_DELAY_MS);
         const pauseResult = provider.pause();
@@ -115,6 +121,7 @@
         await delay(delayAfterPause);
         const pausedAfterPause = skipGetPaused ? true : await provider.paused;
         const pauseOk = skipGetPaused ? true : pausedAfterPause === true;
+        const onPauseOk = !testOnPlayPauseEvents || pauseEvents.length >= 1;
 
         await delay(INTER_STEP_DELAY_MS);
         const SEEK_TIME = 5;
@@ -159,7 +166,9 @@
         showResults(resultsId, [
           { label: "currentTime === 0 before play", status: timeBeforePlayOk ? "pass" : "fail" },
           { label: skipGetPaused ? "Play (no throw)" : "Play (getPaused() false after play)", status: playOk ? "pass" : "fail" },
+          ...(testOnPlayPauseEvents ? [{ label: "onPlay fired when playing", status: onPlayOk ? "pass" : "fail" }] : []),
           { label: skipGetPaused ? "Pause (no throw)" : "Pause (getPaused() true after pause)", status: pauseOk ? "pass" : "fail" },
+          ...(testOnPlayPauseEvents ? [{ label: "onPause fired when paused", status: onPauseOk ? "pass" : "fail" }] : []),
           { label: seekLabel, status: seekOk ? "pass" : "fail" },
           { label: muteLabel, status: muteOk ? "pass" : "fail" },
           ...(testOnMuteEvent ? [{ label: "onMute fired when mute state changed", status: onMuteOk ? "pass" : "fail" }] : []),
@@ -180,16 +189,20 @@
       register();
 
       const muteEvents = [];
+      const playEvents = [];
+      const pauseEvents = [];
       const el = document.createElement(tagName);
       el.setAttribute("src", sourceUrl);
       el.setAttribute("width", "560");
       el.setAttribute("height", "315");
       el.setAttribute("title", "Test");
       el.onMute = (data) => muteEvents.push(data);
+      el.onPlay = () => playEvents.push(1);
+      el.onPause = () => pauseEvents.push(1);
       const t = showTimeoutFailure(resultsId, "Embed ready");
       el.onReady = () => {
         clearTimeout(t);
-        runPlayPauseTests(provider, resultsId, { ...options, muteEvents }).finally(() => options.onComplete?.());
+        runPlayPauseTests(provider, resultsId, { ...options, muteEvents, playEvents, pauseEvents }).finally(() => options.onComplete?.());
       };
       container.appendChild(el);
     }
@@ -218,12 +231,16 @@
       container.innerHTML = "";
       registerTwitchEmbed();
       const muteEvents = [];
+      const playEvents = [];
+      const pauseEvents = [];
       const el = document.createElement("twitch-embed");
       el.setAttribute("src", VIDEO_SOURCE_URL);
       el.setAttribute("width", "560");
       el.setAttribute("height", "315");
       el.setAttribute("title", "Test");
       el.onMute = (data) => muteEvents.push(data);
+      el.onPlay = () => playEvents.push(1);
+      el.onPause = () => pauseEvents.push(1);
       const t = showTimeoutFailure(resultsId, "Twitch embed ready");
       return new Promise((resolve) => {
         el.onReady = async () => {
@@ -234,7 +251,7 @@
             if (typeof embedEl.pause === "function") await embedEl.pause();
             await delay(400);
           }
-          await runPlayPauseTests(twitchEmbedProvider, resultsId, { delayAfterPlay: 800, delayAfterPause: 800, muteEvents });
+          await runPlayPauseTests(twitchEmbedProvider, resultsId, { delayAfterPlay: 800, delayAfterPause: 800, muteEvents, playEvents, pauseEvents });
           resolve();
         };
         container.appendChild(el);
@@ -265,6 +282,8 @@
       mountDiv.style.height = "315px";
       container.appendChild(mountDiv);
       const muteEvents = [];
+      const playEvents = [];
+      const pauseEvents = [];
       const t = showTimeoutFailure(resultsId, "Dailymotion ready");
       return new Promise((resolve) => {
         dailymotionEmbedProvider.createPlayer(mountDiv, VIDEO_ID, {
@@ -272,9 +291,11 @@
           height: "315",
           onReady: () => {
             clearTimeout(t);
-            runPlayPauseTests(dailymotionEmbedProvider, resultsId, { muteEvents }).finally(resolve);
+            runPlayPauseTests(dailymotionEmbedProvider, resultsId, { muteEvents, playEvents, pauseEvents }).finally(resolve);
           },
           onMute: (data) => muteEvents.push(data),
+          onPlay: () => playEvents.push(1),
+          onPause: () => pauseEvents.push(1),
         });
       });
     }
