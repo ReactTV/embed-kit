@@ -19,28 +19,21 @@
   <p class="server-hint">If embeds don’t appear, run <code>npx serve .</code> from the project root (ES modules require a server).</p>
   <p>By URL (<code>src</code>):</p>
   <div class="embed-wrap">
-    <tiktok-embed
-      src="https://www.tiktok.com/@tiktok/video/7000000000000000000"
-      width="325"
-      height="575"
-      title="TikTok video"
-    ></tiktok-embed>
+    <tiktok-embed id="tt-by-src" width="325" height="575" title="TikTok video"></tiktok-embed>
   </div>
   <p>By video id (<code>video-id</code>):</p>
   <div class="embed-wrap">
-    <tiktok-embed
-      video-id="7000000000000000000"
-      width="325"
-      height="575"
-      title="TikTok video"
-    ></tiktok-embed>
+    <tiktok-embed id="tt-by-id" width="325" height="575" title="TikTok video"></tiktok-embed>
   </div>
-  <p><small>Replace with a real TikTok URL or video id to see content.</small></p>
+  <p><small>Edit <code>src/tiktok/constants.ts</code> to use a real TikTok URL or video id.</small></p>
   <p><a href="../../test/index.html">← Back to test index</a></p>
 
   <script type="module">
     import { registerTikTokEmbed } from "../../dist/tiktok/index.js";
+    import { SOURCE_URL, VIDEO_ID } from "../../dist/tiktok/constants.js";
     registerTikTokEmbed();
+    document.getElementById("tt-by-src").setAttribute("src", SOURCE_URL);
+    document.getElementById("tt-by-id").setAttribute("video-id", VIDEO_ID);
   </script>
 </body>
 </html>

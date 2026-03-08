@@ -1,12 +1,37 @@
-import type { EmbedOptions, EmbedProvider, ParsedEmbed } from "../_base/index.js";
+import type { EmbedOptions, EmbedPlayer, EmbedProvider, ParsedEmbed } from "../_base/index.js";
+import { createPlayer as createTwitchPlayer } from "./player.js";
 
 export class TwitchEmbed implements EmbedProvider {
   readonly name = "twitch";
+
+  #player: EmbedPlayer | null = null;
 
   getEmbedUrl(id: string, options?: EmbedOptions): string {
     const isClip = options?.twitchType === "clip";
     const param = isClip ? "clip" : "video";
     return `https://player.twitch.tv/?${param}=${id}`;
+  }
+
+  async createPlayer(
+    container: HTMLElement,
+    id: string,
+    options?: EmbedOptions
+  ): Promise<EmbedPlayer> {
+    const player = await createTwitchPlayer(container, id, options as { width?: string | number; height?: string | number });
+    this.#player = player;
+    return player;
+  }
+
+  play(): void {
+    this.#player?.play();
+  }
+
+  pause(): void {
+    this.#player?.pause();
+  }
+
+  getPaused(): Promise<boolean> {
+    return this.#player?.getPaused() ?? Promise.resolve(true);
   }
 
   parseSourceUrl(url: string): ParsedEmbed | null {

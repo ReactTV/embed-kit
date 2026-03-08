@@ -19,27 +19,20 @@
   <p class="server-hint">If embeds don’t appear, run <code>npx serve .</code> from the project root (ES modules require a server).</p>
   <p>By URL (<code>src</code>):</p>
   <div class="embed-wrap">
-    <dailymotion-embed
-      src="https://www.dailymotion.com/video/x8ege2k"
-      width="560"
-      height="315"
-      title="Dailymotion video"
-    ></dailymotion-embed>
+    <dailymotion-embed id="dm-by-src" width="560" height="315" title="Dailymotion video"></dailymotion-embed>
   </div>
   <p>By video id (<code>video-id</code>):</p>
   <div class="embed-wrap">
-    <dailymotion-embed
-      video-id="x8ege2k"
-      width="560"
-      height="315"
-      title="Dailymotion video"
-    ></dailymotion-embed>
+    <dailymotion-embed id="dm-by-id" width="560" height="315" title="Dailymotion video"></dailymotion-embed>
   </div>
   <p><a href="../../test/index.html">← Back to test index</a></p>
 
   <script type="module">
     import { registerDailymotionEmbed } from "../../dist/dailymotion/index.js";
+    import { SOURCE_URL, VIDEO_ID } from "../../dist/dailymotion/constants.js";
     registerDailymotionEmbed();
+    document.getElementById("dm-by-src").setAttribute("src", SOURCE_URL);
+    document.getElementById("dm-by-id").setAttribute("video-id", VIDEO_ID);
   </script>
 </body>
 </html>

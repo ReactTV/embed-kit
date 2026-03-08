@@ -1,3 +1,5 @@
+import type { EmbedPlayer } from "./player.js";
+
 /**
  * Shared contract for embed providers.
  * Each provider (YouTube, Twitch, etc.) implements this interface.
@@ -22,4 +24,35 @@ export interface EmbedProvider {
 
   /** Parse a source URL and return provider id + provider name if recognized. */
   parseSourceUrl(url: string): ParsedEmbed | null;
+
+  /**
+   * Create a controllable player in the given container (optional).
+   * Providers that support play/pause implement this; others omit it.
+   */
+  createPlayer?(
+    container: HTMLElement,
+    id: string,
+    options?: EmbedOptions
+  ): Promise<EmbedPlayer>;
+
+  /** Start playback (optional; delegates to the active player from createPlayer). */
+  play?(): void | Promise<void>;
+
+  /** Pause playback (optional; delegates to the active player from createPlayer). */
+  pause?(): void | Promise<void>;
+
+  /** Resolves to true if paused, false if playing (optional; delegates to the active player). */
+  getPaused?(): Promise<boolean>;
 }
+
+/** Provider that supports the normalized play/pause API. */
+export type ControllableEmbedProvider = EmbedProvider & {
+  createPlayer(
+    container: HTMLElement,
+    id: string,
+    options?: EmbedOptions
+  ): Promise<EmbedPlayer>;
+  play(): void | Promise<void>;
+  pause(): void | Promise<void>;
+  getPaused(): Promise<boolean>;
+};

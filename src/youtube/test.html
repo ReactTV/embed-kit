@@ -19,27 +19,20 @@
   <p class="server-hint">If embeds don’t appear, run <code>npx serve .</code> from the project root (ES modules require a server).</p>
   <p>By URL (<code>src</code>):</p>
   <div class="embed-wrap">
-    <youtube-embed
-      src="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-      width="560"
-      height="315"
-      title="YouTube video"
-    ></youtube-embed>
+    <youtube-embed id="yt-by-src" width="560" height="315" title="YouTube video"></youtube-embed>
   </div>
   <p>By video id (<code>video-id</code>):</p>
   <div class="embed-wrap">
-    <youtube-embed
-      video-id="dQw4w9WgXcQ"
-      width="560"
-      height="315"
-      title="YouTube video"
-    ></youtube-embed>
+    <youtube-embed id="yt-by-id" width="560" height="315" title="YouTube video"></youtube-embed>
   </div>
   <p><a href="../../test/index.html">← Back to test index</a></p>
 
   <script type="module">
     import { registerYouTubeEmbed } from "../../dist/youtube/index.js";
+    import { SOURCE_URL, VIDEO_ID } from "../../dist/youtube/constants.js";
     registerYouTubeEmbed();
+    document.getElementById("yt-by-src").setAttribute("src", SOURCE_URL);
+    document.getElementById("yt-by-id").setAttribute("video-id", VIDEO_ID);
   </script>
 </body>
 </html>

@@ -19,27 +19,20 @@
   <p class="server-hint">If embeds don’t appear, run <code>npx serve .</code> from the project root (ES modules require a server).</p>
   <p>By URL (<code>src</code>):</p>
   <div class="embed-wrap">
-    <internet-archive-embed
-      src="https://archive.org/details/home-movies"
-      width="560"
-      height="315"
-      title="Internet Archive item"
-    ></internet-archive-embed>
+    <internet-archive-embed id="ia-by-src" width="560" height="315" title="Internet Archive item"></internet-archive-embed>
   </div>
   <p>By id (<code>video-id</code>):</p>
   <div class="embed-wrap">
-    <internet-archive-embed
-      video-id="home-movies"
-      width="560"
-      height="315"
-      title="Internet Archive item"
-    ></internet-archive-embed>
+    <internet-archive-embed id="ia-by-id" width="560" height="315" title="Internet Archive item"></internet-archive-embed>
   </div>
   <p><a href="../../test/index.html">← Back to test index</a></p>
 
   <script type="module">
     import { registerInternetArchiveEmbed } from "../../dist/internet-archive/index.js";
+    import { SOURCE_URL, ITEM_ID } from "../../dist/internet-archive/constants.js";
     registerInternetArchiveEmbed();
+    document.getElementById("ia-by-src").setAttribute("src", SOURCE_URL);
+    document.getElementById("ia-by-id").setAttribute("video-id", ITEM_ID);
   </script>
 </body>
 </html>

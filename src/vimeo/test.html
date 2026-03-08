@@ -19,27 +19,20 @@
   <p class="server-hint">If embeds don’t appear, run <code>npx serve .</code> from the project root (ES modules require a server).</p>
   <p>By URL (<code>src</code>):</p>
   <div class="embed-wrap">
-    <vimeo-embed
-      src="https://vimeo.com/148751763"
-      width="560"
-      height="315"
-      title="Vimeo video"
-    ></vimeo-embed>
+    <vimeo-embed id="vm-by-src" width="560" height="315" title="Vimeo video"></vimeo-embed>
   </div>
   <p>By video id (<code>video-id</code>):</p>
   <div class="embed-wrap">
-    <vimeo-embed
-      video-id="148751763"
-      width="560"
-      height="315"
-      title="Vimeo video"
-    ></vimeo-embed>
+    <vimeo-embed id="vm-by-id" width="560" height="315" title="Vimeo video"></vimeo-embed>
   </div>
   <p><a href="../../test/index.html">← Back to test index</a></p>
 
   <script type="module">
     import { registerVimeoEmbed } from "../../dist/vimeo/index.js";
+    import { SOURCE_URL, VIDEO_ID } from "../../dist/vimeo/constants.js";
     registerVimeoEmbed();
+    document.getElementById("vm-by-src").setAttribute("src", SOURCE_URL);
+    document.getElementById("vm-by-id").setAttribute("video-id", VIDEO_ID);
   </script>
 </body>
 </html>

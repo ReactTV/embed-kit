@@ -14,30 +14,60 @@
       "import": "./dist/youtube/index.js",
       "default": "./dist/youtube/index.js"
     },
+    "./youtube/constants": {
+      "types": "./dist/youtube/constants.d.ts",
+      "import": "./dist/youtube/constants.js",
+      "default": "./dist/youtube/constants.js"
+    },
     "./twitch": {
       "types": "./dist/twitch/index.d.ts",
       "import": "./dist/twitch/index.js",
       "default": "./dist/twitch/index.js"
+    },
+    "./twitch/constants": {
+      "types": "./dist/twitch/constants.d.ts",
+      "import": "./dist/twitch/constants.js",
+      "default": "./dist/twitch/constants.js"
     },
     "./tiktok": {
       "types": "./dist/tiktok/index.d.ts",
       "import": "./dist/tiktok/index.js",
       "default": "./dist/tiktok/index.js"
     },
+    "./tiktok/constants": {
+      "types": "./dist/tiktok/constants.d.ts",
+      "import": "./dist/tiktok/constants.js",
+      "default": "./dist/tiktok/constants.js"
+    },
     "./internet-archive": {
       "types": "./dist/internet-archive/index.d.ts",
       "import": "./dist/internet-archive/index.js",
       "default": "./dist/internet-archive/index.js"
+    },
+    "./internet-archive/constants": {
+      "types": "./dist/internet-archive/constants.d.ts",
+      "import": "./dist/internet-archive/constants.js",
+      "default": "./dist/internet-archive/constants.js"
     },
     "./dailymotion": {
       "types": "./dist/dailymotion/index.d.ts",
       "import": "./dist/dailymotion/index.js",
       "default": "./dist/dailymotion/index.js"
     },
+    "./dailymotion/constants": {
+      "types": "./dist/dailymotion/constants.d.ts",
+      "import": "./dist/dailymotion/constants.js",
+      "default": "./dist/dailymotion/constants.js"
+    },
     "./vimeo": {
       "types": "./dist/vimeo/index.d.ts",
       "import": "./dist/vimeo/index.js",
       "default": "./dist/vimeo/index.js"
+    },
+    "./vimeo/constants": {
+      "types": "./dist/vimeo/constants.d.ts",
+      "import": "./dist/vimeo/constants.js",
+      "default": "./dist/vimeo/constants.js"
     }
   },
   "files": [
