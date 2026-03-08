@@ -46,10 +46,6 @@ export class DailymotionEmbed implements IEmbedProvider {
     return this.#player?.seek(seconds);
   }
 
-  get autoplay(): Promise<boolean> {
-    return this.#player?.autoplay ?? Promise.resolve(false);
-  }
-
   mute(): void {
     this.#player?.mute();
   }

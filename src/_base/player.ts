@@ -13,26 +13,13 @@ export interface ICreatePlayerOptions {
   onPause?: () => void;
   onBuffering?: () => void;
   onEnded?: () => void;
-  onProgress?: (data: IProgressData) => void;
+  onProgress?: (currentTime: number) => void;
   /** Fired when a seek starts (e.g. user drags the progress bar). Use with onSeek (seek complete) for isSeeking UI. */
   onSeeking?: () => void;
-  onSeek?: (data: ISeekData) => void;
-  onMute?: (data: IMuteData) => void;
+  onSeek?: (currentTime: number) => void;
+  onMute?: (muted: boolean) => void;
   onError?: (data: IErrorData) => void;
   [key: string]: unknown;
-}
-
-export interface IProgressData {
-  currentTime: number;
-  duration?: number;
-}
-
-export interface ISeekData {
-  currentTime: number;
-}
-
-export interface IMuteData {
-  muted: boolean;
 }
 
 export interface IErrorData {
@@ -49,11 +36,10 @@ export interface IEmbedPlayer {
   readonly currentTime: Promise<number>;
   readonly duration: Promise<number>;
   seek(seconds: number): void | Promise<void>;
-  readonly autoplay: Promise<boolean>;
   mute(): void | Promise<void>;
   unmute(): void | Promise<void>;
   readonly muted: Promise<boolean>;
-  readonly lastError: IErrorData | null;
+  readonly error: IErrorData | null;
   destroy?(): void | Promise<void>;
 }
 

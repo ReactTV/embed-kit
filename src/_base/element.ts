@@ -70,10 +70,6 @@ export function createEmbedElement(provider: IEmbedProvider): CustomElementConst
       (await this.player)?.seek(seconds);
     }
 
-    get autoplay(): Promise<boolean> {
-      return this.player.then((p) => p?.autoplay ?? Promise.resolve(false));
-    }
-
     async mute(): Promise<void> {
       (await this.player)?.mute();
     }

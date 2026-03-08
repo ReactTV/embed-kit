@@ -119,9 +119,6 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
       lastCurrentTime = seconds;
       onSeek?.({ currentTime: seconds });
     },
-    get autoplay(): Promise<boolean> {
-      return Promise.resolve(autoplay);
-    },
     mute() {
       lastMuted = true;
       post(iframe, "mute", true);

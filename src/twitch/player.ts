@@ -58,9 +58,6 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
         return Promise.resolve(0);
       },
       seek: () => {},
-      get autoplay() {
-        return Promise.resolve(autoplay);
-      },
       mute() {},
       unmute() {},
       get muted() {
@@ -176,9 +173,6 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
       send(CMD_SEEK, seconds);
       currentTime = seconds;
       onSeek?.({ currentTime: seconds });
-    },
-    get autoplay() {
-      return Promise.resolve(autoplay);
     },
     mute() {
       isMuted = true;

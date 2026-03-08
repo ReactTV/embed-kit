@@ -68,10 +68,6 @@ export class TwitchEmbed implements IEmbedProvider {
     this.#player?.seek(seconds);
   }
 
-  get autoplay(): Promise<boolean> {
-    return this.#player?.autoplay ?? Promise.resolve(false);
-  }
-
   mute(): void {
     this.#player?.mute();
   }

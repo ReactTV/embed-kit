@@ -1,4 +1,4 @@
-import { createEmbedIframeElement, type IErrorData, type TCreatePlayer } from "../_base/index.js";
+import { createEmbedIframeElement, loadScript, type IErrorData, type TCreatePlayer } from "../_base/index.js";
 
 const VIMEO_SCRIPT = "https://player.vimeo.com/api/player.js";
 const EMBED_BASE = "https://player.vimeo.com/video/";
@@ -29,18 +29,6 @@ interface VimeoPlayer {
   destroy: () => void;
 }
 
-function loadVimeoScript(): Promise<void> {
-  if (window.Vimeo?.Player) return Promise.resolve();
-  return new Promise((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src = VIMEO_SCRIPT;
-    script.async = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Failed to load Vimeo player script"));
-    document.head.appendChild(script);
-  });
-}
-
 /**
  * Create a controllable Vimeo player in the given container.
  * Returns a normalized IEmbedPlayer (play, pause, paused, currentTime).
@@ -61,7 +49,10 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
   container.appendChild(iframe);
 
   let lastError: IErrorData | null = null;
-  return loadVimeoScript().then(() => {
+  return loadScript(VIMEO_SCRIPT, {
+    isLoaded: () => !!window.Vimeo?.Player,
+    errorMessage: "Failed to load Vimeo player script",
+  }).then(() => {
     const vimeoPlayer = new window.Vimeo!.Player(iframe);
     if (onError && typeof vimeoPlayer.on === "function") {
       vimeoPlayer.on("error", (err?: unknown) => {
@@ -145,9 +136,6 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
         return vimeoPlayer.setCurrentTime(seconds).then(() => {
           onSeek?.({ currentTime: seconds });
         });
-      },
-      get autoplay() {
-        return Promise.resolve(autoplay);
       },
       mute() {
         return vimeoPlayer.setMuted(true).then(() => {

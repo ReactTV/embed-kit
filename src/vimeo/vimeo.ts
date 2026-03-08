@@ -54,10 +54,6 @@ export class VimeoEmbed implements IEmbedProvider {
     return this.#player?.seek(seconds);
   }
 
-  get autoplay(): Promise<boolean> {
-    return this.#player?.autoplay ?? Promise.resolve(false);
-  }
-
   mute(): void | Promise<void> {
     return this.#player?.mute();
   }
