@@ -10,31 +10,19 @@ import type {
 import { getProviderForUrl } from "./providers.js";
 
 export interface ReactEmbedKitProps extends Omit<ICreatePlayerOptions, "onError" | "onReady"> {
-  /** Full URL to the video (e.g. YouTube watch link, Twitch video URL, TikTok URL). The correct embed provider is chosen automatically. */
   url: string;
-  /** Optional callback when the URL could not be matched to any supported provider. */
   onUnsupportedUrl?: (url: string) => void;
-  /** Called when the embed reports an error. */
   onError?: (data: IErrorData) => void;
-  /** Called with the player instance when the embed is ready (use for play, pause, seek, mute, etc.). */
   onReady?: (player: IEmbedPlayer) => void;
-  /** Width in pixels (default 560). */
   width?: number;
-  /** Height in pixels (default 315). */
   height?: number;
-  /** Root element class name. */
   className?: string;
-  /** Inline styles for the root element. */
   style?: React.CSSProperties;
 }
 
 const defaultWidth = 560;
 const defaultHeight = 315;
 
-/**
- * React wrapper for embed-kit: pass a video URL and the correct provider (YouTube, Twitch, TikTok, Dailymotion, Vimeo) is chosen automatically.
- * Renders a single div that hosts the embed; play/pause and other controls are available via the embed's callbacks or by using a ref and calling the player API.
- */
 export function ReactEmbedKit({
   url,
   width,
@@ -90,7 +78,8 @@ export function ReactEmbedKit({
     if (typeof onPause === "function") mergedOptions.onPause = onPause as () => void;
     if (typeof onBuffering === "function") mergedOptions.onBuffering = onBuffering as () => void;
     if (typeof onEnded === "function") mergedOptions.onEnded = onEnded as () => void;
-    if (typeof onProgress === "function") mergedOptions.onProgress = onProgress as (data: IProgressData) => void;
+    if (typeof onProgress === "function")
+      mergedOptions.onProgress = onProgress as (data: IProgressData) => void;
     if (typeof onSeeking === "function") mergedOptions.onSeeking = onSeeking as () => void;
     if (typeof onSeek === "function") mergedOptions.onSeek = onSeek as (data: ISeekData) => void;
     if (typeof onMute === "function") mergedOptions.onMute = onMute as (data: IMuteData) => void;

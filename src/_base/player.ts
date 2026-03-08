@@ -17,7 +17,7 @@ export interface ICreatePlayerOptions {
   /** Fired when a seek starts (e.g. user drags the progress bar). Use with onSeek (seek complete) for isSeeking UI. */
   onSeeking?: () => void;
   onSeek?: (currentTime: number) => void;
-  onMute?: (muted: boolean) => void;
+  onMute?: (data: IMuteData) => void;
   onError?: (data: IErrorData) => void;
   /** Fired when playback quality changes (e.g. resolution). YouTube: ev.data is quality string. */
   onPlaybackQualityChange?: (quality: string) => void;
@@ -34,6 +34,11 @@ export interface ICreatePlayerOptions {
 export interface IErrorData {
   code?: number | string;
   message?: string;
+}
+
+/** Payload for onMute callback. */
+export interface IMuteData {
+  muted: boolean;
 }
 
 /**

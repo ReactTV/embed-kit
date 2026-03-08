@@ -100,7 +100,6 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}): Promis
     const readyState = {
       progressIntervalId: undefined as ReturnType<typeof setInterval> | undefined,
       destroyed: false,
-      muted: null as boolean | null,
     };
 
     new YT.Player(div, {
@@ -122,18 +121,19 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}): Promis
             if (readyState.destroyed || !player) return;
 
             playerState.currentTime = player.getCurrentTime();
-            if (
-              typeof playerState.currentTime === "number" &&
-              !Number.isNaN(playerState.currentTime)
-            ) {
-              onProgress(playerState.currentTime);
-            }
+            onProgress(playerState.currentTime);
 
             const isMuted = player.isMuted();
-            if (readyState.muted !== isMuted) {
-              readyState.muted = isMuted;
-              onMute(readyState.muted);
+            if (playerState.muted !== isMuted) {
+              playerState.muted = isMuted;
+              onMute({ muted: isMuted });
             }
+
+            playerState.isPlaying = player.getPlayerState() === PlayerState.PLAYING;
+            playerState.isPaused = player.getPlayerState() === PlayerState.PAUSED;
+            playerState.duration = player.getDuration();
+            playerState.currentTime = player.getCurrentTime();
+            playerState.error = null;
           }, progressInterval);
         },
         onStateChange(ev: { data: number }) {
@@ -161,13 +161,13 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}): Promis
       play: () => player!.playVideo(),
       pause: () => player!.pauseVideo(),
       get paused() {
-        return player!.getPlayerState() === PlayerState.PAUSED;
+        return playerState.isPaused;
       },
       get currentTime() {
-        return player!.getCurrentTime();
+        return playerState.currentTime;
       },
       get duration() {
-        return player!.getDuration();
+        return playerState.duration;
       },
       seek(seconds: number) {
         player!.seekTo(seconds, true);
@@ -175,14 +175,16 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}): Promis
       },
       mute: () => {
         player!.mute();
-        onMute(true);
+        playerState.muted = true;
+        onMute({ muted: true });
       },
       unmute: () => {
         player!.unMute();
-        onMute(false);
+        playerState.muted = false;
+        onMute({ muted: false });
       },
       get muted() {
-        return readyState.muted ?? false;
+        return playerState.muted;
       },
       get error() {
         return playerState.error;

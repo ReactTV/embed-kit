@@ -105,7 +105,7 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
           if (typeof dmPlayer.setMute === "function") {
             dmPlayer.setMute(true);
             playerState.muted = true;
-            onMute(true);
+            onMute({ muted: true });
           }
         },
         pause() {
@@ -127,7 +127,7 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
           if (typeof dmPlayer.setMute === "function") {
             dmPlayer.setMute(false);
             playerState.muted = false;
-            onMute(false);
+            onMute({ muted: false });
           }
         },
       };

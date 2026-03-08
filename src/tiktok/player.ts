@@ -143,12 +143,12 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     mute() {
       playerState.muted = true;
       post(iframe, "mute", true);
-      onMute(true);
+      onMute({ muted: true });
     },
     unmute() {
       playerState.muted = false;
       post(iframe, "mute", false);
-      onMute(false);
+      onMute({ muted: false });
     },
     get muted(): Promise<boolean> {
       return Promise.resolve(playerState.muted);

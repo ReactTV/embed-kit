@@ -133,12 +133,12 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
       },
       mute() {
         return vimeoPlayer.setMuted(true).then(() => {
-          onMute(true);
+          onMute({ muted: true });
         });
       },
       unmute() {
         return vimeoPlayer.setMuted(false).then(() => {
-          onMute(false);
+          onMute({ muted: false });
         });
       },
       get muted() {

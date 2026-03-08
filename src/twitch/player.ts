@@ -152,12 +152,12 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     mute() {
       playerState.muted = true;
       send(PlayerCommands.SET_MUTED, true);
-      onMute(true);
+      onMute({ muted: true });
     },
     unmute() {
       playerState.muted = false;
       send(PlayerCommands.SET_MUTED, false);
-      onMute(false);
+      onMute({ muted: false });
     },
     get muted() {
       return playerState.muted;
