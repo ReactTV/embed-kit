@@ -49,9 +49,17 @@
     <button id="tiktok-run">Run tests</button>
   </section>
 
+  <section id="dailymotion-section" style="margin-top: 2rem;">
+    <h2>Dailymotion</h2>
+    <div id="dailymotion-container" class="player-container"></div>
+    <div id="dailymotion-results" class="results"></div>
+    <button id="dailymotion-run">Run tests</button>
+  </section>
+
   <p style="margin-top: 2rem;"><a href="index.html">← Back to test index</a></p>
 
   <script type="module">
+    const INITIAL_DELAY = 1500;
     const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
     function showResults(containerId, results) {
@@ -94,7 +102,7 @@
     }
 
     async function mountAndTest(containerId, resultsId, register, provider, tagName, sourceUrl, options = {}) {
-      const { initialDelay = 1500 } = options;
+      const { initialDelay = INITIAL_DELAY } = options;
       const container = document.getElementById(containerId);
       container.innerHTML = "";
       register();
@@ -132,10 +140,26 @@
       const { registerTikTokEmbed, tiktokEmbedProvider } = await import("../dist/tiktok/index.js");
       const { SOURCE_URL } = await import("../dist/tiktok/constants.js");
       await mountAndTest("tiktok-container", "tiktok-results", registerTikTokEmbed, tiktokEmbedProvider, "tiktok-embed", SOURCE_URL, {
-        initialDelay: 2500,
+        initialDelay: INITIAL_DELAY,
         delayAfterPlay: 1500,
         delayAfterPause: 1000,
       });
+    });
+
+    document.getElementById("dailymotion-run").addEventListener("click", async () => {
+      const { registerDailymotionEmbed, dailymotionEmbedProvider } = await import("../dist/dailymotion/index.js");
+      const { VIDEO_ID } = await import("../dist/dailymotion/constants.js");
+      registerDailymotionEmbed();
+      const container = document.getElementById("dailymotion-container");
+      const resultsId = "dailymotion-results";
+      container.innerHTML = "";
+      const mountDiv = document.createElement("div");
+      mountDiv.style.width = "560px";
+      mountDiv.style.height = "315px";
+      container.appendChild(mountDiv);
+      await dailymotionEmbedProvider.createPlayer(mountDiv, VIDEO_ID, { width: "560", height: "315" });
+      await delay(INITIAL_DELAY);
+      await runPlayPauseTests(dailymotionEmbedProvider, resultsId, { initialDelay: 0 });
     });
   </script>
 </body>
