@@ -1,4 +1,4 @@
-import { createEmbedIframeElement, type CreatePlayerOptions, type EmbedPlayer } from "../_base/index.js";
+import { createEmbedIframeElement, type IErrorData, type TCreatePlayer } from "../_base/index.js";
 
 const VIMEO_SCRIPT = "https://player.vimeo.com/api/player.js";
 const EMBED_BASE = "https://player.vimeo.com/video/";
@@ -43,29 +43,16 @@ function loadVimeoScript(): Promise<void> {
 
 /**
  * Create a controllable Vimeo player in the given container.
- * Returns a normalized EmbedPlayer (play, pause, paused, currentTime).
+ * Returns a normalized IEmbedPlayer (play, pause, paused, currentTime).
  */
-export function createPlayer(
-  container: HTMLElement,
-  videoId: string,
-  options: CreatePlayerOptions = {}
-): Promise<EmbedPlayer> {
-  const width = options.width ?? 560;
-  const height = options.height ?? 315;
-  const autoplay = Boolean((options as { autoplay?: boolean }).autoplay);
-  const onReady = (options as { onReady?: () => void }).onReady;
-  const onEnded = (options as { onEnded?: () => void }).onEnded;
-  const onProgress = (options as { onProgress?: (data: { currentTime: number; duration?: number }) => void }).onProgress;
-  const onMute = (options as { onMute?: (data: { muted: boolean }) => void }).onMute;
-  const onError = (options as { onError?: (data: { code?: number | string; message?: string }) => void }).onError;
-
-  const vimeoHash = (options as { vimeoHash?: string }).vimeoHash;
+export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
+  const { width = 560, height = 315, autoplay = false, onReady, onEnded, onProgress, onMute, onError, vimeoHash } = options as typeof options & { vimeoHash?: string };
   const query = new URLSearchParams({ api: "1" });
   if (vimeoHash) query.set("h", vimeoHash);
   if (autoplay) query.set("autoplay", "1");
 
   const iframe = createEmbedIframeElement({
-    src: `${EMBED_BASE}${videoId}?${query.toString()}`,
+    src: `${EMBED_BASE}${id}?${query.toString()}`,
     width,
     height,
     allow: "autoplay; fullscreen; picture-in-picture",
@@ -73,7 +60,7 @@ export function createPlayer(
   });
   container.appendChild(iframe);
 
-  let lastError: { code?: number | string; message?: string } | null = null;
+  let lastError: IErrorData | null = null;
   return loadVimeoScript().then(() => {
     const vimeoPlayer = new window.Vimeo!.Player(iframe);
     if (onError && typeof vimeoPlayer.on === "function") {
@@ -173,4 +160,4 @@ export function createPlayer(
       },
     };
   });
-}
+};

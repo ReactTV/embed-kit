@@ -1,12 +1,12 @@
-import type { EmbedOptions, EmbedPlayer, EmbedProvider, ParsedEmbed } from "../_base/index.js";
+import type { IEmbedPlayer, IEmbedProvider } from "../_base/index.js";
 import { createPlayer as createTikTokPlayer } from "./player.js";
 
-export class TikTokEmbed implements EmbedProvider {
+export class TikTokEmbed implements IEmbedProvider {
   readonly name = "tiktok";
 
-  #player: EmbedPlayer | null = null;
+  #player: IEmbedPlayer | null = null;
 
-  getEmbedUrl(id: string, _options?: EmbedOptions): string {
+  getEmbedUrl(id: string, _options?: Record<string, unknown>): string {
     void _options;
     return `https://www.tiktok.com/player/v1/${id}`;
   }
@@ -14,8 +14,8 @@ export class TikTokEmbed implements EmbedProvider {
   async createPlayer(
     container: HTMLElement,
     id: string,
-    options?: EmbedOptions
-  ): Promise<EmbedPlayer> {
+    options?: Record<string, unknown>
+  ): Promise<IEmbedPlayer> {
     const player = await createTikTokPlayer(container, id, options as { width?: string | number; height?: string | number });
     this.#player = player;
     return player;
@@ -61,7 +61,7 @@ export class TikTokEmbed implements EmbedProvider {
     return this.#player?.muted ?? Promise.resolve(false);
   }
 
-  parseSourceUrl(url: string): ParsedEmbed | null {
+  parseSourceUrl(url: string) {
     const trimmed = url.trim();
     const playerMatch = /tiktok\.com\/player\/v1\/(\d+)/.exec(trimmed);
     if (playerMatch) return { id: playerMatch[1]!, provider: this.name };

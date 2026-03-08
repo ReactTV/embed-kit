@@ -1,33 +1,42 @@
-import type { EmbedPlayer, ErrorData } from "./player.js";
-import type { EmbedOptions, EmbedProvider } from "./provider.js";
+import type { IEmbedPlayer, IErrorData, TCreatePlayer } from "./player.js";
 
 const DEFAULT_WIDTH = "560";
 const DEFAULT_HEIGHT = "315";
 
 /**
- * Creates a custom element class for a provider that implements createPlayer.
- * The element calls provider.createPlayer() and exposes play(), pause(), paused, currentTime, seek(), autoplay, mute(), unmute(), muted.
- * The player container is mounted in the light DOM (on the host) so SDKs that use document.getElementById
- * (e.g. Dailymotion) can find the mount element.
+ * Provider contract: URL building and player creation.
+ * Each embed (YouTube, Twitch, etc.) implements this.
  */
-export function createControllableEmbedElement(
-  provider: EmbedProvider & {
-    createPlayer(
-      container: HTMLElement,
-      id: string,
-      options?: EmbedOptions
-    ): Promise<EmbedPlayer>;
-  },
-): CustomElementConstructor {
+
+export interface IEmbedProvider {
+  readonly name: string;
+  getEmbedUrl(id: string, options?: Record<string, unknown>): string;
+  parseSourceUrl(url: string): { id: string; provider: string; options?: Record<string, unknown> } | null;
+  createPlayer: TCreatePlayer;
+}
+
+
+/**
+ * Creates a custom element class that mounts the provider's player and exposes
+ * play(), pause(), paused, currentTime, duration, seek(), mute(), unmute(), muted, ready, lastError.
+ */
+export function createEmbedElement(provider: IEmbedProvider): CustomElementConstructor {
   return class extends HTMLElement {
     static get observedAttributes(): string[] {
       return ["src", "video-id", "width", "height", "title", "autoplay"];
     }
 
-    #playerPromise: Promise<EmbedPlayer> | null = null;
-    #player: EmbedPlayer | null = null;
+    #playerPromise: Promise<IEmbedPlayer> | null = null;
+    #player: IEmbedPlayer | null = null;
     #container: HTMLElement | null = null;
-    #lastError: ErrorData | null = null;
+    #lastError: IErrorData | null = null;
+
+    /** Resolves to the current player, or null if no video/id or not yet created. */
+    get player(): Promise<IEmbedPlayer | null> {
+      if (this.#player) return Promise.resolve(this.#player);
+      if (this.#playerPromise) return this.#playerPromise;
+      return Promise.resolve(null);
+    }
 
     connectedCallback(): void {
       this.#render();
@@ -38,65 +47,53 @@ export function createControllableEmbedElement(
     }
 
     async play(): Promise<void> {
-      const player = await this.#getPlayer();
-      if (player) player.play();
+      (await this.player)?.play();
     }
 
     async pause(): Promise<void> {
-      const player = await this.#getPlayer();
-      if (player) player.pause();
+      (await this.player)?.pause();
     }
 
     get paused(): Promise<boolean> {
-      return this.#getPlayer().then((player) => (player ? player.paused : Promise.resolve(true)));
+      return this.player.then((p) => p?.paused ?? Promise.resolve(true));
     }
 
     get currentTime(): Promise<number> {
-      return this.#getPlayer().then((player) => (player ? player.currentTime : Promise.resolve(0)));
+      return this.player.then((p) => p?.currentTime ?? Promise.resolve(0));
     }
 
     get duration(): Promise<number> {
-      return this.#getPlayer().then((player) => (player ? player.duration : Promise.resolve(0)));
+      return this.player.then((p) => p?.duration ?? Promise.resolve(0));
     }
 
     async seek(seconds: number): Promise<void> {
-      const player = await this.#getPlayer();
-      if (player) player.seek(seconds);
+      (await this.player)?.seek(seconds);
     }
 
     get autoplay(): Promise<boolean> {
-      return this.#getPlayer().then((player) => (player ? player.autoplay : Promise.resolve(false)));
+      return this.player.then((p) => p?.autoplay ?? Promise.resolve(false));
     }
 
     async mute(): Promise<void> {
-      const player = await this.#getPlayer();
-      if (player) player.mute();
+      (await this.player)?.mute();
     }
 
     async unmute(): Promise<void> {
-      const player = await this.#getPlayer();
-      if (player) player.unmute();
+      (await this.player)?.unmute();
     }
 
     get muted(): Promise<boolean> {
-      return this.#getPlayer().then((player) => (player ? player.muted : Promise.resolve(false)));
+      return this.player.then((p) => p?.muted ?? Promise.resolve(false));
     }
 
     /** Resolves when the embed player is ready for playback control. */
     get ready(): Promise<void> {
-      const p = this.#playerPromise;
-      return p ? p.then((player) => player.ready) : new Promise<void>(() => {});
+      return this.player.then((p) => p?.ready ?? new Promise<void>(() => {}));
     }
 
     /** Last error from the player, if any. Cleared when the embed is recreated (e.g. video-id change). */
-    get lastError(): ErrorData | null {
+    get lastError(): IErrorData | null {
       return this.#lastError;
-    }
-
-    async #getPlayer(): Promise<EmbedPlayer | null> {
-      if (this.#player) return this.#player;
-      if (this.#playerPromise) return this.#playerPromise;
-      return null;
     }
 
     #render(): void {
@@ -104,7 +101,7 @@ export function createControllableEmbedElement(
       const idAttr = this.getAttribute("video-id");
 
       let id: string | null = null;
-      let options: EmbedOptions | undefined;
+      let options: Record<string, unknown> | undefined;
 
       if (srcAttr) {
         const parsed = provider.parseSourceUrl(srcAttr);
@@ -168,8 +165,8 @@ export function createControllableEmbedElement(
       const autoplayAttr = this.getAttribute("autoplay");
       const autoplay = autoplayAttr !== null && autoplayAttr !== "false";
       const onMute = (this as unknown as { onMute?: (data: { muted: boolean }) => void }).onMute;
-      const userOnError = (this as unknown as { onError?: (data: ErrorData) => void }).onError;
-      const onError = (data: ErrorData): void => {
+      const userOnError = (this as unknown as { onError?: (data: IErrorData) => void }).onError;
+      const onError = (data: IErrorData): void => {
         this.#lastError = data;
         userOnError?.(data);
       };

@@ -1,4 +1,4 @@
-import { createControllableEmbedElement } from "../_base/index.js";
+import { createEmbedElement } from "../_base/index.js";
 import { DailymotionEmbed } from "./dailymotion.js";
 
 export { DailymotionEmbed } from "./dailymotion.js";
@@ -12,6 +12,6 @@ export { provider as dailymotionEmbedProvider };
 /** Register the custom element `<dailymotion-embed>`. No-op if customElements is unavailable (e.g. Node). */
 export function registerDailymotionEmbed(): void {
   if (typeof customElements !== "undefined" && !customElements.get("dailymotion-embed")) {
-    customElements.define("dailymotion-embed", createControllableEmbedElement(provider, "dailymotion-embed"));
+    customElements.define("dailymotion-embed", createEmbedElement(provider));
   }
 }

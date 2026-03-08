@@ -1,4 +1,4 @@
-import type { CreatePlayerOptions, EmbedPlayer } from "../_base/index.js";
+import type { IEmbedPlayer, IErrorData, TCreatePlayer } from "../_base/index.js";
 
 const YT_SCRIPT = "https://www.youtube.com/iframe_api";
 
@@ -53,33 +53,22 @@ function loadYTScript(): Promise<void> {
 
 /**
  * Create a controllable YouTube player in the given container.
- * Returns a normalized EmbedPlayer (play, pause, getPaused).
+ * Returns a normalized IEmbedPlayer (play, pause, getPaused).
  */
-export function createPlayer(
-  container: HTMLElement,
-  videoId: string,
-  options: CreatePlayerOptions = {}
-): Promise<EmbedPlayer> {
-  const width = options.width ?? 560;
-  const height = options.height ?? 315;
-  const autoplay = Boolean((options as { autoplay?: boolean }).autoplay);
-  const onReadyCallback = (options as { onReady?: () => void }).onReady;
-  const onEnded = (options as { onEnded?: () => void }).onEnded;
-  const onProgress = (options as { onProgress?: (data: { currentTime: number; duration?: number }) => void }).onProgress;
-  const onMute = (options as { onMute?: (data: { muted: boolean }) => void }).onMute;
-  const onError = (options as { onError?: (data: { code?: number | string; message?: string }) => void }).onError;
-  let lastError: { code?: number | string; message?: string } | null = null;
+export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
+  const { width = 560, height = 315, autoplay = false, onReady: onReadyCallback, onEnded, onProgress, onMute, onError } = options;
+  let lastError: IErrorData | null = null;
 
   return loadYTScript().then(
     () =>
-      new Promise((resolve, reject) => {
+      new Promise<IEmbedPlayer>((resolve, reject) => {
         const div = document.createElement("div");
         div.id = `yt-player-${Math.random().toString(36).slice(2, 11)}`;
         container.appendChild(div);
 
         try {
           new window.YT!.Player(div, {
-            videoId,
+            videoId: id,
             width: typeof width === "number" ? width : parseInt(String(width), 10) || 560,
             height: typeof height === "number" ? height : parseInt(String(height), 10) || 315,
             playerVars: { autoplay: autoplay ? 1 : 0 },
@@ -176,4 +165,4 @@ export function createPlayer(
         }
       })
   );
-}
+};

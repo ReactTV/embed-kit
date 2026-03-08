@@ -1,4 +1,4 @@
-import { createEmbedIframeElement, type CreatePlayerOptions, type EmbedPlayer } from "../_base/index.js";
+import { createEmbedIframeElement, type IEmbedPlayer, type IErrorData, type IProgressData, type TCreatePlayer } from "../_base/index.js";
 
 const EMBED_ORIGIN = "https://www.tiktok.com";
 const EMBED_BASE = "https://www.tiktok.com/player/v1/";
@@ -17,32 +17,16 @@ function post(iframe: HTMLIFrameElement, type: string, value?: unknown): void {
   iframe.contentWindow.postMessage(message, "*");
 }
 
-interface OnCurrentTimeValue {
-  currentTime?: number;
-  duration?: number;
-}
-
 /**
  * Create a controllable TikTok player in the given container.
  * Uses postMessage: play, pause, seekTo; listens for onStateChange and onCurrentTime.
  */
-export function createPlayer(
-  container: HTMLElement,
-  postId: string,
-  options: CreatePlayerOptions = {}
-): Promise<EmbedPlayer> {
-  const width = options.width ?? 325;
-  const height = options.height ?? 575;
-  const autoplay = Boolean((options as { autoplay?: boolean }).autoplay);
-  const onReady = (options as { onReady?: () => void }).onReady;
-  const onEnded = (options as { onEnded?: () => void }).onEnded;
-  const onProgress = (options as { onProgress?: (data: { currentTime: number; duration?: number }) => void }).onProgress;
-  const onMute = (options as { onMute?: (data: { muted: boolean }) => void }).onMute;
-  const onError = (options as { onError?: (data: { code?: number | string; message?: string }) => void }).onError;
+export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
+  const { width = 325, height = 575, autoplay = false, onReady, onEnded, onProgress, onMute, onError } = options;
 
   // Vertical video: width is the narrow dimension, height the tall one (e.g. 325×575).
   const iframe = createEmbedIframeElement({
-    src: `${EMBED_BASE}${postId}${autoplay ? "?autoplay=1" : ""}`,
+    src: `${EMBED_BASE}${id}${autoplay ? "?autoplay=1" : ""}`,
     width,
     height,
     allow: "autoplay; fullscreen",
@@ -56,13 +40,13 @@ export function createPlayer(
   let lastState: number = STATE_PAUSED;
   let lastCurrentTime = 0;
   let lastDuration = 0;
-  let lastError: { code?: number | string; message?: string } | null = null;
+  let lastError: IErrorData | null = null;
   let resolveReady: () => void;
   const readyPromise = new Promise<void>((resolve) => {
     resolveReady = resolve;
   });
-  let resolvePlayer: (p: EmbedPlayer) => void;
-  const playerPromise = new Promise<EmbedPlayer>((resolve) => {
+  let resolvePlayer: (p: IEmbedPlayer) => void;
+  const playerPromise = new Promise<IEmbedPlayer>((resolve) => {
     resolvePlayer = resolve;
   });
 
@@ -84,7 +68,7 @@ export function createPlayer(
         }
         break;
       case "onCurrentTime":
-        const t = data.value as OnCurrentTimeValue | undefined;
+        const t = data.value as Partial<IProgressData> | undefined;
         if (t) {
           if (typeof t.currentTime === "number") lastCurrentTime = t.currentTime;
           if (typeof t.duration === "number") lastDuration = t.duration;
@@ -108,7 +92,7 @@ export function createPlayer(
   window.addEventListener("message", handleMessage);
 
   let lastMuted = false;
-  const player: EmbedPlayer = {
+  const player: IEmbedPlayer = {
     get ready() {
       return readyPromise;
     },
@@ -156,4 +140,4 @@ export function createPlayer(
   };
 
   return playerPromise;
-}
+};

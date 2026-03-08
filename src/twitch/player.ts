@@ -1,4 +1,4 @@
-import { createEmbedIframeElement, type CreatePlayerOptions, type EmbedPlayer } from "../_base/index.js";
+import { createEmbedIframeElement, type IEmbedPlayer, type IErrorData, type TCreatePlayer } from "../_base/index.js";
 
 const EMBED_ORIGIN = "https://player.twitch.tv";
 const NS_EMBED = "twitch-embed";
@@ -19,22 +19,11 @@ interface TwitchMessage {
  * Uses the player.twitch.tv iframe and postMessage API; no Twitch Embed SDK.
  * Clips use clips.twitch.tv/embed (no control API).
  */
-export function createPlayer(
-  container: HTMLElement,
-  videoId: string,
-  options: CreatePlayerOptions = {}
-): Promise<EmbedPlayer> {
-  const width = options.width ?? 560;
-  const height = options.height ?? 315;
-  const autoplay = Boolean((options as { autoplay?: boolean }).autoplay);
-  const onReady = (options as { onReady?: () => void }).onReady;
-  const onEnded = (options as { onEnded?: () => void }).onEnded;
-  const onProgress = (options as { onProgress?: (data: { currentTime: number; duration?: number }) => void }).onProgress;
-  const onMute = (options as { onMute?: (data: { muted: boolean }) => void }).onMute;
-  const onError = (options as { onError?: (data: { code?: number | string; message?: string }) => void }).onError;
-  const twitchOptions = options as { twitchType?: string };
-  const isClip = twitchOptions.twitchType === "clip";
-  const isChannel = twitchOptions.twitchType === "channel";
+export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
+  const { width = 560, height = 315, autoplay = false, onReady, onEnded, onProgress, onMute, onError } = options;
+  const { twitchType } = options as typeof options & { twitchType?: string };
+  const isClip = twitchType === "clip";
+  const isChannel = twitchType === "channel";
   const parent =
     typeof window !== "undefined" && window.location?.hostname
       ? window.location.hostname
@@ -45,7 +34,7 @@ export function createPlayer(
       : `parent=${encodeURIComponent(parent)}`;
 
   if (isClip) {
-    const clipUrl = `https://clips.twitch.tv/embed?clip=${encodeURIComponent(videoId)}&${parentParam}`;
+    const clipUrl = `https://clips.twitch.tv/embed?clip=${encodeURIComponent(id)}&${parentParam}`;
     const iframe = createEmbedIframeElement({
       src: clipUrl,
       width: typeof width === "number" ? width : parseInt(String(width), 10) || 560,
@@ -92,7 +81,7 @@ export function createPlayer(
       : `parent=${encodeURIComponent(parent)}`;
   const mediaParam = isChannel ? "channel" : "video";
   const iframe = createEmbedIframeElement({
-    src: `${EMBED_ORIGIN}/?${mediaParam}=${encodeURIComponent(videoId)}&${parentQuery}${autoplay ? "&autoplay=true" : ""}`,
+    src: `${EMBED_ORIGIN}/?${mediaParam}=${encodeURIComponent(id)}&${parentQuery}${autoplay ? "&autoplay=true" : ""}`,
     width: typeof width === "number" ? width : parseInt(String(width), 10) || 560,
     height: typeof height === "number" ? height : parseInt(String(height), 10) || 315,
     allow: "accelerometer; fullscreen; autoplay; encrypted-media; picture-in-picture",
@@ -104,7 +93,7 @@ export function createPlayer(
   let currentTime = 0;
   let duration = 0;
   let isMuted = false;
-  let lastError: { code?: number | string; message?: string } | null = null;
+  let lastError: IErrorData | null = null;
   let readyResolve: () => void;
   const readyPromise = new Promise<void>((r) => {
     readyResolve = r;
@@ -155,7 +144,7 @@ export function createPlayer(
     );
   };
 
-  const player: EmbedPlayer = {
+  const player: IEmbedPlayer = {
     get ready() {
       return readyPromise;
     },
@@ -205,4 +194,4 @@ export function createPlayer(
   };
 
   return Promise.resolve(player);
-}
+};

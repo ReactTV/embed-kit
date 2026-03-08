@@ -1,12 +1,12 @@
-import type { EmbedOptions, EmbedPlayer, EmbedProvider, ParsedEmbed } from "../_base/index.js";
+import type { IEmbedPlayer, IEmbedProvider } from "../_base/index.js";
 import { createPlayer as createVimeoPlayer } from "./player.js";
 
-export class VimeoEmbed implements EmbedProvider {
+export class VimeoEmbed implements IEmbedProvider {
   readonly name = "vimeo";
 
-  #player: EmbedPlayer | null = null;
+  #player: IEmbedPlayer | null = null;
 
-  getEmbedUrl(id: string, options?: EmbedOptions): string {
+  getEmbedUrl(id: string, options?: Record<string, unknown>): string {
     const base = `https://player.vimeo.com/video/${id}`;
     const hash = options?.vimeoHash as string | undefined;
     if (hash) return `${base}?h=${encodeURIComponent(hash)}`;
@@ -16,8 +16,8 @@ export class VimeoEmbed implements EmbedProvider {
   async createPlayer(
     container: HTMLElement,
     id: string,
-    options?: EmbedOptions
-  ): Promise<EmbedPlayer> {
+    options?: Record<string, unknown>
+  ): Promise<IEmbedPlayer> {
     const player = await createVimeoPlayer(container, id, options as { width?: string | number; height?: string | number });
     this.#player = player;
     return player;
@@ -63,7 +63,7 @@ export class VimeoEmbed implements EmbedProvider {
     return this.#player?.muted ?? Promise.resolve(false);
   }
 
-  parseSourceUrl(url: string): ParsedEmbed | null {
+  parseSourceUrl(url: string) {
     const trimmed = url.trim();
     const playerMatch = /player\.vimeo\.com\/video\/(\d+)/.exec(trimmed);
     if (playerMatch) {

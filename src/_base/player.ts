@@ -1,85 +1,54 @@
 /**
- * Normalized embed player API (play, pause, paused, currentTime, seek, autoplay, mute, unmute, muted).
- * Each provider that supports playback control implements this interface.
+ * Normalized player API and options.
+ * createPlayer(container, id, options) returns an IEmbedPlayer; options callbacks use the I*Data types.
  */
 
-export interface EmbedPlayer {
-  /** Resolves when the player is ready for playback control (e.g. after embed has loaded). */
-  readonly ready: Promise<void>;
-
-  /** Start playback. */
-  play(): void | Promise<void>;
-
-  /** Pause playback. */
-  pause(): void | Promise<void>;
-
-  /** Resolves to true if playback is paused, false if playing. */
-  readonly paused: Promise<boolean>;
-
-  /** Resolves to current playback time in seconds. Unsupported providers may return 0. */
-  readonly currentTime: Promise<number>;
-
-  /** Resolves to total duration in seconds. Unsupported providers may return 0. */
-  readonly duration: Promise<number>;
-
-  /** Seek to the given time in seconds. Unsupported providers may no-op. */
-  seek(seconds: number): void | Promise<void>;
-
-  /** Resolves to true if autoplay was requested when creating the player. */
-  readonly autoplay: Promise<boolean>;
-
-  /** Mute audio. Unsupported providers may no-op. */
-  mute(): void | Promise<void>;
-
-  /** Unmute audio. Unsupported providers may no-op. */
-  unmute(): void | Promise<void>;
-
-  /** Resolves to true if audio is muted, false otherwise. Unsupported providers may return false. */
-  readonly muted: Promise<boolean>;
-
-  /** Last error from the player, if any. Set when onError fires; unsupported providers may always return null. */
-  readonly lastError: ErrorData | null;
-
-  /** Optional: clean up player and listeners. */
-  destroy?(): void | Promise<void>;
-}
-
-/** Normalized progress payload: current playback time and optional duration (seconds). */
-export interface ProgressData {
-  /** Current playback position in seconds. */
-  currentTime: number;
-  /** Total duration in seconds when known. Unsupported providers may omit. */
-  duration?: number;
-}
-
-export interface CreatePlayerOptions {
+/** Options passed to createPlayer(); callbacks receive the I*Data types below. */
+export interface ICreatePlayerOptions {
   width?: string | number;
   height?: string | number;
-  /** When true, the embed will start playing automatically when loaded (if supported). */
   autoplay?: boolean;
-  /** Called when the player is ready for playback control (same moment the ready promise resolves). */
   onReady?: () => void;
-  /** Called when playback reaches the end of the media. */
   onEnded?: () => void;
-  /** Called during playback with current time (and duration when available). Unsupported providers may not call. */
-  onProgress?: (data: ProgressData) => void;
-  /** Called when the mute state changes (e.g. after mute() or unmute(), or when the user toggles mute in the embed). */
-  onMute?: (data: MuteData) => void;
-  /** Called when the player or embed encounters an error. Unsupported providers may not call. */
-  onError?: (data: ErrorData) => void;
+  onProgress?: (data: IProgressData) => void;
+  onMute?: (data: IMuteData) => void;
+  onError?: (data: IErrorData) => void;
   [key: string]: unknown;
 }
 
-/** Normalized mute payload: current muted state. */
-export interface MuteData {
-  /** True if audio is muted, false if unmuted. */
+export interface IProgressData {
+  currentTime: number;
+  duration?: number;
+}
+
+export interface IMuteData {
   muted: boolean;
 }
 
-/** Normalized error payload: provider-specific code and optional message. */
-export interface ErrorData {
-  /** Provider-specific error code when available (e.g. YouTube: 2, 5, 100, 101, 150). */
+export interface IErrorData {
   code?: number | string;
-  /** Human-readable error message when available. */
   message?: string;
 }
+
+/** Returned by createPlayer(); normalized API across all providers. */
+export interface IEmbedPlayer {
+  readonly ready: Promise<void>;
+  play(): void | Promise<void>;
+  pause(): void | Promise<void>;
+  readonly paused: Promise<boolean>;
+  readonly currentTime: Promise<number>;
+  readonly duration: Promise<number>;
+  seek(seconds: number): void | Promise<void>;
+  readonly autoplay: Promise<boolean>;
+  mute(): void | Promise<void>;
+  unmute(): void | Promise<void>;
+  readonly muted: Promise<boolean>;
+  readonly lastError: IErrorData | null;
+  destroy?(): void | Promise<void>;
+}
+
+export type TCreatePlayer = (
+  container: HTMLElement,
+  id: string,
+  options?: ICreatePlayerOptions
+) => Promise<IEmbedPlayer>;

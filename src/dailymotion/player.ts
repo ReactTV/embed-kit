@@ -1,4 +1,4 @@
-import type { CreatePlayerOptions, EmbedPlayer } from "../_base/index.js";
+import type { IErrorData, TCreatePlayer } from "../_base/index.js";
 
 const DAILYMOTION_LIB = "https://geo.dailymotion.com/libs/player.js";
 
@@ -51,19 +51,8 @@ function loadDailymotionScript(): Promise<void> {
  * document.getElementById. The container must be in the light DOM (e.g. a direct child
  * of the host element) so the SDK can find it; the base controllable element mounts there.
  */
-export function createPlayer(
-  container: HTMLElement,
-  videoId: string,
-  options: CreatePlayerOptions = {}
-): Promise<EmbedPlayer> {
-  const width = options.width ?? 560;
-  const height = options.height ?? 315;
-  const autoplay = Boolean((options as { autoplay?: boolean }).autoplay);
-  const onReady = (options as { onReady?: () => void }).onReady;
-  const onEnded = (options as { onEnded?: () => void }).onEnded;
-  const onProgress = (options as { onProgress?: (data: { currentTime: number; duration?: number }) => void }).onProgress;
-  const onMute = (options as { onMute?: (data: { muted: boolean }) => void }).onMute;
-  const onError = (options as { onError?: (data: { code?: number | string; message?: string }) => void }).onError;
+export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
+  const { width = 560, height = 315, autoplay = false, onReady, onEnded, onProgress, onMute, onError } = options;
   const widthStyle = typeof width === "number" ? `${width}px` : String(width);
   const heightStyle = typeof height === "number" ? `${height}px` : String(height);
 
@@ -82,7 +71,7 @@ export function createPlayer(
         return Promise.reject(new Error("Dailymotion player API not available"));
       }
       return window.dailymotion.createPlayer(containerId, {
-        video: videoId,
+        video: id,
         ...(autoplay ? { params: { autoplay: true } } : {}),
       });
     })
@@ -91,7 +80,7 @@ export function createPlayer(
       let dmMuted = false;
       let cachedPaused = true;
       let lastPlayPauseTime = 0;
-      let lastError: { code?: number | string; message?: string } | null = null;
+      let lastError: IErrorData | null = null;
       const OPTIMISTIC_MS = 2500;
       let progressInterval: ReturnType<typeof setInterval> | undefined;
       if (onEnded) {
@@ -218,4 +207,4 @@ export function createPlayer(
       wrapper.remove();
       throw err;
     });
-}
+};

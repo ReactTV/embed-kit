@@ -2,7 +2,7 @@
  * Normalized iframe template generation for all embed providers.
  */
 
-export interface IframeEmbedProps {
+export interface IIframeEmbedProps {
   /** Embed URL (required). */
   src: string;
   /** Width (e.g. "560", "100%"). Default "560". */
@@ -60,7 +60,7 @@ function boolAttr(name: string, condition: boolean): string | null {
  * Build iframe HTML from normalized props. Use this so all providers render
  * iframes consistently. Attribute values are escaped for safe HTML output.
  */
-export function renderEmbedIframe(props: IframeEmbedProps): string {
+export function renderEmbedIframe(props: IIframeEmbedProps): string {
   const {
     src,
     width = DEFAULT_WIDTH,
@@ -110,7 +110,7 @@ export function renderEmbedIframe(props: IframeEmbedProps): string {
  * HTMLIFrameElement (e.g. for Vimeo.Player(iframe) or postMessage). Uses
  * renderEmbedIframe and parses the result so attribute logic lives in one place.
  */
-export function createEmbedIframeElement(props: IframeEmbedProps): HTMLIFrameElement {
+export function createEmbedIframeElement(props: IIframeEmbedProps): HTMLIFrameElement {
   const div = document.createElement("div");
   div.innerHTML = renderEmbedIframe(props);
   const iframe = div.querySelector("iframe");

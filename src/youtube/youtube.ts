@@ -1,12 +1,12 @@
-import type { EmbedOptions, EmbedPlayer, EmbedProvider, ParsedEmbed } from "../_base/index.js";
+import type { IEmbedPlayer, IEmbedProvider } from "../_base/index.js";
 import { createPlayer as createYouTubePlayer } from "./player.js";
 
-export class YouTubeEmbed implements EmbedProvider {
+export class YouTubeEmbed implements IEmbedProvider {
   readonly name = "youtube";
 
-  #player: EmbedPlayer | null = null;
+  #player: IEmbedPlayer | null = null;
 
-  getEmbedUrl(id: string, _options?: EmbedOptions): string {
+  getEmbedUrl(id: string, _options?: Record<string, unknown>): string {
     void _options;
     return `https://www.youtube.com/embed/${id}`;
   }
@@ -14,8 +14,8 @@ export class YouTubeEmbed implements EmbedProvider {
   async createPlayer(
     container: HTMLElement,
     id: string,
-    options?: EmbedOptions
-  ): Promise<EmbedPlayer> {
+    options?: Record<string, unknown>
+  ): Promise<IEmbedPlayer> {
     const player = await createYouTubePlayer(container, id, options as { width?: string | number; height?: string | number });
     this.#player = player;
     return player;
@@ -61,7 +61,7 @@ export class YouTubeEmbed implements EmbedProvider {
     return this.#player?.muted ?? Promise.resolve(false);
   }
 
-  parseSourceUrl(url: string): ParsedEmbed | null {
+  parseSourceUrl(url: string) {
     const trimmed = url.trim();
     const watchMatch = /(?:youtube\.com\/watch\?.*\bv=)([a-zA-Z0-9_-]{11})/.exec(trimmed);
     if (watchMatch) return { id: watchMatch[1]!, provider: this.name };
