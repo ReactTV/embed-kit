@@ -37,6 +37,10 @@ export class TikTokEmbed implements EmbedProvider {
     return this.#player?.currentTime ?? Promise.resolve(0);
   }
 
+  seek(seconds: number): void {
+    this.#player?.seek(seconds);
+  }
+
   parseSourceUrl(url: string): ParsedEmbed | null {
     const trimmed = url.trim();
     const playerMatch = /tiktok\.com\/player\/v1\/(\d+)/.exec(trimmed);

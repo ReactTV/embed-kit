@@ -27,6 +27,8 @@ interface TwitchPlayer {
   pause: () => void;
   setMuted?: (muted: boolean) => void;
   getCurrentTime?: () => number; // seconds; not documented on all embed types
+  setCurrentTime?: (seconds: number) => void;
+  videoSeek?: (seconds: number) => void;
 }
 
 function loadTwitchScript(): Promise<void> {
@@ -91,6 +93,13 @@ export function createPlayer(
                     return Promise.resolve(
                       typeof player.getCurrentTime === "function" ? player.getCurrentTime()! : 0
                     );
+                  },
+                  seek(seconds: number) {
+                    if (typeof player.setCurrentTime === "function") {
+                      player.setCurrentTime(seconds);
+                    } else if (typeof player.videoSeek === "function") {
+                      player.videoSeek(seconds);
+                    }
                   },
                   destroy() {
                     if (div.parentNode) div.remove();

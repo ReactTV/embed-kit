@@ -37,6 +37,10 @@ export class YouTubeEmbed implements EmbedProvider {
     return this.#player?.currentTime ?? Promise.resolve(0);
   }
 
+  seek(seconds: number): void {
+    this.#player?.seek(seconds);
+  }
+
   parseSourceUrl(url: string): ParsedEmbed | null {
     const trimmed = url.trim();
     const watchMatch = /(?:youtube\.com\/watch\?.*\bv=)([a-zA-Z0-9_-]{11})/.exec(trimmed);

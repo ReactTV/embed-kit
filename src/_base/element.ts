@@ -77,7 +77,7 @@ export function createEmbedElement(
 
 /**
  * Creates a custom element class for a provider that implements createPlayer.
- * The element calls provider.createPlayer() and exposes play(), pause(), paused, currentTime.
+ * The element calls provider.createPlayer() and exposes play(), pause(), paused, currentTime, seek().
  */
 export function createControllableEmbedElement(
   provider: EmbedProvider & {
@@ -126,6 +126,11 @@ export function createControllableEmbedElement(
 
     get currentTime(): Promise<number> {
       return this.#getPlayer().then((player) => (player ? player.currentTime : Promise.resolve(0)));
+    }
+
+    async seek(seconds: number): Promise<void> {
+      const player = await this.#getPlayer();
+      if (player) player.seek(seconds);
     }
 
     async #getPlayer(): Promise<EmbedPlayer | null> {

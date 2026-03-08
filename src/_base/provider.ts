@@ -46,6 +46,9 @@ export interface EmbedProvider {
 
   /** Resolves to current playback time in seconds (optional; delegates to the active player). */
   readonly currentTime?: Promise<number>;
+
+  /** Seek to the given time in seconds (optional; delegates to the active player). */
+  seek?(seconds: number): void | Promise<void>;
 }
 
 /** Provider that supports the normalized play/pause API. */
@@ -59,4 +62,5 @@ export type ControllableEmbedProvider = EmbedProvider & {
   pause(): void | Promise<void>;
   readonly paused: Promise<boolean>;
   readonly currentTime: Promise<number>;
+  seek(seconds: number): void | Promise<void>;
 };

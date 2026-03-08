@@ -18,7 +18,7 @@
 </head>
 <body>
   <h1>Normalized play / pause API tests</h1>
-  <p>Tests each provider’s play/pause API: mount the embed element, then call <code>provider.play()</code>, <code>await provider.paused</code>, <code>provider.pause()</code>, and <code>await provider.currentTime</code> on the provider.</p>
+  <p>Tests each provider’s play/pause API: mount the embed element, then call <code>provider.play()</code>, <code>await provider.paused</code>, <code>provider.pause()</code>, <code>await provider.currentTime</code>, and <code>provider.seek(seconds)</code> on the provider.</p>
 
   <section id="youtube-section">
     <h2>YouTube</h2>
@@ -74,6 +74,7 @@
         { label: "Play", status: "pending" },
         { label: "Pause", status: "pending" },
         { label: "currentTime", status: "pending" },
+        { label: "Seek", status: "pending" },
       ]);
       try {
         const playResult = provider.play();
@@ -92,10 +93,23 @@
         const currentTimeOk =
           typeof currentTime === "number" && !Number.isNaN(currentTime) && currentTime >= 0;
 
+        let seekOk = true;
+        try {
+          const seekResult = provider.seek(5);
+          if (seekResult && typeof seekResult.then === "function") await seekResult;
+          await delay(800);
+          const timeAfterSeek = await provider.currentTime;
+          seekOk =
+            typeof timeAfterSeek === "number" && !Number.isNaN(timeAfterSeek) && timeAfterSeek >= 0;
+        } catch (_e) {
+          seekOk = false;
+        }
+
         showResults(resultsId, [
           { label: skipGetPaused ? "Play (no throw)" : "Play (getPaused() false after play)", status: playOk ? "pass" : "fail" },
           { label: skipGetPaused ? "Pause (no throw)" : "Pause (getPaused() true after pause)", status: pauseOk ? "pass" : "fail" },
           { label: "currentTime (number ≥ 0)", status: currentTimeOk ? "pass" : "fail" },
+          { label: "seek(5) then currentTime ≥ 0", status: seekOk ? "pass" : "fail" },
         ]);
       } catch (err) {
         showResults(resultsId, [

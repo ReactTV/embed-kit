@@ -39,6 +39,10 @@ export class VimeoEmbed implements EmbedProvider {
     return this.#player?.currentTime ?? Promise.resolve(0);
   }
 
+  seek(seconds: number): void | Promise<void> {
+    return this.#player?.seek(seconds);
+  }
+
   parseSourceUrl(url: string): ParsedEmbed | null {
     const trimmed = url.trim();
     const playerMatch = /player\.vimeo\.com\/video\/(\d+)/.exec(trimmed);

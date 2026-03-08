@@ -14,6 +14,7 @@ interface VimeoPlayer {
   pause: () => Promise<void>;
   getPaused: () => Promise<boolean>;
   getCurrentTime: () => Promise<number>;
+  setCurrentTime: (seconds: number) => Promise<number>;
   destroy: () => void;
 }
 
@@ -64,6 +65,9 @@ export function createPlayer(
       },
       get currentTime() {
         return vimeoPlayer.getCurrentTime();
+      },
+      seek(seconds: number) {
+        return vimeoPlayer.setCurrentTime(seconds).then(() => {});
       },
       destroy() {
         vimeoPlayer.destroy();

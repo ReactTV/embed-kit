@@ -67,6 +67,9 @@ export function createPlayer(
     get currentTime(): Promise<number> {
       return Promise.resolve(0); // TikTok embed does not expose current time
     },
+    seek(_seconds: number) {
+      // TikTok embed does not expose seek
+    },
     destroy() {
       window.removeEventListener("message", handleMessage);
       if (iframe.parentNode) container.removeChild(iframe);

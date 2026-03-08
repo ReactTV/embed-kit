@@ -38,6 +38,10 @@ export class TwitchEmbed implements EmbedProvider {
     return this.#player?.currentTime ?? Promise.resolve(0);
   }
 
+  seek(seconds: number): void {
+    this.#player?.seek(seconds);
+  }
+
   parseSourceUrl(url: string): ParsedEmbed | null {
     const trimmed = url.trim();
     const videoMatch = /twitch\.tv\/videos\/(\d+)/.exec(trimmed);

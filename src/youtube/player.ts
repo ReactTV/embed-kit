@@ -21,6 +21,7 @@ interface YTPlayer {
   pauseVideo: () => void;
   getPlayerState: () => number; // 1=playing, 2=paused, etc.
   getCurrentTime: () => number; // seconds
+  seekTo: (seconds: number, allowSeekAhead: boolean) => void;
 }
 
 function loadYTScript(): Promise<void> {
@@ -73,6 +74,9 @@ export function createPlayer(
                   },
                   get currentTime() {
                     return Promise.resolve(player.getCurrentTime());
+                  },
+                  seek(seconds: number) {
+                    player.seekTo(seconds, true);
                   },
                   destroy() {
                     if (div.parentNode) container.removeChild(div);
