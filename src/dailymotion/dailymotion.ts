@@ -30,16 +30,16 @@ export class DailymotionEmbed implements IEmbedProvider {
     this.#player?.pause();
   }
 
-  get paused(): Promise<boolean> {
-    return this.#player?.paused ?? Promise.resolve(true);
+  get paused(): boolean {
+    return this.#player?.paused ?? false;
   }
 
-  get currentTime(): Promise<number> {
-    return this.#player?.currentTime ?? Promise.resolve(0);
+  get currentTime(): number {
+    return this.#player?.currentTime ?? 0;
   }
 
-  seek(seconds: number): void | Promise<void> {
-    return this.#player?.seek(seconds);
+  seek(seconds: number): void {
+    this.#player?.seek(seconds);
   }
 
   mute(): void {
