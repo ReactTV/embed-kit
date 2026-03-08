@@ -56,13 +56,13 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
   iframe.style.maxHeight = "100%";
   container.appendChild(iframe);
 
-  const playerState: TPlayerState & { lastState: number } = {
-    lastState: STATE_PAUSED,
+  const playerState: TPlayerState = {
     currentTime: 0,
     duration: 0,
     isPaused: true,
     muted: false,
     error: null,
+    isPlaying: false,
   };
   let resolveReady: () => void;
   new Promise<void>((resolve) => {
@@ -86,7 +86,6 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
         break;
       case "onStateChange":
         if (typeof data.value === "number") {
-          playerState.lastState = data.value;
           playerState.isPaused = data.value === STATE_PAUSED;
           if (data.value === 1) onPlay(); // 1 = playing
           if (data.value === STATE_PAUSED) onPause();
@@ -126,14 +125,14 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     async pause() {
       post(iframe, "pause");
     },
-    get paused(): Promise<boolean> {
-      return Promise.resolve(playerState.isPaused);
+    get paused(): boolean {
+      return playerState.isPaused;
     },
-    get currentTime(): Promise<number> {
-      return Promise.resolve(playerState.currentTime);
+    get currentTime(): number {
+      return playerState.currentTime;
     },
-    get duration(): Promise<number> {
-      return Promise.resolve(playerState.duration);
+    get duration(): number {
+      return playerState.duration;
     },
     seek(seconds: number) {
       post(iframe, "seekTo", seconds);
@@ -150,8 +149,8 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
       post(iframe, "mute", false);
       onMute({ muted: false });
     },
-    get muted(): Promise<boolean> {
-      return Promise.resolve(playerState.muted);
+    get muted(): boolean {
+      return playerState.muted;
     },
     get error() {
       return playerState.error;

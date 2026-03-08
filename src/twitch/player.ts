@@ -120,7 +120,7 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     if (!iframe.contentWindow) return;
     iframe.contentWindow.postMessage(
       { eventName: command, params, namespace: NS_PLAYER_PROXY },
-      EMBED_ORIGIN,
+      EMBED_ORIGIN
     );
   };
 
@@ -136,13 +136,13 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
       onPause();
     },
     get paused() {
-      return Promise.resolve(playerState.isPaused);
+      return playerState.isPaused;
     },
     get currentTime() {
-      return Promise.resolve(playerState.currentTime);
+      return playerState.currentTime;
     },
     get duration() {
-      return Promise.resolve(playerState.duration);
+      return playerState.duration;
     },
     seek(seconds: number) {
       send(PlayerCommands.SEEK, seconds);
