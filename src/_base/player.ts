@@ -41,6 +41,17 @@ export interface IMuteData {
   muted: boolean;
 }
 
+/** Progress payload (e.g. currentTime, duration). Used by some providers. */
+export interface IProgressData {
+  currentTime: number;
+  duration?: number;
+}
+
+/** Seek payload. Used by some providers. */
+export interface ISeekData {
+  currentTime: number;
+}
+
 /**
  * Normalized player state shape shared across embed providers.
  * Providers use this type (or extend it with & { ... }) for their internal state object.

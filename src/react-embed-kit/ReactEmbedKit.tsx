@@ -1,47 +1,46 @@
 import { useRef, useEffect } from "react";
-import type {
-  ICreatePlayerOptions,
-  IEmbedPlayer,
-  IErrorData,
-  IMuteData,
-  IProgressData,
-  ISeekData,
-} from "../_base/index.js";
+import type { IEmbedPlayer, IErrorData, IMuteData } from "../_base/index.js";
 import { getProviderForUrl } from "./providers.js";
 
-export interface ReactEmbedKitProps extends Omit<ICreatePlayerOptions, "onError" | "onReady"> {
+/** Props for ReactEmbedKit. Callbacks and options are typed explicitly so they infer correctly (no index signature). */
+export interface ReactEmbedKitProps {
   url: string;
-  onUnsupportedUrl?: (url: string) => void;
-  onError?: (data: IErrorData) => void;
-  onReady?: (player: IEmbedPlayer) => void;
   width?: number;
   height?: number;
   className?: string;
   style?: React.CSSProperties;
+  autoplay?: boolean;
+  progressInterval?: number;
+  onUnsupportedUrl?: (url: string) => void;
+  onError?: (data: IErrorData) => void;
+  onReady?: (player: IEmbedPlayer) => void;
+  onPlay?: () => void;
+  onPause?: () => void;
+  onBuffering?: () => void;
+  onEnded?: () => void;
+  onProgress?: (currentTime: number) => void;
+  onSeeking?: () => void;
+  onSeek?: (currentTime: number) => void;
+  onMute?: (data: IMuteData) => void;
+  onPlaybackQualityChange?: (quality: string) => void;
+  onPlaybackRateChange?: (rate: number) => void;
+  onAutoplayBlocked?: () => void;
+  onApiChange?: () => void;
 }
 
 const defaultWidth = 560;
 const defaultHeight = 315;
 
+const noop = () => {};
+
 export function ReactEmbedKit({
   url,
-  width,
-  height,
-  autoplay,
-  onReady = () => {},
-  onPlay,
-  onPause,
-  onBuffering,
-  onEnded,
-  onProgress,
-  onSeeking,
-  onSeek,
-  onMute,
+  onUnsupportedUrl,
   onError = () => {},
-  onUnsupportedUrl = () => {},
+  onReady = () => {},
   className,
   style,
-  ...restOptions
+  ...playerOptions
 }: ReactEmbedKitProps): React.ReactElement {
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<IEmbedPlayer | null>(null);
@@ -52,34 +51,21 @@ export function ReactEmbedKit({
 
     const resolved = getProviderForUrl(url);
     if (!resolved) {
-      onUnsupportedUrl(url);
+      onUnsupportedUrl?.(url);
       return;
     }
 
-    // Clear any previous player DOM so the new embed isn't covered (handles URL change
-    // before the previous createPlayer promise resolved, so destroy() was never called).
     container.innerHTML = "";
-    const { provider, id, options: providerOptions } = resolved;
-    const mergedOptions: ICreatePlayerOptions = {
-      width: width ?? defaultWidth,
-      height: height ?? defaultHeight,
-      autoplay: Boolean(autoplay),
-      onError,
-      ...providerOptions,
-      ...restOptions,
-    };
-    if (typeof onPlay === "function") mergedOptions.onPlay = onPlay as () => void;
-    if (typeof onPause === "function") mergedOptions.onPause = onPause as () => void;
-    if (typeof onBuffering === "function") mergedOptions.onBuffering = onBuffering as () => void;
-    if (typeof onEnded === "function") mergedOptions.onEnded = onEnded as () => void;
-    if (typeof onProgress === "function")
-      mergedOptions.onProgress = onProgress as (data: IProgressData) => void;
-    if (typeof onSeeking === "function") mergedOptions.onSeeking = onSeeking as () => void;
-    if (typeof onSeek === "function") mergedOptions.onSeek = onSeek as (data: ISeekData) => void;
-    if (typeof onMute === "function") mergedOptions.onMute = onMute as (data: IMuteData) => void;
+    const { provider, id } = resolved;
 
     let cancelled = false;
-    const promise = provider.createPlayer(container, id, mergedOptions);
+    const promise = provider.createPlayer(container, id, {
+      width: playerOptions.width ?? defaultWidth,
+      height: playerOptions.height ?? defaultHeight,
+      ...playerOptions,
+      onReady: noop,
+      onError,
+    });
 
     promise
       .then((player) => {
@@ -106,7 +92,7 @@ export function ReactEmbedKit({
       playerRef.current = null;
       p?.destroy?.();
     };
-  }, [url, width, height, autoplay]);
+  }, [url, playerOptions.width, playerOptions.height, playerOptions.autoplay]);
 
   return <div ref={containerRef} className={className} style={style} />;
 }

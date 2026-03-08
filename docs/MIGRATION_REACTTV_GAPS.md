@@ -1,0 +1,88 @@
+# Logic Gaps: react-player → embed-kit (for ReactTV migration)
+
+This doc lists **behavior or data** that the ReactTV repo currently gets from react-player and that embed-kit does not yet provide. You can either add this logic in embed-kit or adjust ReactTV to work without it.
+
+---
+
+## 1. **Volume get/set**
+
+- **ReactTV usage:** `useChannelVolumeController` passes the player ref to `syncPlayerVolume(player)`, which reads `player.volume` and `player.muted` and syncs them with channel/global volume state. It also relies on being able to set volume on the player.
+- **embed-kit:** `IEmbedPlayer` has `mute()` / `unmute()` and readonly `muted`. There is no `volume` or `setVolume(0–1)`.
+- **Migration options:**  
+  - In ReactTV: drive volume only via mute/unmute and track “desired volume” in app state; when unmuting, you can’t restore a specific 0–1 level unless embed-kit adds volume.  
+  - Or add in embed-kit: optional `volume` (read) and `setVolume(volume: number)` on `IEmbedPlayer`, and pass initial `volume` in options where the provider supports it.
+
+---
+
+## 2. **Player API latency (provider-specific)**
+
+- **ReactTV usage:** `getPlayerApiLatency(player)` uses:
+  - YouTube: `player?.playerInfo?.mediaReferenceTime` → `Date.now()/1000 - mediaReferenceTime`
+  - Twitch: `player?.getPlaybackStats?.().hlsLatencyBroadcaster`
+- **embed-kit:** No latency API; the normalized player doesn’t expose provider-specific objects.
+- **Migration options:**  
+  - In ReactTV: remove or replace latency-based features (e.g. use a different sync strategy).  
+  - Or add in embed-kit: optional `getLatency?(): number | Promise<number>` on `IEmbedPlayer`, implemented only by providers that can report it (e.g. YouTube, Twitch).
+
+---
+
+## 3. **Ref = player instance (play/pause/seek from ref)**
+
+- **ReactTV usage:** `playerRef` is passed to the embed; code calls `playerRef.current?.play()`, `playerRef.current?.currentTime` (read and write for seeking), and `playerRef.current?.error` (for `onDetailedError`). The ref is typed as `HTMLVideoElement | null` but in practice it’s the react-player instance (or its internal player), which is used like a controllable handle.
+- **embed-kit:** `ReactEmbedKit` gives the player in `onReady(player)` only. There is no ref that gets set to the `IEmbedPlayer` instance. The custom element exposes `play()`, `pause()`, `seek()`, `lastError`, etc. on the element itself.
+- **Migration options:**  
+  - In ReactTV: store the player in a ref inside `onReady`: `onReady={(p) => { playerRef.current = p; }}` and use that ref for play/pause/seek and for `error` (e.g. `playerRef.current?.error`). Use `lastError` if you use the custom element.  
+  - Or add in embed-kit: support a ref on `ReactEmbedKit` that is set to the `IEmbedPlayer` when ready (and cleared on unmount), so ReactTV can keep a similar ref-based API.
+
+---
+
+## 4. **onDetailedError with raw MediaError / embed-disabled codes**
+
+- **ReactTV usage:** `onDetailedError?.(playerRef?.current?.error)` and checks for `mediaError?.code` in `[150, 101, 100]` to detect “embed disabled” and call `reportBrokenMedia` / show the right UI.
+- **embed-kit:** `onError(data: IErrorData)` with `IErrorData = { code?: number | string; message?: string }`. Providers map their errors into this; e.g. YouTube can map 150/101/100 to `code`.
+- **Migration options:**  
+  - In ReactTV: use `onError` and treat `data.code === 150 | 101 | 100` the same as today’s `onDetailedError(mediaError)`.  
+  - Ensure in embed-kit that the YouTube (and any other) provider maps those embed-disabled codes into `onError({ code: 150 })` etc. so no extra API is needed.
+
+---
+
+## 5. **Progress callback and seeking from inside progress**
+
+- **ReactTV usage:** In `MediaPlayer` and `useChannelLocalPlaybackController`, `onProgress` receives an event and uses `event.target` as the player, then sets `player.currentTime = ...` to correct position (playable ranges, schedule sync).
+- **embed-kit:** `onProgress(currentTime: number)` and `player.seek(seconds)`. No event and no direct `currentTime` setter; seeking is done via `seek()`.
+- **Migration options:**  
+  - In ReactTV: in `onProgress(currentTime)`, compute the desired time and call `playerRef.current?.seek(desiredTime)` (where `playerRef` is the `IEmbedPlayer` from `onReady`). No API change needed in embed-kit.
+
+---
+
+## 6. **Custom element: onProgress / onEnded**
+
+- **ReactTV usage:** Uses `onProgress` and `onEnded` on the embed.
+- **embed-kit:** `createEmbedElement` does not declare or forward `onProgress` or `onEnded` to `createPlayer`. Only the React wrapper (`ReactEmbedKit`) passes them when using `createPlayer` directly.
+- **Migration options:**  
+  - If ReactTV uses only `ReactEmbedKit` (or direct `createPlayer`), this is already covered.  
+  - If ReactTV ever uses the custom element, it would need `onEnded` and `onProgress` to be forwarded in the element’s options to `createPlayer` (logic only; the base API already has these callbacks).
+
+---
+
+## 7. **Controls / URL config (e.g. YouTube captions)**
+
+- **ReactTV usage:** `BaseVideoEmbed` passes `config={{ youtube: { iv_load_policy: 1, cc_load_policy: enableCaptions ? 1 : 0, origin: ... } }}` and `controls={true}`.
+- **embed-kit:** No global “controls” or “config” in the base API; each provider builds its own URL or SDK options.
+- **Migration options:**  
+  - In ReactTV: when migrating, use embed-kit’s URL/options for the provider (e.g. YouTube) and add query params or SDK options for captions and controls in the provider implementation.  
+  - In embed-kit: ensure provider-specific options (e.g. `enableCaptions`, `controls`) can be passed through (e.g. via `parseSourceUrl` options or extra createPlayer options) and applied in the YouTube (and others) provider.
+
+---
+
+## Summary table
+
+| Gap                         | Where it’s used              | Fix in ReactTV vs embed-kit                    |
+|----------------------------|-----------------------------|-----------------------------------------------|
+| Volume get/set             | `syncPlayerVolume`, volume UI | ReactTV: mute-only + state, or embed-kit: add volume |
+| Latency (YouTube/Twitch)   | `getPlayerApiLatency`       | ReactTV: remove/replace, or embed-kit: optional getLatency |
+| Ref = player instance      | play/pause/seek, error, volume | ReactTV: store player in ref in onReady, or embed-kit: ref support |
+| Embed-disabled error codes | onDetailedError, reportBrokenMedia | Use onError + ensure 150/101/100 in IErrorData.code |
+| Seek from progress         | Playable ranges, sync       | ReactTV: call player.seek() in onProgress      |
+| onProgress/onEnded on element | If using custom element    | embed-kit: forward in createEmbedElement       |
+| Controls / captions config | YouTube (and similar)        | Provider-level URL/SDK options in embed-kit   |
