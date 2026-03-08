@@ -122,8 +122,8 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
       <div className="player-wrap">
         <ReactEmbedKit
           url={url}
-          width="560"
-          height="315"
+          width={560}
+          height={315}
           onReady={(p) => {
             setPlayer(p);
             console.log("Embed ready");

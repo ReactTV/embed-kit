@@ -34,7 +34,21 @@ interface VimeoPlayer {
  * Returns a normalized IEmbedPlayer (play, pause, paused, currentTime).
  */
 export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
-  const { width = 560, height = 315, autoplay = false, onReady, onPlay, onPause, onBuffering, onEnded, onProgress, onSeek, onMute, onError, vimeoHash } = options as typeof options & { vimeoHash?: string };
+  const {
+    width = 560,
+    height = 315,
+    autoplay = false,
+    onReady = () => {},
+    onPlay = () => {},
+    onPause = () => {},
+    onBuffering = () => {},
+    onEnded = () => {},
+    onProgress = () => {},
+    onSeek = () => {},
+    onMute = () => {},
+    onError = () => {},
+    vimeoHash,
+  } = options as typeof options & { vimeoHash?: string };
   const query = new URLSearchParams({ api: "1" });
   if (vimeoHash) query.set("h", vimeoHash);
   if (autoplay) query.set("autoplay", "1");
@@ -54,31 +68,23 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     errorMessage: "Failed to load Vimeo player script",
   }).then(() => {
     const vimeoPlayer = new window.Vimeo!.Player(iframe);
-    if (onError && typeof vimeoPlayer.on === "function") {
+    if (typeof vimeoPlayer.on === "function") {
       vimeoPlayer.on("error", (err?: unknown) => {
         const e = err as { message?: string; code?: number } | undefined;
         lastError = {
           ...(e?.message != null ? { message: e.message } : {}),
           ...(e?.code != null ? { code: e.code } : {}),
         };
-        onError?.(lastError);
+        onError(lastError);
       });
-    }
-    if (onPlay && typeof vimeoPlayer.on === "function") {
       vimeoPlayer.on("play", onPlay);
-    }
-    if (onPause && typeof vimeoPlayer.on === "function") {
       vimeoPlayer.on("pause", onPause);
-    }
-    if (onBuffering && typeof vimeoPlayer.on === "function") {
       vimeoPlayer.on("bufferstart", onBuffering);
-    }
-    if (onEnded && typeof vimeoPlayer.on === "function") {
       vimeoPlayer.on("finish", onEnded);
       vimeoPlayer.on("ended", onEnded);
       let endedFired = false;
       vimeoPlayer.on("timeupdate", (data?: VimeoTimeupdateData) => {
-        if (onProgress && data != null) {
+        if (data != null) {
           const sec = data.seconds ?? 0;
           const dur = data.duration;
           onProgress({
@@ -98,23 +104,12 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
           onEnded();
         }
       });
-    } else if (onProgress && typeof vimeoPlayer.on === "function") {
-      vimeoPlayer.on("timeupdate", (data?: VimeoTimeupdateData) => {
-        if (data != null) {
-          const sec = data.seconds ?? 0;
-          const dur = data.duration;
-          onProgress({
-            currentTime: typeof sec === "number" ? sec : 0,
-            ...(typeof dur === "number" ? { duration: dur } : {}),
-          });
-        }
-      });
     }
     const readyPromise =
       typeof vimeoPlayer.ready === "function"
         ? vimeoPlayer.ready()
         : vimeoPlayer.getPaused().then(() => undefined);
-    readyPromise.then(() => onReady?.());
+    readyPromise.then(() => onReady());
     return {
       get ready() {
         return readyPromise;
@@ -134,17 +129,17 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
       },
       seek(seconds: number) {
         return vimeoPlayer.setCurrentTime(seconds).then(() => {
-          onSeek?.({ currentTime: seconds });
+          onSeek({ currentTime: seconds });
         });
       },
       mute() {
         return vimeoPlayer.setMuted(true).then(() => {
-          onMute?.({ muted: true });
+          onMute({ muted: true });
         });
       },
       unmute() {
         return vimeoPlayer.setMuted(false).then(() => {
-          onMute?.({ muted: false });
+          onMute({ muted: false });
         });
       },
       get muted() {

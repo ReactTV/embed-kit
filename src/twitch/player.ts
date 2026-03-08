@@ -1,4 +1,9 @@
-import { createEmbedIframeElement, type IEmbedPlayer, type IErrorData, type TCreatePlayer } from "../_base/index.js";
+import {
+  createEmbedIframeElement,
+  type IEmbedPlayer,
+  type IErrorData,
+  type TCreatePlayer,
+} from "../_base/index.js";
 
 const EMBED_ORIGIN = "https://player.twitch.tv";
 const NS_EMBED = "twitch-embed";
@@ -20,7 +25,20 @@ interface TwitchMessage {
  * Clips use clips.twitch.tv/embed (no control API).
  */
 export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
-  const { width = 560, height = 315, autoplay = false, onReady, onPlay, onPause, onBuffering, onEnded, onProgress, onSeek, onMute, onError } = options;
+  const {
+    width = 560,
+    height = 315,
+    autoplay = false,
+    onReady = () => {},
+    onPlay = () => {},
+    onPause = () => {},
+    onBuffering = () => {},
+    onEnded = () => {},
+    onProgress = () => {},
+    onSeek = () => {},
+    onMute = () => {},
+    onError = () => {},
+  } = options;
   const { twitchType } = options as typeof options & { twitchType?: string };
   const isClip = twitchType === "clip";
   const isChannel = twitchType === "channel";
@@ -37,8 +55,8 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     const clipUrl = `https://clips.twitch.tv/embed?clip=${encodeURIComponent(id)}&${parentParam}`;
     const iframe = createEmbedIframeElement({
       src: clipUrl,
-      width: typeof width === "number" ? width : parseInt(String(width), 10) || 560,
-      height: typeof height === "number" ? height : parseInt(String(height), 10) || 315,
+      width,
+      height,
       allowFullScreen: true,
     });
     container.appendChild(iframe);
@@ -63,7 +81,7 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
       get muted() {
         return Promise.resolve(false);
       },
-      get lastError() {
+      get error() {
         return null;
       },
       destroy() {
@@ -79,8 +97,8 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
   const mediaParam = isChannel ? "channel" : "video";
   const iframe = createEmbedIframeElement({
     src: `${EMBED_ORIGIN}/?${mediaParam}=${encodeURIComponent(id)}&${parentQuery}${autoplay ? "&autoplay=true" : ""}`,
-    width: typeof width === "number" ? width : parseInt(String(width), 10) || 560,
-    height: typeof height === "number" ? height : parseInt(String(height), 10) || 315,
+    width,
+    height,
     allow: "accelerometer; fullscreen; autoplay; encrypted-media; picture-in-picture",
     allowFullScreen: true,
   });
@@ -90,7 +108,7 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
   let currentTime = 0;
   let duration = 0;
   let isMuted = false;
-  let lastError: IErrorData | null = null;
+  let error: IErrorData | null = null;
   let lastPlayback: string | undefined;
   let readyResolve: () => void;
   const readyPromise = new Promise<void>((r) => {
@@ -104,22 +122,30 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
 
     if (data.namespace === NS_EMBED && data.eventName === "ready") {
       readyResolve();
-      onReady?.();
+      onReady();
     } else if (data.namespace === NS_EMBED && data.eventName === "error") {
-      const msg = data.params && typeof data.params === "object" && !Array.isArray(data.params)
-        ? (data.params as { message?: string }).message
-        : undefined;
-      lastError = { message: msg ?? "Twitch embed error" };
-      onError?.(lastError);
-    } else if (data.namespace === NS_PLAYER_PROXY && data.eventName === "UPDATE_STATE" && data.params && typeof data.params === "object" && !Array.isArray(data.params)) {
+      const msg =
+        data.params && typeof data.params === "object" && !Array.isArray(data.params)
+          ? (data.params as { message?: string }).message
+          : undefined;
+      error = { message: msg ?? "Twitch embed error" };
+      onError(error);
+    } else if (
+      data.namespace === NS_PLAYER_PROXY &&
+      data.eventName === "UPDATE_STATE" &&
+      data.params &&
+      typeof data.params === "object" &&
+      !Array.isArray(data.params)
+    ) {
       const p = data.params as { playback?: string; currentTime?: number; duration?: number };
       if (p.playback !== undefined) {
-        if (p.playback === "Playing" && lastPlayback !== "Playing") onPlay?.();
-        if ((p.playback === "Paused" || p.playback === "Ready") && lastPlayback === "Playing") onPause?.();
-        if (p.playback === "Buffering") onBuffering?.();
+        if (p.playback === "Playing" && lastPlayback !== "Playing") onPlay();
+        if ((p.playback === "Paused" || p.playback === "Ready") && lastPlayback === "Playing")
+          onPause();
+        if (p.playback === "Buffering") onBuffering();
         lastPlayback = p.playback;
         isPaused = p.playback !== "Playing";
-        if (p.playback === "Ended") onEnded?.();
+        if (p.playback === "Ended") onEnded();
       }
       if (typeof p.currentTime === "number") {
         currentTime = p.currentTime;
@@ -127,11 +153,8 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
       if (typeof p.duration === "number") {
         duration = p.duration;
       }
-      if (onProgress && (typeof p.currentTime === "number" || typeof p.duration === "number")) {
-        onProgress({
-          currentTime: typeof p.currentTime === "number" ? p.currentTime : currentTime,
-          duration: typeof p.duration === "number" ? p.duration : duration,
-        });
+      if (typeof p.currentTime === "number" || typeof p.duration === "number") {
+        onProgress(typeof p.currentTime === "number" ? p.currentTime : currentTime);
       }
     }
   };
@@ -153,12 +176,12 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     play() {
       isPaused = false;
       send(CMD_PLAY);
-      onPlay?.();
+      onPlay();
     },
     pause() {
       isPaused = true;
       send(CMD_PAUSE);
-      onPause?.();
+      onPause();
     },
     get paused() {
       return Promise.resolve(isPaused);
@@ -172,23 +195,23 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     seek(seconds: number) {
       send(CMD_SEEK, seconds);
       currentTime = seconds;
-      onSeek?.({ currentTime: seconds });
+      onSeek(seconds);
     },
     mute() {
       isMuted = true;
       send(CMD_SET_MUTED, true);
-      onMute?.({ muted: true });
+      onMute(true);
     },
     unmute() {
       isMuted = false;
       send(CMD_SET_MUTED, false);
-      onMute?.({ muted: false });
+      onMute(false);
     },
     get muted() {
       return Promise.resolve(isMuted);
     },
-    get lastError() {
-      return lastError;
+    get error() {
+      return error;
     },
     destroy() {
       window.removeEventListener("message", onMessage);

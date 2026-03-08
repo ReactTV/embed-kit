@@ -14,15 +14,15 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     width = 560,
     height = 315,
     autoplay = false,
-    onReady,
-    onPlay,
-    onPause,
-    onBuffering,
-    onEnded,
-    onProgress,
-    onSeek,
-    onMute,
-    onError,
+    onReady = () => {},
+    onPlay = () => {},
+    onPause = () => {},
+    onBuffering = () => {},
+    onEnded = () => {},
+    onProgress = () => {},
+    onSeek = () => {},
+    onMute = () => {},
+    onError = () => {},
   } = options;
 
   const { element: wrapper, id: containerId } = createPlayerContainer(
@@ -49,7 +49,7 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
       });
     })
     .then((dmPlayer) => {
-      onReady?.();
+      onReady();
       let currentTime = 0;
       let muted = false;
       let error: IErrorData | null = null;
@@ -61,19 +61,16 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
       dmPlayer.on(events.VIDEO_BUFFERING, onBuffering);
       dmPlayer.on(events.VIDEO_END, onEnded);
 
-      if (onError) {
-        const handleError = (): void => {
-          error = { message: "Dailymotion playback error" };
-          onError(error);
-        };
-        dmPlayer.on(events.PLAYER_ERROR, handleError);
-        if (events.VIDEO_ERROR) dmPlayer.on(events.VIDEO_ERROR, handleError);
-      }
+      const handleError = (): void => {
+        error = { message: "Dailymotion playback error" };
+        onError(error);
+      };
+      dmPlayer.on(events.PLAYER_ERROR, handleError);
+      if (events.VIDEO_ERROR) dmPlayer.on(events.VIDEO_ERROR, handleError);
 
-      dmPlayer.on(events.VIDEO_TIMECHANGE, (state: DailymotionPlayerState) => {
-        currentTime = state.videoTime ?? 0;
-
-        onProgress?.(currentTime);
+      dmPlayer.on(events.VIDEO_TIMECHANGE, (state?: DailymotionPlayerState) => {
+        currentTime = state?.videoTime ?? 0;
+        onProgress(currentTime);
       });
 
       return {
@@ -114,7 +111,7 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
           if (typeof dmPlayer.setMute === "function") {
             dmPlayer.setMute(true);
             muted = true;
-            onMute?.({ muted: true });
+            onMute({ muted: true });
           }
         },
         pause() {
@@ -132,14 +129,14 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
         seek(seconds: number) {
           if (typeof dmPlayer.seek === "function") {
             dmPlayer.seek(seconds);
-            onSeek?.({ currentTime: seconds });
+            onSeek({ currentTime: seconds });
           }
         },
         unmute() {
           if (typeof dmPlayer.setMute === "function") {
             dmPlayer.setMute(false);
             muted = false;
-            onMute?.({ muted: false });
+            onMute({ muted: false });
           }
         },
       };

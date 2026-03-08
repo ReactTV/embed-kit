@@ -1,7 +1,7 @@
 import type { IEmbedPlayer, IErrorData, TCreatePlayer } from "./player.js";
 
-const DEFAULT_WIDTH = "560";
-const DEFAULT_HEIGHT = "315";
+const DEFAULT_WIDTH = 560;
+const DEFAULT_HEIGHT = 315;
 
 /**
  * Provider contract: URL building and player creation.
@@ -118,14 +118,14 @@ export function createEmbedElement(provider: IEmbedProvider): CustomElementConst
         return;
       }
 
-      const width = this.getAttribute("width") ?? DEFAULT_WIDTH;
-      const height = this.getAttribute("height") ?? DEFAULT_HEIGHT;
+      const width =
+        parseInt(this.getAttribute("width") ?? String(DEFAULT_WIDTH), 10) || DEFAULT_WIDTH;
+      const height =
+        parseInt(this.getAttribute("height") ?? String(DEFAULT_HEIGHT), 10) || DEFAULT_HEIGHT;
 
       this.style.display = "block";
-      const w = String(width);
-      const h = String(height);
-      this.style.width = /^\d+$/.test(w) ? `${w}px` : w;
-      this.style.height = /^\d+$/.test(h) ? `${h}px` : h;
+      this.style.width = `${width}px`;
+      this.style.height = `${height}px`;
 
       // Only mount and create the player when the element is in the document.
       // Otherwise (e.g. attributes set before appendChild), the iframe is never
@@ -148,12 +148,10 @@ export function createEmbedElement(provider: IEmbedProvider): CustomElementConst
 
       const container = document.createElement("div");
       container.style.display = "block";
-      const widthPx = /^\d+$/.test(w) ? `${w}px` : w;
-      const heightPx = /^\d+$/.test(h) ? `${h}px` : h;
-      container.style.width = widthPx;
-      container.style.height = heightPx;
-      container.style.minWidth = widthPx;
-      container.style.minHeight = heightPx;
+      container.style.width = `${width}px`;
+      container.style.height = `${height}px`;
+      container.style.minWidth = `${width}px`;
+      container.style.minHeight = `${height}px`;
       container.style.overflow = "hidden";
       this.appendChild(container);
       this.#container = container;
@@ -166,10 +164,11 @@ export function createEmbedElement(provider: IEmbedProvider): CustomElementConst
       const onPlay = (this as unknown as { onPlay?: () => void }).onPlay;
       const onPause = (this as unknown as { onPause?: () => void }).onPause;
       const onBuffering = (this as unknown as { onBuffering?: () => void }).onBuffering;
-      const userOnError = (this as unknown as { onError?: (data: IErrorData) => void }).onError;
+      const userOnError =
+        (this as unknown as { onError?: (data: IErrorData) => void }).onError ?? (() => {});
       const onError = (data: IErrorData): void => {
         this.#lastError = data;
-        userOnError?.(data);
+        userOnError(data);
       };
       this.#playerPromise = provider.createPlayer(container, id, {
         width,
@@ -185,8 +184,9 @@ export function createEmbedElement(provider: IEmbedProvider): CustomElementConst
         ...options,
       }).then((player) => {
         this.#player = player;
-        const onReady = (this as unknown as { onReady?: () => void }).onReady;
-        if (typeof onReady === "function") onReady();
+        const onReady =
+          (this as unknown as { onReady?: () => void }).onReady ?? (() => {});
+        onReady();
         return player;
       });
     }

@@ -18,24 +18,18 @@ export interface ReactEmbedKitProps extends Omit<ICreatePlayerOptions, "onError"
   onError?: (data: IErrorData) => void;
   /** Called with the player instance when the embed is ready (use for play, pause, seek, mute, etc.). */
   onReady?: (player: IEmbedPlayer) => void;
-  /** CSS width (default "560"). */
-  width?: string | number;
-  /** CSS height (default "315"). */
-  height?: string | number;
+  /** Width in pixels (default 560). */
+  width?: number;
+  /** Height in pixels (default 315). */
+  height?: number;
   /** Root element class name. */
   className?: string;
   /** Inline styles for the root element. */
   style?: React.CSSProperties;
 }
 
-const defaultWidth = "560";
-const defaultHeight = "315";
-
-function toCssSize(value: string | number | undefined, fallback: string): string {
-  if (value === undefined) return fallback;
-  const s = String(value);
-  return /^\d+$/.test(s) ? `${s}px` : s;
-}
+const defaultWidth = 560;
+const defaultHeight = 315;
 
 /**
  * React wrapper for embed-kit: pass a video URL and the correct provider (YouTube, Twitch, TikTok, Dailymotion, Vimeo) is chosen automatically.
@@ -43,10 +37,10 @@ function toCssSize(value: string | number | undefined, fallback: string): string
  */
 export function ReactEmbedKit({
   url,
-  width = defaultWidth,
-  height = defaultHeight,
+  width,
+  height,
   autoplay,
-  onReady,
+  onReady = () => {},
   onPlay,
   onPause,
   onBuffering,
@@ -55,8 +49,8 @@ export function ReactEmbedKit({
   onSeeking,
   onSeek,
   onMute,
-  onError,
-  onUnsupportedUrl,
+  onError = () => {},
+  onUnsupportedUrl = () => {},
   className,
   style,
   ...restOptions
@@ -72,7 +66,7 @@ export function ReactEmbedKit({
     const resolved = getProviderForUrl(url);
     if (!resolved) {
       setError(`Unsupported URL: ${url}`);
-      onUnsupportedUrl?.(url);
+      onUnsupportedUrl(url);
       return;
     }
 
@@ -82,12 +76,12 @@ export function ReactEmbedKit({
     container.innerHTML = "";
     const { provider, id, options: providerOptions } = resolved;
     const mergedOptions: ICreatePlayerOptions = {
-      width,
-      height,
+      width: width ?? defaultWidth,
+      height: height ?? defaultHeight,
       autoplay: Boolean(autoplay),
       onError: (data: IErrorData) => {
         setError(data.message ?? String(data.code ?? "Unknown error"));
-        onError?.(data);
+        onError(data);
       },
       ...providerOptions,
       ...restOptions,
@@ -115,12 +109,12 @@ export function ReactEmbedKit({
           return;
         }
         playerRef.current = player;
-        onReady?.(player);
+        onReady(player);
       })
       .catch((err) => {
         if (!cancelled) {
           setError(err?.message ?? String(err));
-          onError?.({ message: err?.message ?? String(err) });
+          onError({ message: err?.message ?? String(err) });
         }
       });
 
@@ -132,8 +126,8 @@ export function ReactEmbedKit({
     };
   }, [url, width, height, autoplay]);
 
-  const w = toCssSize(width, defaultWidth);
-  const h = toCssSize(height, defaultHeight);
+  const w = `${width ?? defaultWidth}px`;
+  const h = `${height ?? defaultHeight}px`;
 
   return (
     <div

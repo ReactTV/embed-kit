@@ -5,8 +5,8 @@
 
 /** Options passed to createPlayer(); callbacks receive the I*Data types below. */
 export interface ICreatePlayerOptions {
-  width?: string | number;
-  height?: string | number;
+  width?: number;
+  height?: number;
   autoplay?: boolean;
   onReady?: () => void;
   onPlay?: () => void;
@@ -19,6 +19,15 @@ export interface ICreatePlayerOptions {
   onSeek?: (currentTime: number) => void;
   onMute?: (muted: boolean) => void;
   onError?: (data: IErrorData) => void;
+  /** Fired when playback quality changes (e.g. resolution). YouTube: ev.data is quality string. */
+  onPlaybackQualityChange?: (quality: string) => void;
+  /** Fired when playback rate changes. YouTube: ev.data is new rate (number). */
+  onPlaybackRateChange?: (rate: number) => void;
+  /** Fired when autoplay was requested but blocked by the browser. */
+  onAutoplayBlocked?: () => void;
+  /** Fired when the player loads/unloads a module (e.g. captions). YouTube-specific. */
+  onApiChange?: () => void;
+  progressInterval?: number;
   [key: string]: unknown;
 }
 

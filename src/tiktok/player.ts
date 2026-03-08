@@ -1,4 +1,10 @@
-import { createEmbedIframeElement, type IEmbedPlayer, type IErrorData, type IProgressData, type TCreatePlayer } from "../_base/index.js";
+import {
+  createEmbedIframeElement,
+  type IEmbedPlayer,
+  type IErrorData,
+  type IProgressData,
+  type TCreatePlayer,
+} from "../_base/index.js";
 
 const EMBED_ORIGIN = "https://www.tiktok.com";
 const EMBED_BASE = "https://www.tiktok.com/player/v1/";
@@ -22,7 +28,20 @@ function post(iframe: HTMLIFrameElement, type: string, value?: unknown): void {
  * Uses postMessage: play, pause, seekTo; listens for onStateChange and onCurrentTime.
  */
 export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
-  const { width = 325, height = 575, autoplay = false, onReady, onPlay, onPause, onBuffering, onEnded, onProgress, onSeek, onMute, onError } = options;
+  const {
+    width = 325,
+    height = 575,
+    autoplay = false,
+    onReady = () => {},
+    onPlay = () => {},
+    onPause = () => {},
+    onBuffering = () => {},
+    onEnded = () => {},
+    onProgress = () => {},
+    onSeek = () => {},
+    onMute = () => {},
+    onError = () => {},
+  } = options;
 
   // Vertical video: width is the narrow dimension, height the tall one (e.g. 325×575).
   const iframe = createEmbedIframeElement({
@@ -58,16 +77,16 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     switch (data.type) {
       case "onPlayerReady":
         resolveReady();
-        onReady?.();
+        onReady();
         resolvePlayer(player);
         break;
       case "onStateChange":
         if (typeof data.value === "number") {
           lastState = data.value;
-          if (data.value === 1) onPlay?.(); // 1 = playing
-          if (data.value === STATE_PAUSED) onPause?.();
-          if (data.value === 3) onBuffering?.(); // 3 = buffering
-          if (data.value === STATE_ENDED) onEnded?.();
+          if (data.value === 1) onPlay(); // 1 = playing
+          if (data.value === STATE_PAUSED) onPause();
+          if (data.value === 3) onBuffering(); // 3 = buffering
+          if (data.value === STATE_ENDED) onEnded();
         }
         break;
       case "onCurrentTime":
@@ -75,7 +94,7 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
         if (t) {
           if (typeof t.currentTime === "number") lastCurrentTime = t.currentTime;
           if (typeof t.duration === "number") lastDuration = t.duration;
-          onProgress?.({ currentTime: lastCurrentTime, duration: lastDuration });
+          onProgress(lastCurrentTime);
         }
         break;
       case "onError":
@@ -85,8 +104,9 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
           ...(err?.message != null ? { message: err.message } : {}),
           ...(err?.code != null ? { code: err.code } : {}),
         };
-        lastError = Object.keys(errorData).length > 0 ? errorData : { message: "TikTok embed error" };
-        onError?.(lastError);
+        lastError =
+          Object.keys(errorData).length > 0 ? errorData : { message: "TikTok embed error" };
+        onError(lastError);
         break;
       }
     }
@@ -117,22 +137,22 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     seek(seconds: number) {
       post(iframe, "seekTo", seconds);
       lastCurrentTime = seconds;
-      onSeek?.({ currentTime: seconds });
+      onSeek(seconds);
     },
     mute() {
       lastMuted = true;
       post(iframe, "mute", true);
-      onMute?.({ muted: true });
+      onMute(true);
     },
     unmute() {
       lastMuted = false;
       post(iframe, "mute", false);
-      onMute?.({ muted: false });
+      onMute(false);
     },
     get muted(): Promise<boolean> {
       return Promise.resolve(lastMuted);
     },
-    get lastError() {
+    get error() {
       return lastError;
     },
     destroy() {

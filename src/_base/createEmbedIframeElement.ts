@@ -5,10 +5,10 @@
 export interface IIframeEmbedProps {
   /** Embed URL (required). */
   src: string;
-  /** Width (e.g. "560", "100%"). Default "560". */
-  width?: string | number;
-  /** Height (e.g. "315", "100%"). Default "315". */
-  height?: string | number;
+  /** Width in pixels. Default 560. */
+  width?: number;
+  /** Height in pixels. Default 315. */
+  height?: number;
   /** Accessible title for the iframe. */
   title?: string;
   /** Feature policy (e.g. "accelerometer; autoplay; clipboard-write; encrypted-media"). */
@@ -29,8 +29,8 @@ export interface IIframeEmbedProps {
   [key: string]: string | number | boolean | undefined;
 }
 
-const DEFAULT_WIDTH = "560";
-const DEFAULT_HEIGHT = "315";
+const DEFAULT_WIDTH = 560;
+const DEFAULT_HEIGHT = 315;
 
 function escapeHtmlAttr(value: string): string {
   return value

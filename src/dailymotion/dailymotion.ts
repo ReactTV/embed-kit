@@ -17,7 +17,7 @@ export class DailymotionEmbed implements IEmbedProvider {
     id: string,
     options?: Record<string, unknown>
   ): Promise<IEmbedPlayer> {
-    const player = await createDailymotionPlayer(container, id, options as { width?: string | number; height?: string | number });
+    const player = await createDailymotionPlayer(container, id, options);
     this.#player = player;
     return player;
   }

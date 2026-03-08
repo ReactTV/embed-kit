@@ -15,13 +15,17 @@ const YT_STATE_ENDED = 0;
 
 interface YTOptions {
   videoId: string;
-  width?: number | string;
-  height?: number | string;
+  width?: number;
+  height?: number;
   playerVars?: { autoplay?: 0 | 1 };
   events?: {
     onReady?: (ev: { target: YTPlayer }) => void;
     onStateChange?: (ev: { data: number }) => void;
     onError?: (ev: { data: number }) => void;
+    onPlaybackQualityChange?: (ev: { data: string }) => void;
+    onPlaybackRateChange?: (ev: { data: number }) => void;
+    onAutoplayBlocked?: () => void;
+    onApiChange?: () => void;
   };
 }
 
@@ -61,17 +65,27 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     width = 560,
     height = 315,
     autoplay = false,
-    onReady: onReadyCallback,
-    onPlay,
-    onPause,
-    onBuffering,
-    onEnded,
-    onProgress,
-    onSeek,
-    onMute,
-    onError,
+    onReady = () => {},
+    onPlay = () => {},
+    onPause = () => {},
+    onBuffering = () => {},
+    onEnded = () => {},
+    onProgress = () => {},
+    onSeek = () => {},
+    onMute = () => {},
+    onError = () => {},
+    onPlaybackQualityChange = () => {},
+    onPlaybackRateChange = () => {},
+    onAutoplayBlocked = () => {},
+    onApiChange = () => {},
+    progressInterval = 50,
   } = options;
-  let lastError: IErrorData | null = null;
+
+  const needsProgressOrMute =
+    options.onProgress !== undefined || options.onMute !== undefined;
+
+  let currentTime = 0;
+  let error: IErrorData | null = null;
 
   return loadYTScript().then(() => {
     const { element: div } = createPlayerContainer(container, "yt-player");
@@ -79,45 +93,37 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     const promise = new Promise<IEmbedPlayer>((resolve) => {
       new window.YT!.Player(div, {
         videoId: id,
-        width: typeof width === "number" ? width : parseInt(String(width), 10) || 560,
-        height: typeof height === "number" ? height : parseInt(String(height), 10) || 315,
+        width,
+        height,
         playerVars: { autoplay: autoplay ? 1 : 0 },
         events: {
           onError(ev: { data: number }) {
-            lastError = { code: ev.data };
-            onError?.(lastError);
+            error = { code: ev.data };
+            onError(error);
           },
           onReady(ev: { target: YTPlayer }) {
             const player = ev.target;
-            onReadyCallback?.();
-            let progressInterval: ReturnType<typeof setInterval> | undefined;
-            let lastMuted: boolean | null = null;
+            onReady();
+
+            let progressIntervalId: ReturnType<typeof setInterval> | undefined;
             let destroyed = false;
-            if (onProgress || onMute) {
-              progressInterval = setInterval(() => {
+            let muted: boolean | null = null;
+            // YouTube IFrame API has no timeupdate/progress event and no volume/mute event; polling required.
+            if (needsProgressOrMute) {
+              progressIntervalId = setInterval(() => {
                 if (destroyed) return;
-                if (onProgress) {
-                  const currentTime = player.getCurrentTime();
-                  const duration = player.getDuration();
-                  if (typeof currentTime === "number" && !Number.isNaN(currentTime)) {
-                    const dur =
-                      typeof duration === "number" && !Number.isNaN(duration) && duration > 0
-                        ? duration
-                        : undefined;
-                    onProgress({
-                      currentTime,
-                      ...(dur !== undefined ? { duration: dur } : {}),
-                    });
-                  }
+
+                currentTime = player.getCurrentTime();
+                if (typeof currentTime === "number" && !Number.isNaN(currentTime)) {
+                  onProgress(currentTime);
                 }
-                if (onMute) {
-                  const muted = player.isMuted();
-                  if (lastMuted !== null && lastMuted !== muted) {
-                    onMute({ muted });
-                  }
-                  lastMuted = muted;
+
+                const isMuted = player.isMuted();
+                if (muted !== isMuted) {
+                  muted = isMuted;
+                  onMute(muted);
                 }
-              }, 500);
+              }, progressInterval);
             }
             resolve({
               get ready() {
@@ -136,34 +142,46 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
               },
               seek(seconds: number) {
                 player.seekTo(seconds, true);
-                onSeek?.({ currentTime: seconds });
+                onSeek(seconds);
               },
               mute: () => {
                 player.mute();
-                onMute?.({ muted: true });
+                onMute(true);
               },
               unmute: () => {
                 player.unMute();
-                onMute?.({ muted: false });
+                onMute(false);
               },
               get muted() {
                 return Promise.resolve(player.isMuted());
               },
-              get lastError() {
-                return lastError;
+              get error() {
+                return error;
               },
               destroy() {
                 destroyed = true;
-                if (progressInterval) clearInterval(progressInterval);
+                if (progressIntervalId) clearInterval(progressIntervalId);
                 if (div.parentNode) div.remove();
               },
             });
           },
           onStateChange(ev: { data: number }) {
-            if (ev.data === 1) onPlay?.(); // 1 = playing
-            if (ev.data === 2) onPause?.(); // 2 = paused
-            if (ev.data === 3) onBuffering?.(); // 3 = buffering
-            if (ev.data === YT_STATE_ENDED) onEnded?.();
+            if (ev.data === 1) onPlay(); // 1 = playing
+            if (ev.data === 2) onPause(); // 2 = paused
+            if (ev.data === 3) onBuffering(); // 3 = buffering
+            if (ev.data === YT_STATE_ENDED) onEnded();
+          },
+          onPlaybackQualityChange(ev: { data: string }) {
+            onPlaybackQualityChange(ev.data);
+          },
+          onPlaybackRateChange(ev: { data: number }) {
+            onPlaybackRateChange(ev.data);
+          },
+          onAutoplayBlocked() {
+            onAutoplayBlocked();
+          },
+          onApiChange() {
+            onApiChange();
           },
         },
       });
