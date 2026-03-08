@@ -60,7 +60,7 @@ function loadYTScript(): Promise<void> {
  * Create a controllable YouTube player in the given container.
  * Returns a normalized IEmbedPlayer (play, pause, getPaused).
  */
-export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
+export const createPlayer: TCreatePlayer = (container, id, options = {}): Promise<IEmbedPlayer> => {
   const {
     width = 560,
     height = 315,
@@ -96,56 +96,11 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     const { PlayerState } = YT;
 
     let player: YTPlayer | null = null;
-    let resolveWhenReady!: () => void;
-    const whenReady = new Promise<void>((r) => {
-      resolveWhenReady = r;
-    });
 
     const readyState = {
       progressIntervalId: undefined as ReturnType<typeof setInterval> | undefined,
       destroyed: false,
       muted: null as boolean | null,
-    };
-
-    const api: IEmbedPlayer = {
-      play: () => whenReady.then(() => player!.playVideo()),
-      pause: () => whenReady.then(() => player!.pauseVideo()),
-      get paused() {
-        return whenReady.then(() => player!.getPlayerState() === PlayerState.PAUSED);
-      },
-      get currentTime() {
-        return whenReady.then(() => player!.getCurrentTime());
-      },
-      get duration() {
-        return whenReady.then(() => player!.getDuration());
-      },
-      seek(seconds: number) {
-        whenReady.then(() => {
-          player!.seekTo(seconds, true);
-          onSeek(seconds);
-        });
-      },
-      mute: () =>
-        whenReady.then(() => {
-          player!.mute();
-          onMute(true);
-        }),
-      unmute: () =>
-        whenReady.then(() => {
-          player!.unMute();
-          onMute(false);
-        }),
-      get muted() {
-        return readyState.muted ?? false;
-      },
-      get error() {
-        return playerState.error;
-      },
-      destroy() {
-        readyState.destroyed = true;
-        if (readyState.progressIntervalId) clearInterval(readyState.progressIntervalId);
-        if (div.parentNode) div.remove();
-      },
     };
 
     new YT.Player(div, {
@@ -161,7 +116,6 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
         onReady(ev: { target: YTPlayer }) {
           player = ev.target;
           onReady();
-          resolveWhenReady();
 
           // YouTube IFrame API has no timeupdate/progress event and no volume/mute event; polling required.
           readyState.progressIntervalId = setInterval(() => {
@@ -203,9 +157,41 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
       },
     });
 
-    return Promise.resolve(api).catch((err: unknown) => {
-      div.remove();
-      throw err;
-    });
+    return {
+      play: () => player!.playVideo(),
+      pause: () => player!.pauseVideo(),
+      get paused() {
+        return player!.getPlayerState() === PlayerState.PAUSED;
+      },
+      get currentTime() {
+        return player!.getCurrentTime();
+      },
+      get duration() {
+        return player!.getDuration();
+      },
+      seek(seconds: number) {
+        player!.seekTo(seconds, true);
+        onSeek(seconds);
+      },
+      mute: () => {
+        player!.mute();
+        onMute(true);
+      },
+      unmute: () => {
+        player!.unMute();
+        onMute(false);
+      },
+      get muted() {
+        return readyState.muted ?? false;
+      },
+      get error() {
+        return playerState.error;
+      },
+      destroy() {
+        readyState.destroyed = true;
+        if (readyState.progressIntervalId) clearInterval(readyState.progressIntervalId);
+        if (div.parentNode) div.remove();
+      },
+    };
   });
 };

@@ -53,15 +53,15 @@ export interface TPlayerState {
 export interface IEmbedPlayer {
   play(): void | Promise<void>;
   pause(): void | Promise<void>;
-  readonly paused: Promise<boolean>;
-  readonly currentTime: Promise<number>;
-  readonly duration: Promise<number>;
   seek(seconds: number): void | Promise<void>;
   mute(): void | Promise<void>;
   unmute(): void | Promise<void>;
+  destroy?(): void | Promise<void>;
+  readonly paused: boolean;
+  readonly currentTime: number;
+  readonly duration: number;
   readonly muted: boolean;
   readonly error: IErrorData | null;
-  destroy?(): void | Promise<void>;
 }
 
 export type TCreatePlayer = (
