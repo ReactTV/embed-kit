@@ -58,6 +58,23 @@
       "types": "./dist/vimeo/constants.d.ts",
       "import": "./dist/vimeo/constants.js",
       "default": "./dist/vimeo/constants.js"
+    },
+    "./react-embed-kit": {
+      "types": "./dist/react-embed-kit/index.d.ts",
+      "import": "./dist/react-embed-kit/index.js",
+      "default": "./dist/react-embed-kit/index.js"
+    }
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
     }
   },
   "files": [
@@ -72,7 +89,11 @@
     "test": "npm run build && concurrently \"npm run build:watch\" \"npx serve . --listen 3333\""
   },
   "devDependencies": {
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
     "concurrently": "^9.1.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
     "typescript": "^5.7.2"
   },
   "engines": {

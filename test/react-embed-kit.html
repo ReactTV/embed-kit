@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ReactEmbedKit — URL-based embed test</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 48rem; margin: 2rem auto; padding: 0 1rem; }
+    h1 { font-size: 1.25rem; }
+    .section { margin: 1.5rem 0; }
+    .section h2 { font-size: 1rem; margin-bottom: 0.5rem; }
+    .player-wrap { margin: 0.5rem 0; border: 1px solid #ccc; }
+    input[type="url"] { width: 100%; padding: 0.5rem; font-size: 14px; box-sizing: border-box; }
+    label { display: block; margin-top: 0.5rem; font-weight: 500; }
+    .hint { font-size: 12px; color: #666; margin-top: 0.25rem; }
+    .controls { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; align-items: center; }
+    .controls button { padding: 0.4rem 0.75rem; cursor: pointer; font-size: 13px; }
+    .data-panel { margin-top: 0.75rem; padding: 0.75rem; background: #f8f8f8; border-radius: 6px; font-size: 13px; font-family: ui-monospace, monospace; }
+    .data-panel dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 0.25rem 1.5rem; }
+    .data-panel dt { margin: 0; color: #666; }
+    .data-panel dd { margin: 0; }
+    .data-panel .no-player { color: #999; }
+  </style>
+  <script type="importmap">
+  {
+    "imports": {
+      "react": "https://esm.sh/react@18.3.1",
+      "react/jsx-runtime": "https://esm.sh/react@18.3.1/jsx-runtime",
+      "react-dom": "https://esm.sh/react-dom@18.3.1",
+      "react-dom/client": "https://esm.sh/react-dom@18.3.1/client"
+    }
+  }
+  </script>
+</head>
+<body>
+  <h1>ReactEmbedKit — URL-based embed</h1>
+  <p>Enter any supported video URL; the correct provider (YouTube, Twitch, TikTok, Dailymotion, Vimeo) is chosen automatically.</p>
+
+  <div id="root"></div>
+
+  <script type="module">
+    import { createRoot } from "react-dom/client";
+    import React, { useState, useEffect } from "react";
+    import { ReactEmbedKit } from "../dist/react-embed-kit/index.js";
+
+    const EXAMPLE_URLS = [
+      "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      "https://youtu.be/dQw4w9WgXcQ",
+      "https://player.vimeo.com/video/148751763",
+      "https://www.twitch.tv/videos/2156437342",
+      "https://www.tiktok.com/@user/video/1234567890",
+      "https://www.dailymotion.com/video/x8f3k2a",
+    ];
+
+    function formatTime(seconds) {
+      if (seconds == null || Number.isNaN(seconds)) return "—";
+      const m = Math.floor(seconds / 60);
+      const s = Math.floor(seconds % 60);
+      return m + ":" + String(s).padStart(2, "0");
+    }
+
+    function App() {
+      const [url, setUrl] = useState(EXAMPLE_URLS[0]);
+      const [player, setPlayer] = useState(null);
+      const [buffering, setBuffering] = useState(false);
+      const [data, setData] = useState({ currentTime: null, duration: null, paused: null, muted: null });
+
+      useEffect(() => {
+        setPlayer(null);
+        setBuffering(false);
+      }, [url]);
+
+      useEffect(() => {
+        if (!player) {
+          setData({ currentTime: null, duration: null, paused: null, muted: null });
+          return;
+        }
+        let cancelled = false;
+        const poll = async () => {
+          if (cancelled) return;
+          try {
+            const [currentTime, duration, paused, muted] = await Promise.all([
+              player.currentTime,
+              player.duration,
+              player.paused,
+              player.muted,
+            ]);
+            if (!cancelled) setData({ currentTime, duration, paused, muted });
+          } catch (_) {}
+        };
+        poll();
+        const id = setInterval(poll, 500);
+        return () => {
+          cancelled = true;
+          clearInterval(id);
+        };
+      }, [player]);
+
+      return React.createElement(
+        "div",
+        { className: "section" },
+        React.createElement("label", { htmlFor: "url" }, "Video URL"),
+        React.createElement("input", {
+          id: "url",
+          type: "url",
+          value: url,
+          onChange: (e) => setUrl(e.target.value),
+          placeholder: "https://www.youtube.com/watch?v=...",
+        }),
+        React.createElement("p", { className: "hint" },
+          "Try: YouTube, youtu.be, Vimeo, Twitch videos/clips/channel, TikTok, Dailymotion"
+        ),
+        React.createElement("div", { className: "player-wrap" },
+          React.createElement(ReactEmbedKit, {
+            url,
+            width: "560",
+            height: "315",
+            onReady: (p) => { setPlayer(p); console.log("Embed ready"); },
+            onBuffering: () => setBuffering(true),
+            onPlay: () => setBuffering(false),
+            onError: (d) => console.warn("Embed error:", d),
+            onUnsupportedUrl: (u) => { setPlayer(null); console.warn("Unsupported URL:", u); },
+          })
+        ),
+        React.createElement("div", { className: "controls" },
+          React.createElement("button", {
+            type: "button",
+            disabled: !player,
+            onClick: () => player?.play(),
+          }, "Play"),
+          React.createElement("button", {
+            type: "button",
+            disabled: !player,
+            onClick: () => player?.pause(),
+          }, "Pause"),
+          React.createElement("button", {
+            type: "button",
+            disabled: !player,
+            onClick: () => player?.seek(0),
+          }, "Seek to 0:00"),
+          React.createElement("button", {
+            type: "button",
+            disabled: !player,
+            onClick: () => player?.seek(30),
+          }, "Seek to 0:30"),
+          React.createElement("button", {
+            type: "button",
+            disabled: !player,
+            onClick: () => player?.mute(),
+          }, "Mute"),
+          React.createElement("button", {
+            type: "button",
+            disabled: !player,
+            onClick: () => player?.unmute(),
+          }, "Unmute")
+        ),
+        React.createElement("div", { className: "data-panel" },
+          player
+            ? React.createElement("dl", null,
+                React.createElement("dt", null, "currentTime"),
+                React.createElement("dd", null, formatTime(data.currentTime)),
+                React.createElement("dt", null, "duration"),
+                React.createElement("dd", null, formatTime(data.duration)),
+                React.createElement("dt", null, "paused"),
+                React.createElement("dd", null, String(data.paused)),
+                React.createElement("dt", null, "muted"),
+                React.createElement("dd", null, String(data.muted)),
+                React.createElement("dt", null, "isBuffering"),
+                React.createElement("dd", null, String(buffering))
+              )
+            : React.createElement("p", { className: "no-player" }, "Load a supported URL to see live data.")
+        )
+      );
+    }
+
+    const root = createRoot(document.getElementById("root"));
+    root.render(React.createElement(App));
+  </script>
+</body>
+</html>
