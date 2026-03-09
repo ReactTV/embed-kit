@@ -115,8 +115,7 @@ class DailymotionEmbedPlayer extends EmbedPlayerVideoElement {
         dmPlayer.on(events.PLAYER_ERROR, handleError);
         if (events.VIDEO_ERROR) dmPlayer.on(events.VIDEO_ERROR, handleError);
         dmPlayer.on(events.VIDEO_TIMECHANGE, (state?: DailymotionPlayerState) => {
-          this.playerState.currentTime = state?.videoTime ?? 0;
-          this.dispatchEvent(new CustomEvent("progress", { detail: this.playerState.currentTime }));
+          this.emitProgress(state?.videoTime ?? this.playerState.currentTime);
         });
 
         this.dispatchEvent(new Event("ready"));

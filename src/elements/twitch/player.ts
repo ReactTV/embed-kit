@@ -125,7 +125,7 @@ class TwitchEmbedPlayer extends EmbedPlayerVideoElement {
         if (typeof p.muted === "boolean") this.playerState.muted = p.muted;
         if (typeof p.volume === "number" && !Number.isNaN(p.volume))
           this.playerState.volume = p.volume;
-        this.dispatchEvent(new CustomEvent("progress", { detail: p.currentTime }));
+        this.emitProgress(p.currentTime);
       }
     };
 

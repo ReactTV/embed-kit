@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from "react";
-import type { ICreatePlayerOptions, IEmbedPlayer, IErrorData, IMuteData } from "../elements/_base/player.js";
+import type { ICreatePlayerOptions, IEmbedPlayer, IEmbedProgressEvent, IErrorData, IMuteData } from "../elements/_base/player.js";
 import { getProviderForUrl, loadPlayerModule } from "./providers.js";
 
 /** Props for ReactEmbedKit. Callbacks and options are typed explicitly so they infer correctly (no index signature). */
@@ -37,7 +37,8 @@ export interface ReactEmbedKitProps {
   onPause?: () => void;
   onBuffering?: () => void;
   onEnded?: () => void;
-  onProgress?: (currentTime: number) => void;
+  /** Fired on progress interval. event.target is the embed element (currentTime get/set); event.detail is currentTime. */
+  onProgress?: (event: IEmbedProgressEvent) => void;
   /** Fired when duration is known or changes (e.g. after metadata load). */
   onDurationChange?: (duration: number) => void;
   onSeeking?: () => void;
@@ -160,6 +161,7 @@ export function ReactEmbedKit({
         element = el;
 
         (el as unknown as { options: ICreatePlayerOptions }).options = opts;
+        (el as unknown as { optionsRef: typeof optionsRef }).optionsRef = optionsRef;
         el.setAttribute("src", embedUrl);
         el.setAttribute("width", String(width));
         el.setAttribute("height", String(height));
@@ -184,10 +186,6 @@ export function ReactEmbedKit({
         el.addEventListener("pause", () => optionsRef.current.onPause?.());
         el.addEventListener("buffering", () => optionsRef.current.onBuffering?.());
         el.addEventListener("ended", () => optionsRef.current.onEnded?.());
-        el.addEventListener("progress", (e: Event) => {
-          const t = (e as CustomEvent).detail as number | undefined;
-          if (typeof t === "number") optionsRef.current.onProgress?.(t);
-        });
         el.addEventListener("durationchange", (e: Event) => {
           const d = (e as CustomEvent).detail as number | undefined;
           if (typeof d === "number") optionsRef.current.onDurationChange?.(d);

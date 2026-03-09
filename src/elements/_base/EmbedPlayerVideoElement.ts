@@ -1,4 +1,4 @@
-import type { ICreatePlayerOptions, TPlayerState } from "./player.js";
+import type { ICreatePlayerOptions, IEmbedProgressEvent, TPlayerState } from "./player.js";
 
 /**
  * Class-based mimic of HTMLVideoElement. Providers can either (1) extend this
@@ -66,5 +66,19 @@ export class EmbedPlayerVideoElement extends HTMLElement {
   }
   get error() {
     return this.playerState.error;
+  }
+
+  /**
+   * Emit progress: update state, dispatch "progress" event, and call onProgress with { target, detail }.
+   * Use this instead of dispatching CustomEvent("progress") so handlers receive event.target (this element).
+   */
+  protected emitProgress(currentTime: number): void {
+    if (Number.isFinite(currentTime)) this.playerState.currentTime = currentTime;
+    this.dispatchEvent(
+      new CustomEvent("progress", { detail: this.playerState.currentTime })
+    );
+    const optsRef = (this as unknown as { optionsRef?: { current: { onProgress?: (e: IEmbedProgressEvent) => void } } })
+      .optionsRef;
+    optsRef?.current?.onProgress?.({ target: this, detail: this.playerState.currentTime });
   }
 }

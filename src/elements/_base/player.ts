@@ -17,7 +17,8 @@ export interface ICreatePlayerOptions {
   onPause?: () => void;
   onBuffering?: () => void;
   onEnded?: () => void;
-  onProgress?: (currentTime: number) => void;
+  /** Fired on progress interval. event.target is the embed element (currentTime get/set); event.detail is currentTime. */
+  onProgress?: (event: IEmbedProgressEvent) => void;
   /** Fired when duration is known or changes (e.g. after metadata load, or live stream updates). */
   onDurationChange?: (duration: number) => void;
   /** Fired when a seek starts (e.g. user drags the progress bar). Use with onSeek (seek complete) for isSeeking UI. */
@@ -56,6 +57,12 @@ export interface IErrorData {
 /** Payload for onMute callback. */
 export interface IMuteData {
   muted: boolean;
+}
+
+/** Event passed to onProgress. target has currentTime (get/set) like HTMLVideoElement for compatibility with react-player-style handlers. */
+export interface IEmbedProgressEvent {
+  target: { currentTime: number };
+  detail: number;
 }
 
 /** Progress payload (e.g. currentTime, duration). Used by some providers. */

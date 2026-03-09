@@ -125,7 +125,7 @@ class VimeoEmbedPlayer extends EmbedPlayerVideoElement {
           this.playerState.duration = duration;
           this.dispatchEvent(new CustomEvent("durationchange", { detail: duration }));
         }
-        this.dispatchEvent(new CustomEvent("progress", { detail: seconds }));
+        this.emitProgress(seconds);
       });
       vimeoPlayer.on("volumechange", (data: TVimeoEventData) => {
         const { volume, muted } = data as IVimeoVolumechangeData;

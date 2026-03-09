@@ -96,10 +96,7 @@ class YouTubeEmbedPlayer extends EmbedPlayerVideoElement {
             this.ytPlayerState.progressIntervalId = setInterval(() => {
               if (this.ytPlayerState.destroyed || !this.player) return;
               const t = Number(this.player.getCurrentTime());
-              this.playerState.currentTime = Number.isFinite(t) ? t : this.playerState.currentTime;
-              this.dispatchEvent(
-                new CustomEvent("progress", { detail: this.playerState.currentTime })
-              );
+              this.emitProgress(Number.isFinite(t) ? t : this.playerState.currentTime);
               const isMuted = this.player.isMuted();
               if (this.playerState.muted !== isMuted) {
                 this.playerState.muted = isMuted;
@@ -112,7 +109,7 @@ class YouTubeEmbedPlayer extends EmbedPlayerVideoElement {
               if (newDuration !== this.playerState.duration) {
                 this.playerState.duration = newDuration;
                 this.dispatchEvent(
-                  new CustomEvent("durationchange", { detail: this.playerState.duration })
+                  new CustomEvent("durationchange", { detail: this.playerState.duration }),
                 );
               }
               const t2 = Number(this.player.getCurrentTime());
