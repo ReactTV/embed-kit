@@ -70,6 +70,8 @@ export function ReactEmbedKit({
   const playerRef = useRef<IEmbedPlayer | null>(null);
   const playerRefPropRef = useRef(playerRefProp);
   playerRefPropRef.current = playerRefProp;
+  const optionsRef = useRef({ ...playerOptions, onReady, onError });
+  optionsRef.current = { ...playerOptions, onReady, onError };
   const [playerReady, setPlayerReady] = useState<IEmbedPlayer | null>(null);
 
   useEffect(() => {
@@ -87,11 +89,24 @@ export function ReactEmbedKit({
 
     let cancelled = false;
     const promise = provider.createPlayer(container, id, {
+      ...playerOptions,
       width: playerOptions.width ?? defaultWidth,
       height: playerOptions.height ?? defaultHeight,
-      ...playerOptions,
       onReady: noop,
-      onError,
+      onError: (data) => optionsRef.current.onError?.(data),
+      onPlay: () => optionsRef.current.onPlay?.(),
+      onPause: () => optionsRef.current.onPause?.(),
+      onBuffering: () => optionsRef.current.onBuffering?.(),
+      onEnded: () => optionsRef.current.onEnded?.(),
+      onProgress: (t) => optionsRef.current.onProgress?.(t),
+      onDurationChange: (d) => optionsRef.current.onDurationChange?.(d),
+      onSeeking: () => optionsRef.current.onSeeking?.(),
+      onSeek: (t) => optionsRef.current.onSeek?.(t),
+      onMute: (data) => optionsRef.current.onMute?.(data),
+      onPlaybackQualityChange: (q) => optionsRef.current.onPlaybackQualityChange?.(q),
+      onPlaybackRateChange: (r) => optionsRef.current.onPlaybackRateChange?.(r),
+      onAutoplayBlocked: () => optionsRef.current.onAutoplayBlocked?.(),
+      onApiChange: () => optionsRef.current.onApiChange?.(),
     });
 
     promise
@@ -111,11 +126,11 @@ export function ReactEmbedKit({
           else (ref as React.RefObject<IEmbedPlayer | null>).current = player;
         }
         setPlayerReady(player);
-        onReady(player);
+        optionsRef.current.onReady?.(player);
       })
       .catch((err) => {
         if (!cancelled) {
-          onError({ message: err?.message ?? String(err) });
+          optionsRef.current.onError?.({ message: err?.message ?? String(err) });
         }
       });
 
