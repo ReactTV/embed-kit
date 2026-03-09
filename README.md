@@ -4,14 +4,19 @@ Normalized API across different embed sources (YouTube, Twitch, TikTok, and othe
 
 ## Setup
 
+When **developing** this package locally:
+
 ```bash
 npm install
 npm run build
 ```
 
+When **installing as a dependency** (e.g. `"embed-kit": "github:ReactTV/embed-kit"`), the `prepare` script runs on install and builds `dist/` automatically. No extra steps needed.
+
 ## Scripts
 
 - **`npm run build`** — Compile TypeScript to `dist/`
+- **`prepare`** — Runs on `npm install`; builds the package so consumers get a working `dist/`
 - **`npm run clean`** — Remove `dist/`
 
 ## Development
