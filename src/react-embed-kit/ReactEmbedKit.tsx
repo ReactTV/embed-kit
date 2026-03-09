@@ -117,7 +117,11 @@ export function ReactEmbedKit({
       const p = playerRef.current;
       playerRef.current = null;
       setRef(playerRefProp, null);
-      p?.destroy?.();
+      try {
+        p?.destroy?.();
+      } finally {
+        container.innerHTML = "";
+      }
     };
   }, [
     url,
@@ -128,6 +132,7 @@ export function ReactEmbedKit({
     playerOptions.controls,
     playerOptions.enableCaptions,
     playerOptions.showAnnotations,
+    playerOptions.progressInterval,
   ]);
 
   return <div ref={containerRef} className={className} style={style} />;

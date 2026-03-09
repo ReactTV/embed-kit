@@ -55,6 +55,7 @@ export function createEmbedElement(provider: IEmbedProvider): CustomElementConst
     #player: IEmbedPlayer | null = null;
     #container: HTMLElement | null = null;
     #lastError: IErrorData | null = null;
+    #renderId = 0;
 
     /** Resolves to the current player, or null if no video/id or not yet created. */
     get player(): Promise<IEmbedPlayer | null> {
@@ -63,8 +64,24 @@ export function createEmbedElement(provider: IEmbedProvider): CustomElementConst
       return Promise.resolve(null);
     }
 
+    #destroyPlayer(): void {
+      try {
+        this.#player?.destroy?.();
+      } finally {
+        this.#player = null;
+        this.#playerPromise = null;
+        if (this.#container?.parentNode) this.#container.remove();
+        this.#container = null;
+      }
+    }
+
     connectedCallback(): void {
       this.#render();
+    }
+
+    disconnectedCallback(): void {
+      this.#destroyPlayer();
+      this.#lastError = null;
     }
 
     attributeChangedCallback(): void {
@@ -139,10 +156,7 @@ export function createEmbedElement(provider: IEmbedProvider): CustomElementConst
       }
 
       if (!id) {
-        if (this.#container?.parentNode) this.#container.remove();
-        this.#container = null;
-        this.#playerPromise = null;
-        this.#player = null;
+        this.#destroyPlayer();
         this.#lastError = null;
         return;
       }
@@ -160,21 +174,14 @@ export function createEmbedElement(provider: IEmbedProvider): CustomElementConst
       // Otherwise (e.g. attributes set before appendChild), the iframe is never
       // in the DOM and providers like Vimeo never fire ready().
       if (!this.isConnected) {
-        if (this.#container?.parentNode) this.#container.remove();
-        this.#container = null;
-        this.#playerPromise = null;
-        this.#player = null;
+        this.#destroyPlayer();
         this.#lastError = null;
         return;
       }
 
-      if (this.#container?.parentNode) {
-        this.#container.remove();
-      }
-      this.#player = null;
-      this.#playerPromise = null;
-      this.#lastError = null;
+      this.#destroyPlayer();
 
+      const renderId = ++this.#renderId;
       const container = document.createElement("div");
       container.style.display = "block";
       container.style.width = `${width}px`;
@@ -211,6 +218,10 @@ export function createEmbedElement(provider: IEmbedProvider): CustomElementConst
         },
         ...options,
       }).then((player) => {
+        if (this.#renderId !== renderId) {
+          player.destroy?.();
+          return player;
+        }
         this.#player = player;
         return player;
       });

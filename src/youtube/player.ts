@@ -132,6 +132,7 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}): Promis
           onError(playerState.error);
         },
         onReady(ev: { target: YTPlayer }) {
+          if (readyState.destroyed) return;
           player = ev.target;
           if (typeof initialVolume === "number" && initialVolume >= 0 && initialVolume <= 1) {
             player.setVolume(Math.round(initialVolume * 100));
@@ -142,6 +143,7 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}): Promis
           onReady();
 
           // YouTube IFrame API has no timeupdate/progress event and no volume/mute event; polling required.
+          if (readyState.destroyed) return;
           readyState.progressIntervalId = setInterval(() => {
             if (readyState.destroyed || !player) return;
 
