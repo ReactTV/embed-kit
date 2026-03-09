@@ -1,69 +1,20 @@
 {
-  "name": "embed-kit",
+  "name": "@reacttv/embed-kit",
   "version": "0.1.0",
   "description": "Normalized API across YouTube, Twitch, TikTok, and other embed sources",
   "type": "module",
-  "exports": {
-    "./base": {
-      "types": "./dist/_base/index.d.ts",
-      "import": "./dist/_base/index.js",
-      "default": "./dist/_base/index.js"
-    },
-    "./youtube": {
-      "types": "./dist/youtube/index.d.ts",
-      "import": "./dist/youtube/index.js",
-      "default": "./dist/youtube/index.js"
-    },
-    "./youtube/constants": {
-      "types": "./dist/youtube/constants.d.ts",
-      "import": "./dist/youtube/constants.js",
-      "default": "./dist/youtube/constants.js"
-    },
-    "./twitch": {
-      "types": "./dist/twitch/index.d.ts",
-      "import": "./dist/twitch/index.js",
-      "default": "./dist/twitch/index.js"
-    },
-    "./twitch/constants": {
-      "types": "./dist/twitch/constants.d.ts",
-      "import": "./dist/twitch/constants.js",
-      "default": "./dist/twitch/constants.js"
-    },
-    "./tiktok": {
-      "types": "./dist/tiktok/index.d.ts",
-      "import": "./dist/tiktok/index.js",
-      "default": "./dist/tiktok/index.js"
-    },
-    "./tiktok/constants": {
-      "types": "./dist/tiktok/constants.d.ts",
-      "import": "./dist/tiktok/constants.js",
-      "default": "./dist/tiktok/constants.js"
-    },
-    "./dailymotion": {
-      "types": "./dist/dailymotion/index.d.ts",
-      "import": "./dist/dailymotion/index.js",
-      "default": "./dist/dailymotion/index.js"
-    },
-    "./dailymotion/constants": {
-      "types": "./dist/dailymotion/constants.d.ts",
-      "import": "./dist/dailymotion/constants.js",
-      "default": "./dist/dailymotion/constants.js"
-    },
-    "./vimeo": {
-      "types": "./dist/vimeo/index.d.ts",
-      "import": "./dist/vimeo/index.js",
-      "default": "./dist/vimeo/index.js"
-    },
-    "./vimeo/constants": {
-      "types": "./dist/vimeo/constants.d.ts",
-      "import": "./dist/vimeo/constants.js",
-      "default": "./dist/vimeo/constants.js"
-    },
-    "./react-embed-kit": {
-      "types": "./dist/react-embed-kit/index.d.ts",
-      "import": "./dist/react-embed-kit/index.js",
-      "default": "./dist/react-embed-kit/index.js"
-    }
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ReactTV/embed-kit.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "globals": {
+    "globalThis": "writable"
+  },
+  "dependencies": {
+    "@lit/react": "^1.0.0"
   },
   "peerDependencies": {
     "react": ">=18.0.0",

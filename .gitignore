@@ -1,7 +1,8 @@
 # Dependencies
 node_modules/
 
-# Build output (dist/ is committed so installs from GitHub work without running prepare)
+# Build output
+dist/
 *.tsbuildinfo
 
 # Environment

@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState } from "react";
-import type { IEmbedPlayer, IErrorData, IMuteData } from "../_base/index.js";
-import { getProviderForUrl } from "./providers.js";
+import type { ICreatePlayerOptions, IEmbedPlayer, IErrorData, IMuteData } from "../elements/_base/player.js";
+import { getProviderForUrl, loadPlayerModule } from "./providers.js";
 
 /** Props for ReactEmbedKit. Callbacks and options are typed explicitly so they infer correctly (no index signature). */
 export interface ReactEmbedKitProps {
@@ -12,7 +12,7 @@ export interface ReactEmbedKitProps {
   autoplay?: boolean;
   /** When set, syncs play/pause to the player (e.g. playing={true} calls play()). Undefined is treated as false. */
   playing?: boolean;
-  /** When true, requests picture-in-picture when the player is ready. Only supported when the provider implements requestPictureInPicture (e.g. not most iframe embeds). */
+  /** When true, requests picture-in-picture when ready. Only if the provider supports it. */
   pip?: boolean;
   /** Initial volume 0–1. Not all providers support volume. */
   volume?: number;
@@ -28,7 +28,7 @@ export interface ReactEmbedKitProps {
     youtube?: Record<string, number | string | undefined>;
     vimeo?: Record<string, number | string | undefined>;
   };
-  /** Ref set to the IEmbedPlayer when ready and cleared on unmount. Use for play/pause/seek and error (e.g. playerRef.current?.play(), playerRef.current?.error). */
+  /** Ref set to the embed element (play, pause, currentTime, etc.) when ready. Cleared on unmount. */
   playerRef?: React.Ref<IEmbedPlayer | null>;
   onUnsupportedUrl?: (url: string) => void;
   onError?: (data: IErrorData) => void;
@@ -52,8 +52,6 @@ export interface ReactEmbedKitProps {
 const defaultWidth = 560;
 const defaultHeight = 315;
 
-const noop = () => {};
-
 export function ReactEmbedKit({
   url,
   playerRef: playerRefProp,
@@ -62,17 +60,71 @@ export function ReactEmbedKit({
   onReady = () => {},
   className,
   style,
+  width = defaultWidth,
+  height = defaultHeight,
   playing,
   pip,
-  ...playerOptions
+  autoplay,
+  volume,
+  progressInterval,
+  controls,
+  enableCaptions,
+  showAnnotations,
+  config,
+  onPlay,
+  onPause,
+  onBuffering,
+  onEnded,
+  onProgress,
+  onDurationChange,
+  onSeeking,
+  onSeek,
+  onMute,
+  onPlaybackQualityChange,
+  onPlaybackRateChange,
+  onAutoplayBlocked,
+  onApiChange,
 }: ReactEmbedKitProps): React.ReactElement {
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<IEmbedPlayer | null>(null);
   const playerRefPropRef = useRef(playerRefProp);
   playerRefPropRef.current = playerRefProp;
-  const optionsRef = useRef({ ...playerOptions, onReady, onError });
-  optionsRef.current = { ...playerOptions, onReady, onError };
   const [playerReady, setPlayerReady] = useState<IEmbedPlayer | null>(null);
+
+  const optionsRef = useRef({
+    onReady,
+    onError,
+    onPlay,
+    onPause,
+    onBuffering,
+    onEnded,
+    onProgress,
+    onDurationChange,
+    onSeeking,
+    onSeek,
+    onMute,
+    onPlaybackQualityChange,
+    onPlaybackRateChange,
+    onAutoplayBlocked,
+    onApiChange,
+  });
+  optionsRef.current = {
+    onReady,
+    onError,
+    onPlay,
+    onPause,
+    onBuffering,
+    onEnded,
+    onProgress,
+    onDurationChange,
+    onSeeking,
+    onSeek,
+    onMute,
+    onPlaybackQualityChange,
+    onPlaybackRateChange,
+    onAutoplayBlocked,
+    onApiChange,
+  };
 
   useEffect(() => {
     const container = containerRef.current;
@@ -84,49 +136,84 @@ export function ReactEmbedKit({
       return;
     }
 
-    container.innerHTML = "";
-    const { provider, id } = resolved;
-
+    const { tagName, url: embedUrl } = resolved;
     let cancelled = false;
-    const promise = provider.createPlayer(container, id, {
-      ...playerOptions,
-      width: playerOptions.width ?? defaultWidth,
-      height: playerOptions.height ?? defaultHeight,
-      onReady: noop,
-      onError: (data) => optionsRef.current.onError?.(data),
-      onPlay: () => optionsRef.current.onPlay?.(),
-      onPause: () => optionsRef.current.onPause?.(),
-      onBuffering: () => optionsRef.current.onBuffering?.(),
-      onEnded: () => optionsRef.current.onEnded?.(),
-      onProgress: (t) => optionsRef.current.onProgress?.(t),
-      onDurationChange: (d) => optionsRef.current.onDurationChange?.(d),
-      onSeeking: () => optionsRef.current.onSeeking?.(),
-      onSeek: (t) => optionsRef.current.onSeek?.(t),
-      onMute: (data) => optionsRef.current.onMute?.(data),
-      onPlaybackQualityChange: (q) => optionsRef.current.onPlaybackQualityChange?.(q),
-      onPlaybackRateChange: (r) => optionsRef.current.onPlaybackRateChange?.(r),
-      onAutoplayBlocked: () => optionsRef.current.onAutoplayBlocked?.(),
-      onApiChange: () => optionsRef.current.onApiChange?.(),
-    });
+    let element: HTMLElement & IEmbedPlayer | null = null;
 
-    promise
-      .then((player) => {
-        if (cancelled) {
-          try {
-            player.destroy?.();
-          } catch {
-            // Container may already have been cleared when URL changed
+    const opts: ICreatePlayerOptions = {
+      width,
+      height,
+      ...(autoplay !== undefined && { autoplay }),
+      ...(volume !== undefined && { volume }),
+      ...(progressInterval !== undefined && { progressInterval }),
+      ...(controls !== undefined && { controls }),
+      ...(enableCaptions !== undefined && { enableCaptions }),
+      ...(showAnnotations !== undefined && { showAnnotations }),
+      ...(config !== undefined && { config }),
+    };
+
+    loadPlayerModule(tagName)
+      .then(() => {
+        if (cancelled) return;
+        container.innerHTML = "";
+        const el = document.createElement(tagName) as HTMLElement & IEmbedPlayer;
+        element = el;
+
+        (el as unknown as { options: ICreatePlayerOptions }).options = opts;
+        el.setAttribute("src", embedUrl);
+        el.setAttribute("width", String(width));
+        el.setAttribute("height", String(height));
+        el.setAttribute("title", "Embed");
+
+        el.addEventListener("error", (e: Event) => {
+          const detail = (e as CustomEvent).detail as IErrorData | undefined;
+          optionsRef.current.onError?.(detail ?? { message: "Unknown error" });
+        });
+        el.addEventListener("ready", () => {
+          if (cancelled) return;
+          playerRef.current = el;
+          setPlayerReady(el);
+          const ref = playerRefPropRef.current;
+          if (ref != null) {
+            if (typeof ref === "function") ref(el);
+            else (ref as React.MutableRefObject<IEmbedPlayer | null>).current = el;
           }
-          return;
-        }
-        playerRef.current = player;
-        const ref = playerRefPropRef.current;
-        if (ref != null) {
-          if (typeof ref === "function") ref(player);
-          else (ref as React.RefObject<IEmbedPlayer | null>).current = player;
-        }
-        setPlayerReady(player);
-        optionsRef.current.onReady?.(player);
+          optionsRef.current.onReady?.(el);
+        });
+        el.addEventListener("play", () => optionsRef.current.onPlay?.());
+        el.addEventListener("pause", () => optionsRef.current.onPause?.());
+        el.addEventListener("buffering", () => optionsRef.current.onBuffering?.());
+        el.addEventListener("ended", () => optionsRef.current.onEnded?.());
+        el.addEventListener("progress", (e: Event) => {
+          const t = (e as CustomEvent).detail as number | undefined;
+          if (typeof t === "number") optionsRef.current.onProgress?.(t);
+        });
+        el.addEventListener("durationchange", (e: Event) => {
+          const d = (e as CustomEvent).detail as number | undefined;
+          if (typeof d === "number") optionsRef.current.onDurationChange?.(d);
+        });
+        el.addEventListener("seeking", () => optionsRef.current.onSeeking?.());
+        el.addEventListener("seek", (e: Event) => {
+          const t = (e as CustomEvent).detail as number | undefined;
+          if (typeof t === "number") optionsRef.current.onSeek?.(t);
+        });
+        el.addEventListener("mute", (e: Event) => {
+          const detail = (e as CustomEvent).detail;
+          const muted = typeof detail === "boolean" ? detail : (detail as IMuteData)?.muted ?? false;
+          optionsRef.current.onMute?.({ muted });
+        });
+        el.addEventListener("playbackqualitychange", (e: Event) => {
+          const q = (e as CustomEvent).detail as string | undefined;
+          if (q != null) optionsRef.current.onPlaybackQualityChange?.(q);
+        });
+        el.addEventListener("playbackratechange", (e: Event) => {
+          const r = (e as CustomEvent).detail as number | undefined;
+          if (typeof r === "number") optionsRef.current.onPlaybackRateChange?.(r);
+        });
+        el.addEventListener("autoplayblocked", () => optionsRef.current.onAutoplayBlocked?.());
+        el.addEventListener("apichange", () => optionsRef.current.onApiChange?.());
+
+        container.appendChild(el);
       })
       .catch((err) => {
         if (!cancelled) {
@@ -137,28 +224,27 @@ export function ReactEmbedKit({
     return () => {
       cancelled = true;
       setPlayerReady(null);
-      const p = playerRef.current;
       playerRef.current = null;
       const ref = playerRefPropRef.current;
       if (ref != null) {
         if (typeof ref === "function") ref(null);
-        else (ref as React.RefObject<IEmbedPlayer | null>).current = null;
+        else (ref as React.MutableRefObject<IEmbedPlayer | null>).current = null;
       }
       try {
-        p?.destroy?.();
+        element?.destroy?.();
       } finally {
         container.innerHTML = "";
       }
     };
   }, [
     url,
-    playerOptions.width,
-    playerOptions.height,
-    playerOptions.autoplay,
-    playerOptions.controls,
-    playerOptions.enableCaptions,
-    playerOptions.showAnnotations,
-    playerOptions.progressInterval,
+    width,
+    height,
+    autoplay,
+    controls,
+    enableCaptions,
+    showAnnotations,
+    progressInterval,
   ]);
 
   // Sync controlled playing state to the player when it or the player changes.
