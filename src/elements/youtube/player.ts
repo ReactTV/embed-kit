@@ -85,6 +85,7 @@ class YouTubeEmbedPlayer extends EmbedPlayerVideoElement {
             this.dispatchEvent(new Event("ready"));
 
             this.player = ev.target;
+            this.playerState.currentTime = 0;
             if (typeof initialVolume === "number" && initialVolume >= 0 && initialVolume <= 1) {
               this.player.setVolume(Math.round(initialVolume * 100));
               this.playerState.volume = initialVolume;
@@ -94,7 +95,8 @@ class YouTubeEmbedPlayer extends EmbedPlayerVideoElement {
             if (this.ytPlayerState.destroyed) return;
             this.ytPlayerState.progressIntervalId = setInterval(() => {
               if (this.ytPlayerState.destroyed || !this.player) return;
-              this.playerState.currentTime = this.player.getCurrentTime();
+              const t = Number(this.player.getCurrentTime());
+              this.playerState.currentTime = Number.isFinite(t) ? t : this.playerState.currentTime;
               this.dispatchEvent(
                 new CustomEvent("progress", { detail: this.playerState.currentTime })
               );
@@ -113,7 +115,8 @@ class YouTubeEmbedPlayer extends EmbedPlayerVideoElement {
                   new CustomEvent("durationchange", { detail: this.playerState.duration })
                 );
               }
-              this.playerState.currentTime = this.player.getCurrentTime();
+              const t2 = Number(this.player.getCurrentTime());
+              if (Number.isFinite(t2)) this.playerState.currentTime = t2;
               this.playerState.error = null;
             }, this.options.progressInterval);
           },

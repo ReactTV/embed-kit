@@ -316,6 +316,7 @@
             muted: typeof e.detail === "boolean" ? e.detail : (e.detail?.muted ?? false),
           })
         );
+        el.addEventListener("unmute", () => muteEvents.push({ muted: false }));
         el.addEventListener("play", () => playEvents.push(1));
         el.addEventListener("pause", () => pauseEvents.push(1));
 
@@ -373,6 +374,7 @@
             muted: typeof e.detail === "boolean" ? e.detail : (e.detail?.muted ?? false),
           })
         );
+        el.addEventListener("unmute", () => muteEvents.push({ muted: false }));
         el.addEventListener("play", () => playEvents.push(1));
         el.addEventListener("pause", () => pauseEvents.push(1));
 
