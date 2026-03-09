@@ -1,4 +1,4 @@
-import type { ICreatePlayerOptions, IEmbedPlayer, TCreatePlayer } from "../_base/index.js";
+import type { ICreatePlayerOptions } from "../_base/index.js";
 import { createPlayerContainer, loadScript, EmbedPlayerVideoElement } from "../_base/index.js";
 
 const YT_SCRIPT = "https://www.youtube.com/iframe_api";
@@ -64,21 +64,18 @@ function loadYTScript(): Promise<void> {
 class YouTubeEmbedPlayer extends EmbedPlayerVideoElement {
   #player: YTPlayer | null = null;
   #div: HTMLElement | null = null;
-  #readyState: { progressIntervalId: ReturnType<typeof setInterval> | undefined; destroyed: boolean };
+  #readyState: {
+    progressIntervalId: ReturnType<typeof setInterval> | undefined;
+    destroyed: boolean;
+  };
   #options: ICreatePlayerOptions;
   #initialVolume: number | undefined;
   #progressInterval: number;
 
-  constructor(
-    container: HTMLElement,
-    id: string,
-    options: ICreatePlayerOptions = {},
-  ) {
+  constructor(container: HTMLElement, id: string, options: ICreatePlayerOptions = {}) {
     const initialVolume = options.volume;
     const stateOverrides =
-      typeof initialVolume === "number" &&
-      initialVolume >= 0 &&
-      initialVolume <= 1
+      typeof initialVolume === "number" && initialVolume >= 0 && initialVolume <= 1
         ? { volume: initialVolume }
         : undefined;
     super(options.url ?? `https://www.youtube.com/watch?v=${id}`, stateOverrides);
@@ -108,11 +105,21 @@ class YouTubeEmbedPlayer extends EmbedPlayerVideoElement {
 
     this.#readyState = { progressIntervalId: undefined, destroyed: false };
 
-    const { onReady = () => {}, onPlay = () => {}, onPause = () => {}, onBuffering = () => {},
-      onEnded = () => {}, onProgress = () => {}, onDurationChange = () => {},
-      onMute = () => {}, onError = () => {}, onPlaybackQualityChange = () => {},
-      onPlaybackRateChange = () => {}, onAutoplayBlocked = () => {}, onApiChange = () => {} } =
-      this.#options;
+    const {
+      onReady = () => {},
+      onPlay = () => {},
+      onPause = () => {},
+      onBuffering = () => {},
+      onEnded = () => {},
+      onProgress = () => {},
+      onDurationChange = () => {},
+      onMute = () => {},
+      onError = () => {},
+      onPlaybackQualityChange = () => {},
+      onPlaybackRateChange = () => {},
+      onAutoplayBlocked = () => {},
+      onApiChange = () => {},
+    } = this.#options;
 
     void loadYTScript().then(() => {
       if (this.#readyState.destroyed) return;
@@ -128,7 +135,8 @@ class YouTubeEmbedPlayer extends EmbedPlayerVideoElement {
         playerVars,
         events: {
           onError: (ev: { data: number }) => {
-            this.playerState.error = { code: ev.data };
+            const customError = { code: ev.data, message: "YouTube playback error" } as MediaError;
+            this.playerState.error = customError;
             onError(this.playerState.error);
           },
           onReady: (ev: { target: YTPlayer }) => {
@@ -239,15 +247,8 @@ class YouTubeEmbedPlayer extends EmbedPlayerVideoElement {
   }
 }
 
-/**
- * Create a controllable YouTube player in the given container.
- * Returns an EmbedPlayerVideoElement that mimics HTMLVideoElement.
- */
-export const createPlayer: TCreatePlayer = (
-  container,
-  id,
-  options = {},
-): Promise<IEmbedPlayer> => {
-  const element = new YouTubeEmbedPlayer(container, id, options);
-  return element.ready();
-};
+if (globalThis.customElements && !globalThis.customElements.get("youtube-video")) {
+  globalThis.customElements.define("youtube-video", YouTubeEmbedPlayer, {
+    extends: "video",
+  });
+}
