@@ -78,6 +78,7 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}): Promis
     onBuffering = () => {},
     onEnded = () => {},
     onProgress = () => {},
+    onDurationChange = () => {},
     onSeek = () => {},
     onMute = () => {},
     onError = () => {},
@@ -159,7 +160,11 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}): Promis
 
             playerState.isPlaying = player.getPlayerState() === PlayerState.PLAYING;
             playerState.isPaused = player.getPlayerState() === PlayerState.PAUSED;
-            playerState.duration = player.getDuration();
+            const newDuration = player.getDuration();
+            if (newDuration !== playerState.duration) {
+              playerState.duration = newDuration;
+              onDurationChange(playerState.duration);
+            }
             playerState.currentTime = player.getCurrentTime();
             playerState.error = null;
           }, progressInterval);

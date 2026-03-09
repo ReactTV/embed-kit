@@ -16,6 +16,8 @@ export interface ICreatePlayerOptions {
   onBuffering?: () => void;
   onEnded?: () => void;
   onProgress?: (currentTime: number) => void;
+  /** Fired when duration is known or changes (e.g. after metadata load, or live stream updates). */
+  onDurationChange?: (duration: number) => void;
   /** Fired when a seek starts (e.g. user drags the progress bar). Use with onSeek (seek complete) for isSeeking UI. */
   onSeeking?: () => void;
   onSeek?: (currentTime: number) => void;

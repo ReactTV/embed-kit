@@ -31,6 +31,7 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     onBuffering = () => {},
     onEnded = () => {},
     onProgress = () => {},
+    onDurationChange = () => {},
     onSeek = () => {},
     onMute = () => {},
     onError = () => {},
@@ -109,7 +110,10 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
       playerState.isPlaying = isPlaying;
       playerState.isPaused = !isPlaying;
       playerState.currentTime = p.currentTime;
-      playerState.duration = p.duration;
+      if (p.duration !== playerState.duration) {
+        playerState.duration = p.duration;
+        onDurationChange(p.duration);
+      }
       if (typeof p.muted === "boolean") playerState.muted = p.muted;
       if (typeof p.volume === "number" && !Number.isNaN(p.volume)) playerState.volume = p.volume;
       onProgress(p.currentTime);

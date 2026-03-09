@@ -28,6 +28,7 @@ interface EmbedElementCallbacks {
   onBuffering?: () => void;
   onEnded?: () => void;
   onProgress?: (currentTime: number) => void;
+  onDurationChange?: (duration: number) => void;
   onSeeking?: () => void;
   onSeek?: (currentTime: number) => void;
   onMute?: (data: { muted: boolean }) => void;
@@ -42,6 +43,7 @@ export function createEmbedElement(provider: IEmbedProvider): CustomElementConst
     declare onBuffering?: () => void;
     declare onEnded?: () => void;
     declare onProgress?: (currentTime: number) => void;
+    declare onDurationChange?: (duration: number) => void;
     declare onSeeking?: () => void;
     declare onSeek?: (currentTime: number) => void;
     declare onMute?: (data: { muted: boolean }) => void;
@@ -209,6 +211,7 @@ export function createEmbedElement(provider: IEmbedProvider): CustomElementConst
         onBuffering: this.onBuffering ?? noop,
         onEnded: this.onEnded ?? noop,
         onProgress: this.onProgress ?? noop,
+        onDurationChange: this.onDurationChange ?? noop,
         onSeeking: this.onSeeking ?? noop,
         onSeek: this.onSeek ?? noop,
         onMute: this.onMute ?? noop,

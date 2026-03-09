@@ -34,6 +34,8 @@ export interface ReactEmbedKitProps {
   onBuffering?: () => void;
   onEnded?: () => void;
   onProgress?: (currentTime: number) => void;
+  /** Fired when duration is known or changes (e.g. after metadata load). */
+  onDurationChange?: (duration: number) => void;
   onSeeking?: () => void;
   onSeek?: (currentTime: number) => void;
   onMute?: (data: IMuteData) => void;

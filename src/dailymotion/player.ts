@@ -21,6 +21,7 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     onBuffering = () => {},
     onEnded = () => {},
     onProgress = () => {},
+    onDurationChange = () => {},
     onSeek = () => {},
     onSeeking = () => {},
     onMute = () => {},
@@ -91,7 +92,11 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
         }
       });
       dmPlayer.on(events.VIDEO_DURATIONCHANGE, (data: DailymotionPlayerState) => {
-        playerState.duration = data.videoDuration ?? 0;
+        const nextDuration = data.videoDuration ?? 0;
+        if (nextDuration !== playerState.duration) {
+          playerState.duration = nextDuration;
+          onDurationChange(playerState.duration);
+        }
       });
 
       const handleError = (): void => {

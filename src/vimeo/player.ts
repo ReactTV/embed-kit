@@ -39,6 +39,7 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     onBuffering = () => {},
     onEnded = () => {},
     onProgress = () => {},
+    onDurationChange = () => {},
     onSeek = () => {},
     onMute = () => {},
     onError = () => {},
@@ -100,8 +101,12 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     vimeoPlayer.on("finish", onEnded);
     vimeoPlayer.on("ended", onEnded);
     vimeoPlayer.on("timeupdate", (data: TVimeoEventData) => {
-      const { seconds } = data as IVimeoTimeupdateData;
+      const { seconds, duration } = data as IVimeoTimeupdateData;
       playerState.currentTime = seconds;
+      if (typeof duration === "number" && duration !== playerState.duration) {
+        playerState.duration = duration;
+        onDurationChange(duration);
+      }
       onProgress(playerState.currentTime);
     });
     vimeoPlayer.on("volumechange", (data: TVimeoEventData) => {

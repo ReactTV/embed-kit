@@ -39,6 +39,7 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     onBuffering = () => {},
     onEnded = () => {},
     onProgress = () => {},
+    onDurationChange = () => {},
     onSeek = () => {},
     onMute = () => {},
     onError = () => {},
@@ -62,12 +63,12 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
 
   const playerState: TPlayerState = {
     currentTime: 0,
-    duration: 0,
     isPaused: true,
     muted: false,
     volume: 1,
     error: null,
     isPlaying: false,
+    duration: 0,
   };
   let resolveReady: () => void;
   new Promise<void>((resolve) => {
@@ -102,7 +103,12 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
         const t = data.value as Partial<IProgressData> | undefined;
         if (t) {
           if (typeof t.currentTime === "number") playerState.currentTime = t.currentTime;
-          if (typeof t.duration === "number") playerState.duration = t.duration;
+          if (typeof t.duration === "number") {
+            if (t.duration !== playerState.duration) {
+              playerState.duration = t.duration;
+              onDurationChange(t.duration);
+            }
+          }
           onProgress(playerState.currentTime);
         }
         break;
