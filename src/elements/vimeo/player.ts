@@ -3,7 +3,6 @@ import {
   loadScript,
   EmbedPlayerVideoElement,
   type ICreatePlayerOptions,
-  type TCreatePlayer,
 } from "../_base/index.js";
 import type {
   IVimeoErrorData,
@@ -30,20 +29,10 @@ class VimeoEmbedPlayer extends EmbedPlayerVideoElement {
   #vimeoPlayer: IVimeoPlayer | null = null;
   #options: ICreatePlayerOptions;
 
-  constructor(
-    container: HTMLElement,
-    id: string,
-    options: ICreatePlayerOptions = {},
-  ) {
+  constructor(container: HTMLElement, id: string, options: ICreatePlayerOptions = {}) {
     const opts = options as typeof options & { vimeoHash?: string };
     const initialVolume = options.volume;
-    const stateOverrides =
-      typeof initialVolume === "number" &&
-      initialVolume >= 0 &&
-      initialVolume <= 1
-        ? { volume: initialVolume }
-        : undefined;
-    super(opts.url ?? `https://player.vimeo.com/video/${id}`, stateOverrides);
+    super(opts.url ?? `https://player.vimeo.com/video/${id}`);
     this.#options = options;
     const {
       width = 560,
@@ -93,11 +82,11 @@ class VimeoEmbedPlayer extends EmbedPlayerVideoElement {
 
       vimeoPlayer.on("error", (data: TVimeoEventData) => {
         const err = data as IVimeoErrorData;
-        this.playerState.error = {
-          ...(err.message != null ? { message: err.message } : {}),
-          ...(err.name != null ? { code: err.name } : {}),
-        };
-        if (!this.playerState.error.message) this.playerState.error.message = "Vimeo playback error";
+        const customError = {
+          code: 0,
+          message: err.message ?? "Vimeo playback error",
+        } as MediaError;
+        this.playerState.error = customError;
         onError(this.playerState.error);
       });
       vimeoPlayer.on("play", () => {
@@ -197,11 +186,8 @@ class VimeoEmbedPlayer extends EmbedPlayerVideoElement {
   }
 }
 
-/**
- * Create a controllable Vimeo player in the given container.
- * Returns an EmbedPlayerVideoElement that mimics HTMLVideoElement.
- */
-export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
-  const element = new VimeoEmbedPlayer(container, id, options);
-  return element.ready();
-};
+if (globalThis.customElements && !globalThis.customElements.get("vimeo-video")) {
+  globalThis.customElements.define("vimeo-video", VimeoEmbedPlayer, {
+    extends: "video",
+  });
+}
