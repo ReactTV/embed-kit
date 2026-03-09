@@ -2,9 +2,7 @@ import {
   createEmbedIframeElement,
   EmbedPlayerVideoElement,
   type ICreatePlayerOptions,
-  type IEmbedPlayer,
   type IProgressData,
-  type TCreatePlayer,
 } from "../_base/index.js";
 
 const EMBED_ORIGIN = "https://www.tiktok.com";
@@ -33,11 +31,7 @@ class TikTokEmbedPlayer extends EmbedPlayerVideoElement {
   #handleMessage: (event: MessageEvent) => void;
   #options: ICreatePlayerOptions;
 
-  constructor(
-    container: HTMLElement,
-    id: string,
-    options: ICreatePlayerOptions = {},
-  ) {
+  constructor(container: HTMLElement, id: string, options: ICreatePlayerOptions = {}) {
     super(options.url ?? `https://www.tiktok.com/@/video/${id}`);
     this.#options = options;
     const {
@@ -72,8 +66,7 @@ class TikTokEmbedPlayer extends EmbedPlayerVideoElement {
     this.#iframe = iframe;
 
     const handleMessage = (event: MessageEvent): void => {
-      if (event.origin !== EMBED_ORIGIN || event.source !== iframe.contentWindow)
-        return;
+      if (event.origin !== EMBED_ORIGIN || event.source !== iframe.contentWindow) return;
       const data = event.data;
       if (!data || typeof data !== "object" || !("type" in data)) return;
 
@@ -94,8 +87,7 @@ class TikTokEmbedPlayer extends EmbedPlayerVideoElement {
         case "onCurrentTime": {
           const t = data.value as Partial<IProgressData> | undefined;
           if (t) {
-            if (typeof t.currentTime === "number")
-              this.playerState.currentTime = t.currentTime;
+            if (typeof t.currentTime === "number") this.playerState.currentTime = t.currentTime;
             if (typeof t.duration === "number") {
               if (t.duration !== this.playerState.duration) {
                 this.playerState.duration = t.duration;
@@ -108,18 +100,9 @@ class TikTokEmbedPlayer extends EmbedPlayerVideoElement {
         }
         case "onError":
         case "error": {
-          const err = data.value as
-            | { message?: string; code?: number | string }
-            | undefined;
-          const errorData = {
-            ...(err?.message != null ? { message: err.message } : {}),
-            ...(err?.code != null ? { code: err.code } : {}),
-          };
-          this.playerState.error =
-            Object.keys(errorData).length > 0
-              ? errorData
-              : { message: "TikTok embed error" };
-          onError(this.playerState.error);
+          const customError = { code: 0, message: "TikTok embed error" } as MediaError;
+          this.playerState.error = customError;
+          onError(customError);
           break;
         }
       }
@@ -181,15 +164,8 @@ class TikTokEmbedPlayer extends EmbedPlayerVideoElement {
   }
 }
 
-/**
- * Create a controllable TikTok player in the given container.
- * Returns an EmbedPlayerVideoElement that mimics HTMLVideoElement.
- */
-export const createPlayer: TCreatePlayer = (
-  container,
-  id,
-  options = {},
-): Promise<IEmbedPlayer> => {
-  const element = new TikTokEmbedPlayer(container, id, options);
-  return element.ready();
-};
+if (globalThis.customElements && !globalThis.customElements.get("tiktok-video")) {
+  globalThis.customElements.define("tiktok-video", TikTokEmbedPlayer, {
+    extends: "video",
+  });
+}
