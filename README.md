@@ -11,7 +11,7 @@ npm install
 npm run build
 ```
 
-When **installing as a dependency** (e.g. `"embed-kit": "github:ReactTV/embed-kit"`), the `prepare` script runs on install and builds `dist/` automatically. No extra steps needed.
+When **installing as a dependency** (e.g. `"embed-kit": "github:ReactTV/embed-kit"`), `dist/` is committed so the package works without running a build. The `prepare` script also runs on install as a fallback.
 
 ## Scripts
 
