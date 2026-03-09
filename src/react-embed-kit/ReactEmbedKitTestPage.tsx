@@ -1,14 +1,22 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import type { IEmbedPlayer } from "../_base/index.js";
 import { ReactEmbedKit } from "./ReactEmbedKit.js";
+import {
+  SOURCE_URL as YOUTUBE_SOURCE_URL,
+  VIDEO_ID as YOUTUBE_VIDEO_ID,
+} from "../youtube/constants.js";
+import { SOURCE_URL as VIMEO_SOURCE_URL } from "../vimeo/constants.js";
+import { VIDEO_SOURCE_URL as TWITCH_VIDEO_SOURCE_URL } from "../twitch/constants.js";
+import { SOURCE_URL as TIKTOK_SOURCE_URL } from "../tiktok/constants.js";
+import { SOURCE_URL as DAILYMOTION_SOURCE_URL } from "../dailymotion/constants.js";
 
 const PRESETS: { label: string; url: string }[] = [
-  { label: "YouTube", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
-  { label: "youtu.be", url: "https://youtu.be/dQw4w9WgXcQ" },
-  { label: "Vimeo", url: "https://player.vimeo.com/video/148751763" },
-  { label: "Twitch (video)", url: "https://www.twitch.tv/videos/2156437342" },
-  { label: "TikTok", url: "https://www.tiktok.com/@user/video/1234567890" },
-  { label: "Dailymotion", url: "https://www.dailymotion.com/video/x8f3k2a" },
+  { label: "YouTube", url: YOUTUBE_SOURCE_URL },
+  { label: "youtu.be", url: `https://youtu.be/${YOUTUBE_VIDEO_ID}` },
+  { label: "Vimeo", url: VIMEO_SOURCE_URL },
+  { label: "Twitch (video)", url: TWITCH_VIDEO_SOURCE_URL },
+  { label: "TikTok", url: TIKTOK_SOURCE_URL },
+  { label: "Dailymotion", url: DAILYMOTION_SOURCE_URL },
 ];
 
 function formatTime(seconds: number | null | undefined): string {
@@ -35,6 +43,9 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
   const [player, setPlayer] = useState<IEmbedPlayer | null>(null);
   const [buffering, setBuffering] = useState(false);
   const [seeking, setSeeking] = useState(false);
+  const [controls, setControls] = useState(true);
+  const [enableCaptions, setEnableCaptions] = useState(false);
+  const [showAnnotations, setShowAnnotations] = useState(true);
   const [data, setData] = useState<PollData>({
     currentTime: null,
     duration: null,
@@ -89,6 +100,15 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
 
   const selectedPreset = PRESETS.find((p) => p.url === url)?.url ?? "";
 
+  const embedConfig = useMemo(
+    () => ({
+      youtube: {
+        origin: typeof window !== "undefined" ? window.location.origin : undefined,
+      },
+    }),
+    []
+  );
+
   return (
     <div className="section">
       <label htmlFor="provider">Provider</label>
@@ -119,15 +139,46 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
       <p className="hint">
         Try: YouTube, youtu.be, Vimeo, Twitch videos/clips/channel, TikTok, Dailymotion
       </p>
+      <div className="player-options" style={{ marginBottom: "0.75rem" }}>
+        <label
+          style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginRight: "1rem" }}
+        >
+          <input
+            type="checkbox"
+            checked={controls}
+            onChange={(e) => setControls(e.target.checked)}
+          />
+          Show native controls
+        </label>
+        <label
+          style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginRight: "1rem" }}
+        >
+          <input
+            type="checkbox"
+            checked={enableCaptions}
+            onChange={(e) => setEnableCaptions(e.target.checked)}
+          />
+          Enable captions
+        </label>
+        <label style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <input
+            type="checkbox"
+            checked={showAnnotations}
+            onChange={(e) => setShowAnnotations(e.target.checked)}
+          />
+          Show annotations
+        </label>
+      </div>
       <div className="player-wrap">
         <ReactEmbedKit
           url={url}
           width={560}
           height={315}
-          onReady={(p) => {
-            setPlayer(p);
-            console.log("Embed ready");
-          }}
+          controls={controls}
+          enableCaptions={enableCaptions}
+          showAnnotations={showAnnotations}
+          config={embedConfig}
+          onReady={(p) => setPlayer(p)}
           onBuffering={() => setBuffering(true)}
           onPlay={() => setBuffering(false)}
           onSeeking={() => setSeeking(true)}
@@ -140,18 +191,10 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
         />
       </div>
       <div className="controls">
-        <button
-          type="button"
-          disabled={!player}
-          onClick={() => player?.play()}
-        >
+        <button type="button" disabled={!player} onClick={() => player?.play()}>
           Play
         </button>
-        <button
-          type="button"
-          disabled={!player}
-          onClick={() => player?.pause()}
-        >
+        <button type="button" disabled={!player} onClick={() => player?.pause()}>
           Pause
         </button>
         <button
@@ -174,18 +217,10 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
         >
           Seek to 0:30
         </button>
-        <button
-          type="button"
-          disabled={!player}
-          onClick={() => player?.mute()}
-        >
+        <button type="button" disabled={!player} onClick={() => player?.mute()}>
           Mute
         </button>
-        <button
-          type="button"
-          disabled={!player}
-          onClick={() => player?.unmute()}
-        >
+        <button type="button" disabled={!player} onClick={() => player?.unmute()}>
           Unmute
         </button>
       </div>

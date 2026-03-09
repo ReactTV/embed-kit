@@ -31,6 +31,8 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     height = 315,
     autoplay = false,
     volume: initialVolume,
+    controls = true,
+    config,
     onReady = () => {},
     onPlay = () => {},
     onPause = () => {},
@@ -45,6 +47,11 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
   const query = new URLSearchParams({ api: "1" });
   if (vimeoHash) query.set("h", vimeoHash);
   if (autoplay) query.set("autoplay", "1");
+  if (!controls) query.set("controls", "0");
+  const vimeoConfig = config?.vimeo ?? {};
+  for (const [key, value] of Object.entries(vimeoConfig)) {
+    if (value !== undefined && value !== "") query.set(key, String(value));
+  }
 
   const iframe = createEmbedIframeElement({
     src: `${EMBED_BASE}${id}?${query.toString()}`,

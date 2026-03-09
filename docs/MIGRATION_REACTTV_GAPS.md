@@ -65,13 +65,11 @@ c
 
 ---
 
-## 7. **Controls / URL config (e.g. YouTube captions)**
+## 7. **Controls / URL config (e.g. YouTube captions)** ✅ Implemented
 
 - **ReactTV usage:** `BaseVideoEmbed` passes `config={{ youtube: { iv_load_policy: 1, cc_load_policy: enableCaptions ? 1 : 0, origin: ... } }}` and `controls={true}`.
-- **embed-kit:** No global “controls” or “config” in the base API; each provider builds its own URL or SDK options.
-- **Migration options:**
-  - In ReactTV: when migrating, use embed-kit’s URL/options for the provider (e.g. YouTube) and add query params or SDK options for captions and controls in the provider implementation.
-  - In embed-kit: ensure provider-specific options (e.g. `enableCaptions`, `controls`) can be passed through (e.g. via `parseSourceUrl` options or extra createPlayer options) and applied in the YouTube (and others) provider.
+- **embed-kit:** `ICreatePlayerOptions` and `ReactEmbedKit` support: **`controls`** (boolean, default true), **`enableCaptions`** (boolean), **`showAnnotations`** (boolean), **`config.youtube`** (object, merged into YouTube `playerVars` for e.g. `origin`). See [YouTube player parameters](https://developers.google.com/youtube/player_parameters).
+- **Migration:** Pass `controls`, `enableCaptions`, `showAnnotations`, and/or `config={{ youtube: { ... } }}` to `ReactEmbedKit` or to `createPlayer` options. The YouTube provider applies these in `playerVars`.
 
 ---
 
@@ -85,4 +83,4 @@ c
 | Embed-disabled error codes    | onDetailedError, reportBrokenMedia | Use onError + ensure 150/101/100 in IErrorData.code                |
 | Seek from progress            | Playable ranges, sync              | ReactTV: call player.seek() in onProgress                          |
 | onProgress/onEnded on element | If using custom element            | embed-kit: forward in createEmbedElement                           |
-| Controls / captions config    | YouTube (and similar)              | Provider-level URL/SDK options in embed-kit                        |
+| Controls / captions config    | YouTube (and similar)              | embed-kit: controls, enableCaptions, showAnnotations, config.youtube |

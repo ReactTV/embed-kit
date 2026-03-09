@@ -17,7 +17,7 @@ interface YTOptions {
   videoId: string;
   width?: number;
   height?: number;
-  playerVars?: { autoplay?: 0 | 1 };
+  playerVars?: Record<string, number | string>;
   events?: {
     onReady?: (ev: { target: YTPlayer }) => void;
     onStateChange?: (ev: { data: number }) => void;
@@ -68,6 +68,10 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}): Promis
     height = 315,
     autoplay = false,
     volume: initialVolume,
+    controls = true,
+    enableCaptions,
+    showAnnotations,
+    config,
     onReady = () => {},
     onPlay = () => {},
     onPause = () => {},
@@ -83,6 +87,17 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}): Promis
     onApiChange = () => {},
     progressInterval = 50,
   } = options;
+
+  const youtubeConfig = config?.youtube ?? {};
+  const playerVars: Record<string, number | string> = {
+    autoplay: autoplay ? 1 : 0,
+    ...Object.fromEntries(
+      Object.entries(youtubeConfig).filter(([, v]) => v !== undefined) as [string, number | string][]
+    ),
+  };
+  if (controls !== undefined) playerVars.controls = controls ? 1 : 0;
+  if (enableCaptions !== undefined) playerVars.cc_load_policy = enableCaptions ? 1 : 0;
+  if (showAnnotations !== undefined) playerVars.iv_load_policy = showAnnotations ? 1 : 3;
 
   const playerState: TPlayerState = {
     currentTime: 0,
@@ -110,7 +125,7 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}): Promis
       videoId: id,
       width,
       height,
-      playerVars: { autoplay: autoplay ? 1 : 0 },
+      playerVars,
       events: {
         onError(ev: { data: number }) {
           playerState.error = { code: ev.data };

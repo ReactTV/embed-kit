@@ -13,6 +13,17 @@ export interface ReactEmbedKitProps {
   /** Initial volume 0–1. Not all providers support volume. */
   volume?: number;
   progressInterval?: number;
+  /** Show native player controls. Default true. YouTube: playerVars.controls. */
+  controls?: boolean;
+  /** Load captions by default when available. YouTube: cc_load_policy. */
+  enableCaptions?: boolean;
+  /** Show video annotations (e.g. YouTube cards). YouTube: iv_load_policy (1 = show, 3 = hide). */
+  showAnnotations?: boolean;
+  /** Provider-specific config. e.g. config={{ youtube: { origin }, vimeo: { title: 0 } }}. */
+  config?: {
+    youtube?: Record<string, number | string | undefined>;
+    vimeo?: Record<string, number | string | undefined>;
+  };
   /** Ref set to the IEmbedPlayer when ready and cleared on unmount. Use for play/pause/seek and error (e.g. playerRef.current?.play(), playerRef.current?.error). */
   playerRef?: React.Ref<IEmbedPlayer | null>;
   onUnsupportedUrl?: (url: string) => void;
@@ -108,7 +119,16 @@ export function ReactEmbedKit({
       setRef(playerRefProp, null);
       p?.destroy?.();
     };
-  }, [url, playerRefProp, playerOptions.width, playerOptions.height, playerOptions.autoplay]);
+  }, [
+    url,
+    playerRefProp,
+    playerOptions.width,
+    playerOptions.height,
+    playerOptions.autoplay,
+    playerOptions.controls,
+    playerOptions.enableCaptions,
+    playerOptions.showAnnotations,
+  ]);
 
   return <div ref={containerRef} className={className} style={style} />;
 }

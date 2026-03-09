@@ -30,6 +30,17 @@ export interface ICreatePlayerOptions {
   /** Fired when the player loads/unloads a module (e.g. captions). YouTube-specific. */
   onApiChange?: () => void;
   progressInterval?: number;
+  /** Show native player controls. Default true. YouTube: playerVars.controls. */
+  controls?: boolean;
+  /** Load captions by default when available. YouTube: playerVars.cc_load_policy (1 = on, 0 = off). */
+  enableCaptions?: boolean;
+  /** Show video annotations (e.g. YouTube cards/overlays). YouTube: playerVars.iv_load_policy (1 = show, 3 = hide). */
+  showAnnotations?: boolean;
+  /** Provider-specific config. e.g. config.youtube.origin, config.vimeo.title. */
+  config?: {
+    youtube?: Record<string, number | string | undefined>;
+    vimeo?: Record<string, number | string | undefined>;
+  };
   [key: string]: unknown;
 }
 

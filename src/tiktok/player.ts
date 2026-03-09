@@ -32,6 +32,7 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     width = 325,
     height = 575,
     autoplay = false,
+    controls = true,
     onReady = () => {},
     onPlay = () => {},
     onPause = () => {},
@@ -43,9 +44,12 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     onError = () => {},
   } = options;
 
+  const params = new URLSearchParams({ controls: controls ? "1" : "0" });
+  if (autoplay) params.set("autoplay", "1");
+
   // Vertical video: width is the narrow dimension, height the tall one (e.g. 325×575).
   const iframe = createEmbedIframeElement({
-    src: `${EMBED_BASE}${id}${autoplay ? "?autoplay=1" : ""}`,
+    src: `${EMBED_BASE}${id}?${params.toString()}`,
     width,
     height,
     allow: "autoplay; fullscreen",

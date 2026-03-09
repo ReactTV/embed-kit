@@ -23,6 +23,8 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     width = 560,
     height = 315,
     autoplay = false,
+    controls = true,
+    enableCaptions,
     onReady = () => {},
     onPlay = () => {},
     onPause = () => {},
@@ -34,23 +36,19 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     onError = () => {},
   } = options;
   const { twitchType } = options as typeof options & { twitchType?: string };
-  const isClip = twitchType === "clip";
   const isChannel = twitchType === "channel";
 
   const mediaParam = isChannel ? "channel" : "video";
-  const embedUrl = isClip
-    ? `https://clips.twitch.tv/embed?clip=${encodeURIComponent(id)}&parent=${encodeURIComponent(window.location.hostname)}`
-    : `${EMBED_ORIGIN}/?${mediaParam}=${encodeURIComponent(id)}&parent=${encodeURIComponent(window.location.hostname)}${autoplay ? "&autoplay=true" : ""}`;
+  const embedUrl =
+    twitchType === "clip"
+      ? `https://clips.twitch.tv/embed?clip=${encodeURIComponent(id)}&parent=${encodeURIComponent(window.location.hostname)}`
+      : `${EMBED_ORIGIN}/?${mediaParam}=${encodeURIComponent(id)}&parent=${encodeURIComponent(window.location.hostname)}&controls=${controls}${autoplay ? "&autoplay=true" : ""}`;
 
   const iframe = createEmbedIframeElement({
     src: embedUrl,
     width,
     height,
-    ...(isClip
-      ? {}
-      : {
-          allow: "accelerometer; fullscreen; autoplay; encrypted-media; picture-in-picture",
-        }),
+    allow: "accelerometer; fullscreen; autoplay; encrypted-media; picture-in-picture",
     allowFullScreen: true,
   });
   container.appendChild(iframe);
@@ -73,6 +71,9 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
 
     if (message.namespace === NS_EMBED) {
       if (message.eventName === "ready") {
+        if (enableCaptions !== undefined) {
+          send(enableCaptions ? PlayerCommands.ENABLE_CAPTIONS : PlayerCommands.DISABLE_CAPTIONS);
+        }
         onReady();
       }
 

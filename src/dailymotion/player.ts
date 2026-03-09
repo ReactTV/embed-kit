@@ -14,6 +14,7 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     width = 560,
     height = 315,
     autoplay = false,
+    controls = true,
     onReady = () => {},
     onPlay = () => {},
     onPause = () => {},
@@ -25,6 +26,10 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     onMute = () => {},
     onError = () => {},
   } = options;
+
+  const params: Record<string, boolean> = {};
+  if (autoplay) params.autoplay = true;
+  if (!controls) params.controls = false;
 
   const { element: wrapper, id: containerId } = createPlayerContainer(
     container,
@@ -46,7 +51,7 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
       }
       return window.dailymotion.createPlayer(containerId, {
         video: id,
-        ...(autoplay ? { params: { autoplay: true } } : {}),
+        ...(Object.keys(params).length > 0 ? { params } : {}),
       });
     })
     .then((dmPlayer) => {
