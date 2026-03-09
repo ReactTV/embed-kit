@@ -55,13 +55,11 @@ c
 
 ---
 
-## 6. **Custom element: onProgress / onEnded**
+## 6. **Custom element: onProgress / onEnded** ✅ Implemented
 
 - **ReactTV usage:** Uses `onProgress` and `onEnded` on the embed.
-- **embed-kit:** `createEmbedElement` does not declare or forward `onProgress` or `onEnded` to `createPlayer`. Only the React wrapper (`ReactEmbedKit`) passes them when using `createPlayer` directly.
-- **Migration options:**
-  - If ReactTV uses only `ReactEmbedKit` (or direct `createPlayer`), this is already covered.
-  - If ReactTV ever uses the custom element, it would need `onEnded` and `onProgress` to be forwarded in the element’s options to `createPlayer` (logic only; the base API already has these callbacks).
+- **embed-kit:** `createEmbedElement` now declares `onEnded` and `onProgress` on the element and forwards them to `createPlayer`. Set them on the custom element (e.g. `el.onEnded`, `el.onProgress`) and they are passed through to the provider.
+- **Migration:** When using the custom element, assign `element.onEnded` and `element.onProgress`; they are forwarded to the player options.
 
 ---
 
