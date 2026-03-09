@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import type { IEmbedPlayer, IErrorData, IMuteData } from "../_base/index.js";
 import { getProviderForUrl } from "./providers.js";
 
@@ -10,6 +10,10 @@ export interface ReactEmbedKitProps {
   className?: string;
   style?: React.CSSProperties;
   autoplay?: boolean;
+  /** When set, syncs play/pause to the player (e.g. playing={true} calls play()). Undefined is treated as false. */
+  playing?: boolean;
+  /** When true, requests picture-in-picture when the player is ready. Only supported when the provider implements requestPictureInPicture (e.g. not most iframe embeds). */
+  pip?: boolean;
   /** Initial volume 0–1. Not all providers support volume. */
   volume?: number;
   progressInterval?: number;
@@ -50,15 +54,6 @@ const defaultHeight = 315;
 
 const noop = () => {};
 
-function setRef<T>(ref: React.Ref<T> | undefined, value: T | null): void {
-  if (ref == null) return;
-  if (typeof ref === "function") {
-    ref(value);
-  } else {
-    (ref as React.MutableRefObject<T | null>).current = value;
-  }
-}
-
 export function ReactEmbedKit({
   url,
   playerRef: playerRefProp,
@@ -67,10 +62,15 @@ export function ReactEmbedKit({
   onReady = () => {},
   className,
   style,
+  playing,
+  pip,
   ...playerOptions
 }: ReactEmbedKitProps): React.ReactElement {
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<IEmbedPlayer | null>(null);
+  const playerRefPropRef = useRef(playerRefProp);
+  playerRefPropRef.current = playerRefProp;
+  const [playerReady, setPlayerReady] = useState<IEmbedPlayer | null>(null);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -105,7 +105,12 @@ export function ReactEmbedKit({
           return;
         }
         playerRef.current = player;
-        setRef(playerRefProp, player);
+        const ref = playerRefPropRef.current;
+        if (ref != null) {
+          if (typeof ref === "function") ref(player);
+          else (ref as React.RefObject<IEmbedPlayer | null>).current = player;
+        }
+        setPlayerReady(player);
         onReady(player);
       })
       .catch((err) => {
@@ -116,9 +121,14 @@ export function ReactEmbedKit({
 
     return () => {
       cancelled = true;
+      setPlayerReady(null);
       const p = playerRef.current;
       playerRef.current = null;
-      setRef(playerRefProp, null);
+      const ref = playerRefPropRef.current;
+      if (ref != null) {
+        if (typeof ref === "function") ref(null);
+        else (ref as React.RefObject<IEmbedPlayer | null>).current = null;
+      }
       try {
         p?.destroy?.();
       } finally {
@@ -127,7 +137,6 @@ export function ReactEmbedKit({
     };
   }, [
     url,
-    playerRefProp,
     playerOptions.width,
     playerOptions.height,
     playerOptions.autoplay,
@@ -136,6 +145,22 @@ export function ReactEmbedKit({
     playerOptions.showAnnotations,
     playerOptions.progressInterval,
   ]);
+
+  // Sync controlled playing state to the player when it or the player changes.
+  useEffect(() => {
+    if (!playerReady) return;
+    if (playing) {
+      void playerReady.play();
+    } else {
+      playerReady.pause();
+    }
+  }, [playing, playerReady]);
+
+  // Request pip when player is ready, if pip prop is true.
+  useEffect(() => {
+    if (!pip || !playerReady) return;
+    playerReady.requestPictureInPicture?.();
+  }, [pip, playerReady]);
 
   return <div ref={containerRef} className={className} style={style} />;
 }

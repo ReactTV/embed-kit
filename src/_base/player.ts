@@ -98,6 +98,8 @@ export interface IEmbedPlayer {
   readonly volume?: number | undefined;
   /** Set volume 0–1. No-op if the provider does not support it. */
   setVolume?(volume: number): void | Promise<void>;
+  /** Request picture-in-picture. Not supported by all providers (e.g. iframe embeds). */
+  requestPictureInPicture?(): Promise<void>;
   readonly error: IErrorData | null;
 }
 
