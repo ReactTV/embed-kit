@@ -1,9 +1,11 @@
+import { createEmbedIframeElement, loadScript, EmbedPlayerVideoElement } from "../_base/index.js";
 import {
-  createEmbedIframeElement,
-  loadScript,
-  EmbedPlayerVideoElement,
-  type ICreatePlayerOptions,
-} from "../_base/index.js";
+  REGEX_PLAYER,
+  REGEX_DIRECT,
+  REGEX_CHANNELS,
+  REGEX_GROUPS,
+  REGEX_HASH,
+} from "./constants.js";
 import type {
   IVimeoErrorData,
   IVimeoPlayer,
@@ -21,65 +23,78 @@ declare global {
   }
 }
 
+function loadVimeoScript(): Promise<void> {
+  return loadScript(VIMEO_SCRIPT, {
+    isLoaded: () => !!window.Vimeo?.Player,
+    errorMessage: "Failed to load Vimeo player script",
+  });
+}
+
+function parseVimeoId(src: string): { videoId: string | undefined; vimeoHash: string | undefined } {
+  const videoId =
+    src.match(REGEX_PLAYER)?.[1] ??
+    src.match(REGEX_DIRECT)?.[1] ??
+    src.match(REGEX_CHANNELS)?.[1] ??
+    src.match(REGEX_GROUPS)?.[1];
+  const vimeoHash = src.match(REGEX_HASH)?.[1] ?? undefined;
+  return { videoId, vimeoHash };
+}
+
 /**
  * Vimeo embed player as a subclass of EmbedPlayerVideoElement.
  */
 class VimeoEmbedPlayer extends EmbedPlayerVideoElement {
-  #iframe: HTMLIFrameElement;
-  #vimeoPlayer: IVimeoPlayer | null = null;
-  #options: ICreatePlayerOptions;
+  protected player: IVimeoPlayer | null = null;
+  protected vimeoPlayerState: { destroyed: boolean } = { destroyed: false };
 
-  constructor(container: HTMLElement, id: string, options: ICreatePlayerOptions = {}) {
-    const opts = options as typeof options & { vimeoHash?: string };
-    const initialVolume = options.volume;
-    // super(opts.url ?? `https://player.vimeo.com/video/${id}`);
-    super();
-    this.#options = options;
-    const {
-      width = 560,
-      height = 315,
-      autoplay = false,
-      controls = true,
-      config,
-      onError = () => {},
-    } = { ...opts, ...this.#options } as ICreatePlayerOptions & { vimeoHash?: string };
-    const { vimeoHash } = opts;
+  connectedCallback(): void {
+    const src = this.getAttribute("src");
+
+    if (!src) return;
+
+    const { videoId, vimeoHash } = parseVimeoId(src);
+    if (!videoId) return;
+
+    const width = Number(this.getAttribute("width")) || (this.options.width ?? 560);
+    const height = Number(this.getAttribute("height")) || (this.options.height ?? 315);
+    const autoplay =
+      this.getAttribute("autoplay") != null
+        ? this.getAttribute("autoplay") !== "false"
+        : (this.options.autoplay ?? false);
+    const controls =
+      this.getAttribute("controls") != null
+        ? this.getAttribute("controls") !== "false"
+        : (this.options.controls ?? true);
+    const { config } = this.options;
+
+    const initialVolume = this.getAttribute("volume") ?? this.options.volume;
 
     const query = new URLSearchParams({ api: "1" });
-    if (vimeoHash) query.set("h", vimeoHash);
+    const h = vimeoHash ?? (config?.vimeo?.h != null ? String(config.vimeo.h) : undefined);
+    if (h) query.set("h", h);
     if (autoplay) query.set("autoplay", "1");
     if (!controls) query.set("controls", "0");
     const vimeoConfig = config?.vimeo ?? {};
     for (const [key, value] of Object.entries(vimeoConfig)) {
-      if (value !== undefined && value !== "") query.set(key, String(value));
+      if (value !== undefined && value !== "" && key !== "h") query.set(key, String(value));
     }
 
     const iframe = createEmbedIframeElement({
-      src: `${EMBED_BASE}${id}?${query.toString()}`,
+      src: `${EMBED_BASE}${videoId}?${query.toString()}`,
       width,
       height,
       allow: "autoplay; fullscreen; picture-in-picture",
       allowFullScreen: true,
     });
-    container.appendChild(iframe);
-    this.#iframe = iframe;
+    this.appendChild(iframe);
+    this.iframe = iframe;
+    this.vimeoPlayerState = { destroyed: false };
 
-    void loadScript(VIMEO_SCRIPT, {
-      isLoaded: () => !!window.Vimeo?.Player,
-      errorMessage: "Failed to load Vimeo player script",
-    }).then(() => {
+    void loadVimeoScript().then(() => {
+      if (this.vimeoPlayerState.destroyed) return;
+
       const vimeoPlayer = new window.Vimeo!.Player(iframe);
-      this.#vimeoPlayer = vimeoPlayer;
-      const {
-        onReady = () => {},
-        onPlay = () => {},
-        onPause = () => {},
-        onBuffering = () => {},
-        onEnded = () => {},
-        onProgress = () => {},
-        onDurationChange = () => {},
-        onMute = () => {},
-      } = this.#options;
+      this.player = vimeoPlayer;
 
       vimeoPlayer.on("error", (data: TVimeoEventData) => {
         const err = data as IVimeoErrorData;
@@ -88,35 +103,35 @@ class VimeoEmbedPlayer extends EmbedPlayerVideoElement {
           message: err.message ?? "Vimeo playback error",
         } as MediaError;
         this.playerState.error = customError;
-        onError(this.playerState.error);
+        this.dispatchEvent(new CustomEvent("error", { detail: customError }));
       });
       vimeoPlayer.on("play", () => {
         this.playerState.isPlaying = true;
         this.playerState.isPaused = false;
-        onPlay();
+        this.dispatchEvent(new Event("play"));
       });
       vimeoPlayer.on("pause", () => {
         this.playerState.isPlaying = false;
         this.playerState.isPaused = true;
-        onPause();
+        this.dispatchEvent(new Event("pause"));
       });
-      vimeoPlayer.on("bufferstart", onBuffering);
-      vimeoPlayer.on("finish", onEnded);
-      vimeoPlayer.on("ended", onEnded);
+      vimeoPlayer.on("bufferstart", () => this.dispatchEvent(new Event("buffering")));
+      vimeoPlayer.on("finish", () => this.dispatchEvent(new Event("ended")));
+      vimeoPlayer.on("ended", () => this.dispatchEvent(new Event("ended")));
       vimeoPlayer.on("timeupdate", (data: TVimeoEventData) => {
         const { seconds, duration } = data as IVimeoTimeupdateData;
         this.playerState.currentTime = seconds;
         if (typeof duration === "number" && duration !== this.playerState.duration) {
           this.playerState.duration = duration;
-          onDurationChange(duration);
+          this.dispatchEvent(new CustomEvent("durationchange", { detail: duration }));
         }
-        onProgress(this.playerState.currentTime);
+        this.dispatchEvent(new CustomEvent("progress", { detail: seconds }));
       });
       vimeoPlayer.on("volumechange", (data: TVimeoEventData) => {
         const { volume, muted } = data as IVimeoVolumechangeData;
         this.playerState.volume = volume;
         this.playerState.muted = muted;
-        onMute({ muted });
+        this.dispatchEvent(new CustomEvent("mute", { detail: muted }));
       });
 
       if (typeof initialVolume === "number" && initialVolume >= 0 && initialVolume <= 1) {
@@ -128,34 +143,44 @@ class VimeoEmbedPlayer extends EmbedPlayerVideoElement {
           this.playerState.volume = v;
         });
       }
-      onReady();
+
+      this.dispatchEvent(new Event("ready"));
     });
   }
 
   override play(): Promise<void> {
-    return this.#vimeoPlayer?.play() ?? Promise.resolve();
+    this.player?.play();
+    return Promise.resolve();
   }
   override pause(): Promise<void> {
-    return this.#vimeoPlayer?.pause() ?? Promise.resolve();
+    this.player?.pause();
+    return Promise.resolve();
   }
-  override seek(seconds: number): Promise<void> | void {
-    return this.#vimeoPlayer?.setCurrentTime(seconds).then(() => {
-      this.#options.onSeek?.(seconds);
+  override seek(seconds: number): void {
+    this.player?.setCurrentTime(seconds).then(() => {
+      this.playerState.currentTime = seconds;
+      this.dispatchEvent(new CustomEvent("seek", { detail: seconds }));
     });
   }
-  override mute(): Promise<void> | void {
-    return this.#vimeoPlayer?.setMuted(true).then(() => {
-      this.#options.onMute?.({ muted: true });
+  override mute(): void {
+    this.player?.setMuted(true).then(() => {
+      this.playerState.muted = true;
+      this.dispatchEvent(new CustomEvent("mute", { detail: true }));
     });
   }
-  override unmute(): Promise<void> | void {
-    return this.#vimeoPlayer?.setMuted(false).then(() => {
-      this.#options.onMute?.({ muted: false });
+  override unmute(): void {
+    this.player?.setMuted(false).then(() => {
+      this.playerState.muted = false;
+      this.dispatchEvent(new CustomEvent("unmute", { detail: false }));
     });
   }
   override destroy(): void {
-    this.#vimeoPlayer?.destroy();
-    if (this.#iframe.parentNode) this.#iframe.remove();
+    this.vimeoPlayerState.destroyed = true;
+    this.player?.destroy();
+    this.player = null;
+    if (this.iframe?.parentNode) this.iframe.remove();
+    this.iframe = null;
+    if (this.parentNode) this.remove();
   }
   override get paused(): boolean {
     return this.playerState.isPaused;
@@ -164,7 +189,7 @@ class VimeoEmbedPlayer extends EmbedPlayerVideoElement {
     return this.playerState.currentTime;
   }
   override set currentTime(seconds: number) {
-    void this.seek(seconds);
+    this.seek(seconds);
   }
   override get duration(): number {
     return this.playerState.duration;
@@ -177,7 +202,7 @@ class VimeoEmbedPlayer extends EmbedPlayerVideoElement {
   }
   override set volume(vol: number) {
     const v = Math.max(0, Math.min(1, vol));
-    void this.#vimeoPlayer?.setVolume(v).then(() => {
+    this.player?.setVolume(v).then(() => {
       this.playerState.volume = v;
     });
   }
@@ -187,7 +212,5 @@ class VimeoEmbedPlayer extends EmbedPlayerVideoElement {
 }
 
 if (globalThis.customElements && !globalThis.customElements.get("vimeo-video")) {
-  globalThis.customElements.define("vimeo-video", VimeoEmbedPlayer, {
-    extends: "video",
-  });
+  globalThis.customElements.define("vimeo-video", VimeoEmbedPlayer);
 }

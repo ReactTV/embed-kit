@@ -1,54 +1,77 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vimeo embed — embed-kit</title>
-  <style>
-    body { font-family: system-ui, sans-serif; max-width: 42rem; margin: 2rem auto; padding: 0 1rem; }
-    h1 { font-size: 1.25rem; }
-    .embed-wrap { margin: 1rem 0; }
-    vimeo-embed { display: block; }
-    vimeo-embed:not(:defined) { min-height: 200px; background: #eee; display: flex; align-items: center; justify-content: center; color: #666; }
-    vimeo-embed:not(:defined)::before { content: "Loading… (use npx serve . if this stays)"; }
-    .server-hint { font-size: 0.875rem; color: #666; margin-bottom: 1rem; }
-  </style>
-</head>
-<body>
-  <h1>Vimeo embed</h1>
-  <p class="server-hint">If embeds don’t appear, run <code>npx serve .</code> from the project root (ES modules require a server).</p>
-  <h2>Autoplay</h2>
-  <div class="embed-wrap" id="vm-autoplay-wrap"></div>
-  <button type="button" id="vm-autoplay-btn">Load autoplay video</button>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vimeo video — embed-kit</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 42rem;
+        margin: 2rem auto;
+        padding: 0 1rem;
+      }
+      h1 {
+        font-size: 1.25rem;
+      }
+      .embed-wrap {
+        margin: 1rem 0;
+      }
+      vimeo-video {
+        display: block;
+      }
+      vimeo-video:not(:defined) {
+        min-height: 200px;
+        background: #eee;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #666;
+      }
+      vimeo-video:not(:defined)::before {
+        content: "Loading… (use npx serve . if this stays)";
+      }
+      .server-hint {
+        font-size: 0.875rem;
+        color: #666;
+        margin-bottom: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Vimeo embed</h1>
+    <p class="server-hint">
+      If embeds don’t appear, run <code>npx serve .</code> from the project root (ES modules require
+      a server).
+    </p>
+    <h2>Autoplay</h2>
+    <div class="embed-wrap" id="vm-autoplay-wrap"></div>
+    <button type="button" id="vm-autoplay-btn">Load autoplay video</button>
 
-  <h2>By URL (<code>src</code>)</h2>
-  <div class="embed-wrap">
-    <vimeo-embed id="vm-by-src" width="560" height="315" title="Vimeo video"></vimeo-embed>
-  </div>
-  <h2>By video id (<code>video-id</code>)</h2>
-  <div class="embed-wrap">
-    <vimeo-embed id="vm-by-id" width="560" height="315" title="Vimeo video"></vimeo-embed>
-  </div>
-  <p><a href="../../test/index.html">← Back to test index</a></p>
+    <h2>By URL (<code>src</code>)</h2>
+    <div class="embed-wrap">
+      <vimeo-video
+        id="vm-by-src"
+        width="560"
+        height="315"
+        title="Vimeo video"
+        src="https://vimeo.com/1170179436"
+      />
+    </div>
+    <h2>By video id (<code>video-id</code>)</h2>
+    <div class="embed-wrap">
+      <vimeo-video
+        id="vm-by-id"
+        width="560"
+        height="315"
+        title="Vimeo video"
+        src="https://vimeo.com/1170179436"
+      />
+    </div>
+    <p><a href="../../test/index.html">← Back to test index</a></p>
 
-  <script type="module">
-    import { registerVimeoEmbed } from "../../dist/vimeo/index.js";
-    import { SOURCE_URL, VIDEO_ID } from "../../dist/vimeo/constants.js";
-    registerVimeoEmbed();
-    document.getElementById("vm-by-src").setAttribute("src", SOURCE_URL);
-    document.getElementById("vm-by-id").setAttribute("video-id", VIDEO_ID);
-    document.getElementById("vm-autoplay-btn").addEventListener("click", () => {
-      const wrap = document.getElementById("vm-autoplay-wrap");
-      if (wrap.querySelector("vimeo-embed")) return;
-      const el = document.createElement("vimeo-embed");
-      el.setAttribute("width", "560");
-      el.setAttribute("height", "315");
-      el.setAttribute("title", "Vimeo video (autoplay)");
-      el.setAttribute("autoplay", "");
-      el.setAttribute("src", SOURCE_URL);
-      wrap.appendChild(el);
-      document.getElementById("vm-autoplay-btn").disabled = true;
-    });
-  </script>
-</body>
+    <script type="module">
+      import "../../../dist/elements/vimeo/player.js";
+    </script>
+  </body>
 </html>
