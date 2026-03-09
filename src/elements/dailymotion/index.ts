@@ -6,12 +6,14 @@ export { createPlayer } from "./player.js";
 
 const provider = new DailymotionEmbed();
 
-/** The default Dailymotion embed provider (used by the custom element). Use provider.play(), provider.pause(), await provider.paused, await provider.currentTime. */
+/** Element class for `<dailymotion-embed>`. Use for React wrappers (e.g. createComponent from @lit/react). */
+export const DailymotionEmbedElement = createEmbedElement(provider);
+
 export { provider as dailymotionEmbedProvider };
 
 /** Register the custom element `<dailymotion-embed>`. No-op if customElements is unavailable (e.g. Node). */
 export function registerDailymotionEmbed(): void {
   if (typeof customElements !== "undefined" && !customElements.get("dailymotion-embed")) {
-    customElements.define("dailymotion-embed", createEmbedElement(provider));
+    customElements.define("dailymotion-embed", DailymotionEmbedElement);
   }
 }

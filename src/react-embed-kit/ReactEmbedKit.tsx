@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from "react";
-import type { IEmbedPlayer, IErrorData, IMuteData } from "../_base/index.js";
+import type { IEmbedPlayer, IErrorData, IMuteData } from "../elements/_base/index.js";
 import { getProviderForUrl } from "./providers.js";
 
 /** Props for ReactEmbedKit. Callbacks and options are typed explicitly so they infer correctly (no index signature). */

@@ -1,4 +1,4 @@
-import type { IEmbedProvider } from "../_base/index.js";
+import type { IEmbedProvider } from "../elements/_base/index.js";
 import { youtubeEmbedProvider } from "../youtube/index.js";
 import { twitchEmbedProvider } from "../twitch/index.js";
 import { tiktokEmbedProvider } from "../tiktok/index.js";

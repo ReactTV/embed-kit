@@ -1,21 +1,6 @@
 import type { IEmbedPlayer, IErrorData, TPlayerState } from "./player.js";
 
 /**
- * Default player state. Subclasses mutate this.playerState as the embed updates.
- */
-export function createDefaultPlayerState(overrides?: Partial<TPlayerState>): TPlayerState {
-  return {
-    currentTime: 0,
-    duration: 0,
-    isPlaying: false,
-    isPaused: true,
-    muted: false,
-    error: null,
-    ...overrides,
-  };
-}
-
-/**
  * Subset of HTMLVideoElement that EmbedPlayerVideoElement implements.
  * Type against this when you only need play, pause, currentTime, duration,
  * paused, muted, volume, src.
@@ -30,7 +15,7 @@ export type HTMLVideoElementSubset = Pick<
  * class and override play(), pause(), seek(), getters, etc., or (2) construct
  * it and call setPlayer(inner) when the inner IEmbedPlayer is ready.
  */
-export class EmbedPlayerVideoElement implements IEmbedPlayer, HTMLVideoElementSubset {
+export class EmbedPlayerVideoElement implements HTMLVideoElementSubset {
   readonly src: string;
   #player: IEmbedPlayer | null = null;
   /** Shared state shape; subclasses read/write this instead of defining their own. */
@@ -38,30 +23,35 @@ export class EmbedPlayerVideoElement implements IEmbedPlayer, HTMLVideoElementSu
   #readyPromise: Promise<EmbedPlayerVideoElement>;
   #resolveReady!: (value: EmbedPlayerVideoElement) => void;
 
-  constructor(url: string, stateOverrides?: Partial<TPlayerState>) {
+  constructor(url: string) {
     this.src = url;
-    this.playerState = createDefaultPlayerState(stateOverrides);
+
+    this.playerState = {
+      currentTime: 0,
+      duration: 0,
+      isPlaying: false,
+      isPaused: true,
+      muted: false,
+      error: null,
+    };
+
     this.#readyPromise = new Promise((resolve) => {
       this.#resolveReady = resolve;
     });
   }
 
-  /** Set the underlying player when ready. Omit if the subclass overrides play(), pause(), etc. */
   setPlayer(player: IEmbedPlayer): void {
     this.#player = player;
   }
 
-  /** Resolve when the player is ready. Subclasses should call markReady() when ready. */
   ready(): Promise<EmbedPlayerVideoElement> {
     return this.#readyPromise;
   }
 
-  /** Call when the player is ready (e.g. after first frame or API ready). Used by subclasses. */
   protected markReady(): void {
     this.#resolveReady(this as EmbedPlayerVideoElement);
   }
 
-  // ——— IEmbedPlayer / HTMLVideoElementSubset (override in subclasses or use setPlayer) ———
   play(): Promise<void> {
     return Promise.resolve(this.#player?.play()).then(() => undefined);
   }
@@ -114,17 +104,4 @@ export class EmbedPlayerVideoElement implements IEmbedPlayer, HTMLVideoElementSu
   requestPictureInPicture(): Promise<void> {
     return this.#player?.requestPictureInPicture?.() ?? Promise.resolve();
   }
-}
-
-/** Subset of HTMLVideoElement we implement for ref compatibility. */
-export interface IVideoElementMimic {
-  play(): void | Promise<void>;
-  pause(): void | Promise<void>;
-  currentTime: number;
-  readonly duration: number;
-  readonly paused: boolean;
-  muted: boolean;
-  volume: number;
-  readonly src: string;
-  readonly error: IErrorData | null;
 }

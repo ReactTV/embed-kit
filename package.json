@@ -65,6 +65,9 @@
       "default": "./dist/react-embed-kit/index.js"
     }
   },
+  "dependencies": {
+    "@lit/react": "^1.0.0"
+  },
   "peerDependencies": {
     "react": ">=18.0.0",
     "react-dom": ">=18.0.0"
@@ -82,6 +85,8 @@
     "README.md"
   ],
   "scripts": {
+    "generate": "node scripts/generate-react-wrappers.mjs",
+    "prebuild": "npm run generate",
     "lint": "eslint src/",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,json}\"",

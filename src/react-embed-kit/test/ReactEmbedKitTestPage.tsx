@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
-import type { IEmbedPlayer } from "../_base/index.js";
-import { ReactEmbedKit } from "./ReactEmbedKit.js";
+import type { IEmbedPlayer } from "../../elements/_base/index.js";
+import { ReactEmbedKit } from "../ReactEmbedKit.js";
 import {
   SOURCE_URL as YOUTUBE_SOURCE_URL,
   VIDEO_ID as YOUTUBE_VIDEO_ID,

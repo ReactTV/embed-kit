@@ -6,12 +6,14 @@ export { createPlayer } from "./player.js";
 
 const provider = new TwitchEmbed();
 
-/** The default Twitch embed provider (used by the custom element). Use provider.play(), provider.pause(), await provider.paused, await provider.currentTime. */
+/** Element class for `<twitch-embed>`. Use for React wrappers (e.g. createComponent from @lit/react). */
+export const TwitchEmbedElement = createEmbedElement(provider);
+
 export { provider as twitchEmbedProvider };
 
 /** Register the custom element `<twitch-embed>`. No-op if customElements is unavailable (e.g. Node). */
 export function registerTwitchEmbed(): void {
   if (typeof customElements !== "undefined" && !customElements.get("twitch-embed")) {
-    customElements.define("twitch-embed", createEmbedElement(provider));
+    customElements.define("twitch-embed", TwitchEmbedElement);
   }
 }

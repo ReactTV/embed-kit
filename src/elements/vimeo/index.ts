@@ -6,12 +6,15 @@ export { createPlayer } from "./player.js";
 
 const provider = new VimeoEmbed();
 
+/** Element class for `<vimeo-embed>`. Use for React wrappers (e.g. createComponent from @lit/react). */
+export const VimeoEmbedElement = createEmbedElement(provider);
+
 /** The default Vimeo embed provider (used by the custom element). Use provider.play(), provider.pause(), await provider.paused, await provider.currentTime. */
 export { provider as vimeoEmbedProvider };
 
 /** Register the custom element `<vimeo-embed>`. No-op if customElements is unavailable (e.g. Node). */
 export function registerVimeoEmbed(): void {
   if (typeof customElements !== "undefined" && !customElements.get("vimeo-embed")) {
-    customElements.define("vimeo-embed", createEmbedElement(provider));
+    customElements.define("vimeo-embed", VimeoEmbedElement);
   }
 }

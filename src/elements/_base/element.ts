@@ -11,10 +11,11 @@ const DEFAULT_HEIGHT = 315;
 export interface IEmbedProvider {
   readonly name: string;
   getEmbedUrl(id: string, options?: Record<string, unknown>): string;
-  parseSourceUrl(url: string): { id: string; provider: string; options?: Record<string, unknown> } | null;
+  parseSourceUrl(
+    url: string
+  ): { id: string; provider: string; options?: Record<string, unknown> } | null;
   createPlayer: TCreatePlayer;
 }
-
 
 /**
  * Creates a custom element class that mounts the provider's player and exposes
@@ -200,34 +201,36 @@ export function createEmbedElement(provider: IEmbedProvider): CustomElementConst
       const volume = volumeAttr !== null ? parseFloat(volumeAttr) : undefined;
       const noop = (): void => {};
       const userOnError = this.onError ?? noop;
-      this.#playerPromise = provider.createPlayer(container, id, {
-        width,
-        height,
-        autoplay,
-        ...(typeof volume === "number" && !Number.isNaN(volume) && { volume }),
-        onReady: this.onReady ?? noop,
-        onPlay: this.onPlay ?? noop,
-        onPause: this.onPause ?? noop,
-        onBuffering: this.onBuffering ?? noop,
-        onEnded: this.onEnded ?? noop,
-        onProgress: this.onProgress ?? noop,
-        onDurationChange: this.onDurationChange ?? noop,
-        onSeeking: this.onSeeking ?? noop,
-        onSeek: this.onSeek ?? noop,
-        onMute: this.onMute ?? noop,
-        onError: (data: IErrorData) => {
-          this.#lastError = data;
-          userOnError(data);
-        },
-        ...options,
-      }).then((player) => {
-        if (this.#renderId !== renderId) {
-          player.destroy?.();
+      this.#playerPromise = provider
+        .createPlayer(container, id, {
+          width,
+          height,
+          autoplay,
+          ...(typeof volume === "number" && !Number.isNaN(volume) && { volume }),
+          onReady: this.onReady ?? noop,
+          onPlay: this.onPlay ?? noop,
+          onPause: this.onPause ?? noop,
+          onBuffering: this.onBuffering ?? noop,
+          onEnded: this.onEnded ?? noop,
+          onProgress: this.onProgress ?? noop,
+          onDurationChange: this.onDurationChange ?? noop,
+          onSeeking: this.onSeeking ?? noop,
+          onSeek: this.onSeek ?? noop,
+          onMute: this.onMute ?? noop,
+          onError: (data: IErrorData) => {
+            this.#lastError = data;
+            userOnError(data);
+          },
+          ...options,
+        })
+        .then((player) => {
+          if (this.#renderId !== renderId) {
+            player.destroy?.();
+            return player;
+          }
+          this.#player = player;
           return player;
-        }
-        this.#player = player;
-        return player;
-      });
+        });
     }
   };
 }
