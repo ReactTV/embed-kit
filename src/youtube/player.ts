@@ -91,9 +91,7 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}): Promis
   const youtubeConfig = config?.youtube ?? {};
   const playerVars: Record<string, number | string> = {
     autoplay: autoplay ? 1 : 0,
-    ...Object.fromEntries(
-      Object.entries(youtubeConfig).filter(([, v]) => v !== undefined) as [string, number | string][]
-    ),
+    ...youtubeConfig,
   };
   if (controls !== undefined) playerVars.controls = controls ? 1 : 0;
   if (enableCaptions !== undefined) playerVars.cc_load_policy = enableCaptions ? 1 : 0;
@@ -105,7 +103,9 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}): Promis
     isPlaying: false,
     isPaused: true,
     muted: false,
-    ...(typeof initialVolume === "number" && initialVolume >= 0 && initialVolume <= 1 && { volume: initialVolume }),
+    ...(typeof initialVolume === "number" &&
+      initialVolume >= 0 &&
+      initialVolume <= 1 && { volume: initialVolume }),
     error: null,
   };
 

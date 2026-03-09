@@ -36,13 +36,11 @@ c
 
 ---
 
-## 4. **onDetailedError with raw MediaError / embed-disabled codes**
+## 4. **onDetailedError with raw MediaError / embed-disabled codes** ✅ Implemented
 
 - **ReactTV usage:** `onDetailedError?.(playerRef?.current?.error)` and checks for `mediaError?.code` in `[150, 101, 100]` to detect “embed disabled” and call `reportBrokenMedia` / show the right UI.
-- **embed-kit:** `onError(data: IErrorData)` with `IErrorData = { code?: number | string; message?: string }`. Providers map their errors into this; e.g. YouTube can map 150/101/100 to `code`.
-- **Migration options:**
-  - In ReactTV: use `onError` and treat `data.code === 150 | 101 | 100` the same as today’s `onDetailedError(mediaError)`.
-  - Ensure in embed-kit that the YouTube (and any other) provider maps those embed-disabled codes into `onError({ code: 150 })` etc. so no extra API is needed.
+- **embed-kit:** `onError(data: IErrorData)` with `IErrorData = { code?: number | string; message?: string }`. YouTube maps IFrame API `ev.data` (150, 101, 100, etc.) to `data.code`. Use `onError` and check `data.code` in `[150, 101, 100]` for embed-disabled; or read `playerRef.current?.error?.code`.
+- **Migration:** Use `onError` (or `playerRef.current?.error`) and treat `data.code === 150 || data.code === 101 || data.code === 100` as embed-disabled (e.g. call `reportBrokenMedia()`).
 
 ---
 
