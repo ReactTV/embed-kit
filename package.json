@@ -88,6 +88,7 @@
     "build": "tsc",
     "build:watch": "tsc --watch",
     "clean": "rm -rf dist",
+    "prepare": "npm run build",
     "prepublishOnly": "npm run clean && npm run build",
     "test": "npm run build && concurrently \"npm run build:watch\" \"npx serve . --listen 3333\""
   },
