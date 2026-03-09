@@ -1,8 +1,13 @@
 import { useRef, useEffect, useState } from "react";
-import type { ICreatePlayerOptions, IEmbedPlayer, IEmbedProgressEvent, IErrorData, IMuteData } from "../elements/_base/player.js";
+import type {
+  ICreatePlayerOptions,
+  IEmbedPlayer,
+  IEmbedProgressEvent,
+  IErrorData,
+  IMuteData,
+} from "../elements/_base/player.js";
 import { getProviderForUrl, loadPlayerModule } from "./providers.js";
 
-/** Props for ReactEmbedKit. Callbacks and options are typed explicitly so they infer correctly (no index signature). */
 export interface ReactEmbedKitProps {
   url: string;
   width?: number;
@@ -10,25 +15,17 @@ export interface ReactEmbedKitProps {
   className?: string;
   style?: React.CSSProperties;
   autoplay?: boolean;
-  /** When set, syncs play/pause to the player (e.g. playing={true} calls play()). Undefined is treated as false. */
   playing?: boolean;
-  /** When true, requests picture-in-picture when ready. Only if the provider supports it. */
   pip?: boolean;
-  /** Initial volume 0–1. Not all providers support volume. */
   volume?: number;
   progressInterval?: number;
-  /** Show native player controls. Default true. YouTube: playerVars.controls. */
   controls?: boolean;
-  /** Load captions by default when available. YouTube: cc_load_policy. */
   enableCaptions?: boolean;
-  /** Show video annotations (e.g. YouTube cards). YouTube: iv_load_policy (1 = show, 3 = hide). */
   showAnnotations?: boolean;
-  /** Provider-specific config. e.g. config={{ youtube: { origin }, vimeo: { title: 0 } }}. */
   config?: {
     youtube?: Record<string, number | string | undefined>;
     vimeo?: Record<string, number | string | undefined>;
   };
-  /** Ref set to the embed element (play, pause, currentTime, etc.) when ready. Cleared on unmount. */
   playerRef?: React.Ref<IEmbedPlayer | null>;
   onUnsupportedUrl?: (url: string) => void;
   onError?: (data: IErrorData) => void;
@@ -37,9 +34,7 @@ export interface ReactEmbedKitProps {
   onPause?: () => void;
   onBuffering?: () => void;
   onEnded?: () => void;
-  /** Fired on progress interval. event.target is the embed element (currentTime get/set); event.detail is currentTime. */
   onProgress?: (event: IEmbedProgressEvent) => void;
-  /** Fired when duration is known or changes (e.g. after metadata load). */
   onDurationChange?: (duration: number) => void;
   onSeeking?: () => void;
   onSeek?: (currentTime: number) => void;
@@ -139,7 +134,7 @@ export function ReactEmbedKit({
 
     const { tagName, url: embedUrl } = resolved;
     let cancelled = false;
-    let element: HTMLElement & IEmbedPlayer | null = null;
+    let element: (HTMLElement & IEmbedPlayer) | null = null;
 
     const opts: ICreatePlayerOptions = {
       width,
@@ -197,7 +192,8 @@ export function ReactEmbedKit({
         });
         el.addEventListener("mute", (e: Event) => {
           const detail = (e as CustomEvent).detail;
-          const muted = typeof detail === "boolean" ? detail : (detail as IMuteData)?.muted ?? false;
+          const muted =
+            typeof detail === "boolean" ? detail : ((detail as IMuteData)?.muted ?? false);
           optionsRef.current.onMute?.({ muted });
         });
         el.addEventListener("playbackqualitychange", (e: Event) => {
@@ -234,16 +230,7 @@ export function ReactEmbedKit({
         container.innerHTML = "";
       }
     };
-  }, [
-    url,
-    width,
-    height,
-    autoplay,
-    controls,
-    enableCaptions,
-    showAnnotations,
-    progressInterval,
-  ]);
+  }, [url, width, height, autoplay, controls, enableCaptions, showAnnotations, progressInterval]);
 
   // Sync controlled playing state to the player when it or the player changes.
   useEffect(() => {

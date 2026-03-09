@@ -29,9 +29,6 @@ export interface IIframeEmbedProps {
   [key: string]: string | number | boolean | undefined;
 }
 
-const DEFAULT_WIDTH = 560;
-const DEFAULT_HEIGHT = 315;
-
 function escapeHtmlAttr(value: string): string {
   return value
     .replace(/&/g, "&amp;")
@@ -60,8 +57,8 @@ function boolAttr(name: string, condition: boolean): string | null {
 export function renderEmbedIframe(props: IIframeEmbedProps): string {
   const {
     src,
-    width = DEFAULT_WIDTH,
-    height = DEFAULT_HEIGHT,
+    width = "100%",
+    height = "100%",
     title = "",
     allow,
     allowFullScreen = true,
