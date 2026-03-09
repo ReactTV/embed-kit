@@ -1,136 +1,166 @@
-import type { ICreatePlayerOptions } from "../_base/index.js";
-import type { DailymotionPlayer, DailymotionPlayerState } from "./player.types.js";
 import { createPlayerContainer, loadScript, EmbedPlayerVideoElement } from "../_base/index.js";
+import { REGEX_VIDEO, REGEX_SHORT, REGEX_EMBED } from "./constants.js";
+import type { DailymotionPlayer, DailymotionPlayerState } from "./player.types.js";
 
 const DAILYMOTION_LIB = "https://geo.dailymotion.com/libs/player.js";
+
+function loadDailymotionScript(): Promise<void> {
+  return loadScript(DAILYMOTION_LIB, {
+    isLoaded: () => !!window.dailymotion?.createPlayer,
+    errorMessage: "Failed to load Dailymotion player script",
+  });
+}
+
+function parseDailymotionId(src: string): string | undefined {
+  return src.match(REGEX_VIDEO)?.[1] ?? src.match(REGEX_SHORT)?.[1] ?? src.match(REGEX_EMBED)?.[1];
+}
 
 /**
  * Dailymotion embed player as a subclass of EmbedPlayerVideoElement.
  */
 class DailymotionEmbedPlayer extends EmbedPlayerVideoElement {
-  #dmPlayer: DailymotionPlayer | null = null;
-  #wrapper: HTMLElement;
-  #options: ICreatePlayerOptions;
+  protected player: DailymotionPlayer | null = null;
+  protected wrapper: HTMLDivElement | null = null;
+  protected dmPlayerState: { destroyed: boolean } = { destroyed: false };
 
-  constructor(container: HTMLElement, id: string, options: ICreatePlayerOptions = {}) {
-    // super(options.url ?? `https://www.dailymotion.com/video/${id}`);
-    super();
-    this.#options = options;
-    const { width = 560, height = 315, autoplay = false, controls = true } = this.#options;
+  connectedCallback(): void {
+    const src = this.getAttribute("src");
+
+    if (!src) return;
+
+    const videoId = parseDailymotionId(src);
+    if (!videoId) return;
+
+    const width = Number(this.getAttribute("width")) || (this.options.width ?? 560);
+    const height = Number(this.getAttribute("height")) || (this.options.height ?? 315);
+    const autoplay =
+      this.getAttribute("autoplay") != null
+        ? this.getAttribute("autoplay") !== "false"
+        : (this.options.autoplay ?? false);
+    const controls =
+      this.getAttribute("controls") != null
+        ? this.getAttribute("controls") !== "false"
+        : (this.options.controls ?? true);
 
     const params: Record<string, unknown> = {};
     if (autoplay) params.autoplay = true;
     if (!controls) params.controls = false;
 
     const { element: wrapper, id: containerId } = createPlayerContainer(
-      container,
+      this,
       "dailymotion-player",
       { width, height }
     );
-    this.#wrapper = wrapper;
+    this.wrapper = wrapper;
+    this.dmPlayerState = { destroyed: false };
 
-    void loadScript(DAILYMOTION_LIB, {
-      isLoaded: () => !!window.dailymotion?.createPlayer,
-      errorMessage: "Failed to load Dailymotion player script",
-    })
+    void loadDailymotionScript()
       .then(() => {
+        if (this.dmPlayerState.destroyed) return undefined;
         if (!window.dailymotion?.createPlayer) {
-          wrapper.remove();
           return Promise.reject(new Error("Dailymotion player API not available"));
         }
         return window.dailymotion.createPlayer(containerId, {
-          video: id,
+          video: videoId,
           ...(Object.keys(params).length > 0 ? { params } : {}),
         });
       })
       .then((dmPlayer) => {
-        this.#dmPlayer = dmPlayer;
+        if (!dmPlayer || this.dmPlayerState.destroyed) return;
+
+        this.player = dmPlayer;
         const { events } = window.dailymotion!;
-        const {
-          onReady = () => {},
-          onPlay = () => {},
-          onPause = () => {},
-          onBuffering = () => {},
-          onEnded = () => {},
-          onProgress = () => {},
-          onDurationChange = () => {},
-          onSeek = () => {},
-          onSeeking = () => {},
-          onError = () => {},
-        } = this.#options;
+
+        const handleError = (): void => {
+          this.playerState.error = {
+            code: 0,
+            message: "Dailymotion playback error",
+          } as MediaError;
+          this.dispatchEvent(new CustomEvent("error", { detail: this.playerState.error }));
+        };
+
         dmPlayer.on(events.VIDEO_PLAY, () => {
           this.playerState.isPlaying = true;
           this.playerState.isPaused = false;
-          onPlay();
+          this.dispatchEvent(new Event("play"));
         });
         dmPlayer.on(events.VIDEO_PAUSE, () => {
           this.playerState.isPlaying = false;
           this.playerState.isPaused = true;
-          onPause();
+          this.dispatchEvent(new Event("pause"));
         });
-        dmPlayer.on(events.VIDEO_SEEKSTART, onSeeking);
+        dmPlayer.on(events.VIDEO_SEEKSTART, () => this.dispatchEvent(new Event("seeking")));
         dmPlayer.on(events.VIDEO_SEEKEND, (data: DailymotionPlayerState) => {
           this.playerState.currentTime = data.videoTime ?? 0;
-          onSeek(this.playerState.currentTime);
+          this.dispatchEvent(new CustomEvent("seek", { detail: this.playerState.currentTime }));
         });
-        dmPlayer.on(events.VIDEO_BUFFERING, onBuffering);
-        dmPlayer.on(events.VIDEO_END, onEnded);
+        dmPlayer.on(events.VIDEO_BUFFERING, () => this.dispatchEvent(new Event("buffering")));
+        dmPlayer.on(events.VIDEO_END, () => this.dispatchEvent(new Event("ended")));
         dmPlayer.on(events.PLAYER_VOLUMECHANGE, (data: DailymotionPlayerState) => {
           this.playerState.muted = data.playerIsMuted ?? false;
           if (typeof data.playerVolume === "number" && !Number.isNaN(data.playerVolume)) {
             this.playerState.volume = data.playerVolume;
           }
+          this.dispatchEvent(new CustomEvent("mute", { detail: this.playerState.muted }));
         });
         dmPlayer.on(events.VIDEO_DURATIONCHANGE, (data: DailymotionPlayerState) => {
           const nextDuration = data.videoDuration ?? 0;
           if (nextDuration !== this.playerState.duration) {
             this.playerState.duration = nextDuration;
-            onDurationChange(this.playerState.duration);
+            this.dispatchEvent(
+              new CustomEvent("durationchange", { detail: this.playerState.duration })
+            );
           }
         });
-        const handleError = (): void => {
-          this.playerState.error = { code: 0, message: "Dailymotion playback error" } as MediaError;
-          onError(this.playerState.error);
-        };
         dmPlayer.on(events.PLAYER_ERROR, handleError);
         if (events.VIDEO_ERROR) dmPlayer.on(events.VIDEO_ERROR, handleError);
         dmPlayer.on(events.VIDEO_TIMECHANGE, (state?: DailymotionPlayerState) => {
           this.playerState.currentTime = state?.videoTime ?? 0;
-          onProgress(this.playerState.currentTime);
+          this.dispatchEvent(new CustomEvent("progress", { detail: this.playerState.currentTime }));
         });
-        onReady();
+
+        this.dispatchEvent(new Event("ready"));
       })
       .catch((err) => {
-        wrapper.remove();
+        if (this.wrapper?.parentNode) this.wrapper.remove();
+        this.wrapper = null;
         throw err;
       });
   }
 
   override play(): Promise<void> {
-    this.#dmPlayer?.play();
+    this.player?.play();
     return Promise.resolve();
   }
   override pause(): Promise<void> {
-    this.#dmPlayer?.pause();
+    this.player?.pause();
     return Promise.resolve();
   }
   override seek(seconds: number): void {
-    this.#dmPlayer?.seek(seconds);
-    this.#options.onSeek?.(seconds);
+    this.player?.seek(seconds);
+    this.playerState.currentTime = seconds;
+    this.dispatchEvent(new CustomEvent("seek", { detail: seconds }));
   }
   override mute(): void {
-    this.#dmPlayer?.setMute(true);
+    this.player?.setMute(true);
     this.playerState.muted = true;
-    this.#options.onMute?.({ muted: true });
+    this.dispatchEvent(new CustomEvent("mute", { detail: true }));
   }
   override unmute(): void {
-    this.#dmPlayer?.setMute(false);
+    this.player?.setMute(false);
     this.playerState.muted = false;
-    this.#options.onMute?.({ muted: false });
+    this.dispatchEvent(new CustomEvent("unmute", { detail: false }));
   }
   override destroy(): void {
-    this.#dmPlayer?.destroy();
-    this.#wrapper.remove();
+    this.dmPlayerState.destroyed = true;
+    this.player?.destroy();
+    this.player = null;
+    if (this.wrapper?.parentNode) this.wrapper.remove();
+    this.wrapper = null;
+    if (this.parentNode) this.remove();
+  }
+  override get paused(): boolean {
+    return this.playerState.isPaused;
   }
   override get currentTime(): number {
     return this.playerState.currentTime;
@@ -141,18 +171,15 @@ class DailymotionEmbedPlayer extends EmbedPlayerVideoElement {
   override get duration(): number {
     return this.playerState.duration;
   }
-  override get paused(): boolean {
-    return this.playerState.isPaused;
-  }
   override get muted(): boolean {
     return this.playerState.muted;
   }
   override get volume(): number {
-    return this.playerState.volume ?? this.#dmPlayer?.getVolume?.() ?? 1;
+    return this.playerState.volume ?? this.player?.getVolume?.() ?? 1;
   }
   override set volume(vol: number) {
     const v = Math.max(0, Math.min(1, vol));
-    this.#dmPlayer?.setVolume?.(v);
+    this.player?.setVolume?.(v);
     this.playerState.volume = v;
   }
   override get error() {
@@ -161,7 +188,5 @@ class DailymotionEmbedPlayer extends EmbedPlayerVideoElement {
 }
 
 if (globalThis.customElements && !globalThis.customElements.get("dailymotion-video")) {
-  globalThis.customElements.define("dailymotion-video", DailymotionEmbedPlayer, {
-    extends: "video",
-  });
+  globalThis.customElements.define("dailymotion-video", DailymotionEmbedPlayer);
 }
