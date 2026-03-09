@@ -2,8 +2,6 @@ import {
   createEmbedIframeElement,
   EmbedPlayerVideoElement,
   type ICreatePlayerOptions,
-  type IEmbedPlayer,
-  type TCreatePlayer,
 } from "../_base/index.js";
 import {
   EMBED_ORIGIN,
@@ -22,11 +20,7 @@ class TwitchEmbedPlayer extends EmbedPlayerVideoElement {
   #handleMessage: (event: MessageEvent) => void;
   #options: ICreatePlayerOptions;
 
-  constructor(
-    container: HTMLElement,
-    id: string,
-    options: ICreatePlayerOptions = {},
-  ) {
+  constructor(container: HTMLElement, id: string, options: ICreatePlayerOptions = {}) {
     const { twitchType } = options as typeof options & { twitchType?: string };
     const embedUrl =
       twitchType === "clip"
@@ -71,7 +65,7 @@ class TwitchEmbedPlayer extends EmbedPlayerVideoElement {
       if (!iframe.contentWindow) return;
       iframe.contentWindow.postMessage(
         { eventName: command, params, namespace: NS_PLAYER_PROXY },
-        EMBED_ORIGIN,
+        EMBED_ORIGIN
       );
     };
 
@@ -89,7 +83,8 @@ class TwitchEmbedPlayer extends EmbedPlayerVideoElement {
         }
         if (message.eventName === "error") {
           const msg = message.params?.message ?? "Twitch embed error";
-          this.playerState.error = { message: msg };
+          const customError = { code: 0, message: msg } as MediaError;
+          this.playerState.error = customError;
           onError(this.playerState.error);
         }
         if (message.eventName === "seek") {
@@ -119,7 +114,8 @@ class TwitchEmbedPlayer extends EmbedPlayerVideoElement {
           onDurationChange(p.duration);
         }
         if (typeof p.muted === "boolean") this.playerState.muted = p.muted;
-        if (typeof p.volume === "number" && !Number.isNaN(p.volume)) this.playerState.volume = p.volume;
+        if (typeof p.volume === "number" && !Number.isNaN(p.volume))
+          this.playerState.volume = p.volume;
         onProgress(p.currentTime);
       }
     };
@@ -132,7 +128,7 @@ class TwitchEmbedPlayer extends EmbedPlayerVideoElement {
     if (this.#iframe.contentWindow) {
       this.#iframe.contentWindow.postMessage(
         { eventName: PlayerCommands.PLAY, params: undefined, namespace: NS_PLAYER_PROXY },
-        EMBED_ORIGIN,
+        EMBED_ORIGIN
       );
     }
     this.#options.onPlay?.();
@@ -143,7 +139,7 @@ class TwitchEmbedPlayer extends EmbedPlayerVideoElement {
     if (this.#iframe.contentWindow) {
       this.#iframe.contentWindow.postMessage(
         { eventName: PlayerCommands.PAUSE, params: undefined, namespace: NS_PLAYER_PROXY },
-        EMBED_ORIGIN,
+        EMBED_ORIGIN
       );
     }
     this.#options.onPause?.();
@@ -153,7 +149,7 @@ class TwitchEmbedPlayer extends EmbedPlayerVideoElement {
     if (this.#iframe.contentWindow) {
       this.#iframe.contentWindow.postMessage(
         { eventName: PlayerCommands.SEEK, params: seconds, namespace: NS_PLAYER_PROXY },
-        EMBED_ORIGIN,
+        EMBED_ORIGIN
       );
     }
     this.playerState.currentTime = seconds;
@@ -164,7 +160,7 @@ class TwitchEmbedPlayer extends EmbedPlayerVideoElement {
     if (this.#iframe.contentWindow) {
       this.#iframe.contentWindow.postMessage(
         { eventName: PlayerCommands.SET_MUTED, params: true, namespace: NS_PLAYER_PROXY },
-        EMBED_ORIGIN,
+        EMBED_ORIGIN
       );
     }
     this.#options.onMute?.({ muted: true });
@@ -174,7 +170,7 @@ class TwitchEmbedPlayer extends EmbedPlayerVideoElement {
     if (this.#iframe.contentWindow) {
       this.#iframe.contentWindow.postMessage(
         { eventName: PlayerCommands.SET_MUTED, params: false, namespace: NS_PLAYER_PROXY },
-        EMBED_ORIGIN,
+        EMBED_ORIGIN
       );
     }
     this.#options.onMute?.({ muted: false });
@@ -207,7 +203,7 @@ class TwitchEmbedPlayer extends EmbedPlayerVideoElement {
     if (this.#iframe.contentWindow) {
       this.#iframe.contentWindow.postMessage(
         { eventName: PlayerCommands.SET_VOLUME, params: v, namespace: NS_PLAYER_PROXY },
-        EMBED_ORIGIN,
+        EMBED_ORIGIN
       );
     }
   }
@@ -216,15 +212,8 @@ class TwitchEmbedPlayer extends EmbedPlayerVideoElement {
   }
 }
 
-/**
- * Create a Twitch player in the given container (video by id, channel by name, or clip by slug).
- * Returns an EmbedPlayerVideoElement that mimics HTMLVideoElement.
- */
-export const createPlayer: TCreatePlayer = (
-  container,
-  id,
-  options = {},
-): Promise<IEmbedPlayer> => {
-  const element = new TwitchEmbedPlayer(container, id, options);
-  return element.ready();
-};
+if (globalThis.customElements && !globalThis.customElements.get("twitch-video")) {
+  globalThis.customElements.define("twitch-video", TwitchEmbedPlayer, {
+    extends: "video",
+  });
+}
