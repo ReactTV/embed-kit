@@ -73,12 +73,8 @@ class YouTubeEmbedPlayer extends EmbedPlayerVideoElement {
   #progressInterval: number;
 
   constructor(container: HTMLElement, id: string, options: ICreatePlayerOptions = {}) {
-    const initialVolume = options.volume;
-    const stateOverrides =
-      typeof initialVolume === "number" && initialVolume >= 0 && initialVolume <= 1
-        ? { volume: initialVolume }
-        : undefined;
-    super(options.url ?? `https://www.youtube.com/watch?v=${id}`, stateOverrides);
+    // super(options.url ?? `https://www.youtube.com/watch?v=${id}`);
+    super();
     this.#options = options;
     const {
       width = 560,
@@ -175,7 +171,6 @@ class YouTubeEmbedPlayer extends EmbedPlayerVideoElement {
               this.playerState.currentTime = this.#player.getCurrentTime();
               this.playerState.error = null;
             }, this.#progressInterval);
-            this.markReady();
           },
           onStateChange: (ev: { data: number }) => {
             if (ev.data === PlayerState.PLAYING) onPlay();

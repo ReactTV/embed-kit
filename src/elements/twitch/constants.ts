@@ -69,7 +69,7 @@ export const CLIP_SLUG = "BrightResourcefulLeopardSeemsGood-CVvpRL5aVhKwP6_U";
 export const CLIP_SOURCE_URL = `https://clips.twitch.tv/${CLIP_SLUG}`;
 
 /** Channel name for livestream embeds. */
-export const CHANNEL_NAME = "twitch";
+export const CHANNEL_NAME = "ashesofowls";
 
 /** Full livestream URL for src attribute. */
 export const CHANNEL_SOURCE_URL = `https://www.twitch.tv/${CHANNEL_NAME}`;

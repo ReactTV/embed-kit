@@ -32,7 +32,8 @@ class VimeoEmbedPlayer extends EmbedPlayerVideoElement {
   constructor(container: HTMLElement, id: string, options: ICreatePlayerOptions = {}) {
     const opts = options as typeof options & { vimeoHash?: string };
     const initialVolume = options.volume;
-    super(opts.url ?? `https://player.vimeo.com/video/${id}`);
+    // super(opts.url ?? `https://player.vimeo.com/video/${id}`);
+    super();
     this.#options = options;
     const {
       width = 560,
@@ -128,7 +129,6 @@ class VimeoEmbedPlayer extends EmbedPlayerVideoElement {
         });
       }
       onReady();
-      this.markReady();
     });
   }
 

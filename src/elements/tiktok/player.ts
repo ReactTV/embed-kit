@@ -32,7 +32,8 @@ class TikTokEmbedPlayer extends EmbedPlayerVideoElement {
   #options: ICreatePlayerOptions;
 
   constructor(container: HTMLElement, id: string, options: ICreatePlayerOptions = {}) {
-    super(options.url ?? `https://www.tiktok.com/@/video/${id}`);
+    // super(options.url ?? `https://www.tiktok.com/@/video/${id}`);
+    super();
     this.#options = options;
     const {
       width = 325,
@@ -73,7 +74,6 @@ class TikTokEmbedPlayer extends EmbedPlayerVideoElement {
       switch (data.type) {
         case "onPlayerReady":
           onReady();
-          this.markReady();
           break;
         case "onStateChange":
           if (typeof data.value === "number") {
@@ -165,7 +165,5 @@ class TikTokEmbedPlayer extends EmbedPlayerVideoElement {
 }
 
 if (globalThis.customElements && !globalThis.customElements.get("tiktok-video")) {
-  globalThis.customElements.define("tiktok-video", TikTokEmbedPlayer, {
-    extends: "video",
-  });
+  globalThis.customElements.define("tiktok-video", TikTokEmbedPlayer);
 }

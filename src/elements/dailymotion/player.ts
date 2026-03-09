@@ -13,7 +13,8 @@ class DailymotionEmbedPlayer extends EmbedPlayerVideoElement {
   #options: ICreatePlayerOptions;
 
   constructor(container: HTMLElement, id: string, options: ICreatePlayerOptions = {}) {
-    super(options.url ?? `https://www.dailymotion.com/video/${id}`);
+    // super(options.url ?? `https://www.dailymotion.com/video/${id}`);
+    super();
     this.#options = options;
     const { width = 560, height = 315, autoplay = false, controls = true } = this.#options;
 
@@ -98,7 +99,6 @@ class DailymotionEmbedPlayer extends EmbedPlayerVideoElement {
           onProgress(this.playerState.currentTime);
         });
         onReady();
-        this.markReady();
       })
       .catch((err) => {
         wrapper.remove();

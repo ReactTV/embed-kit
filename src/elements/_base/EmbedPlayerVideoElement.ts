@@ -5,30 +5,27 @@ import type { IEmbedPlayer, TPlayerState } from "./player.js";
  * class and override play(), pause(), seek(), getters, etc., or (2) construct
  * it and call setPlayer(inner) when the inner IEmbedPlayer is ready.
  */
-export class EmbedPlayerVideoElement extends HTMLVideoElement {
-  readonly src: string;
+export class EmbedPlayerVideoElement extends HTMLElement {
+  readonly src: string = "";
   #player: IEmbedPlayer | null = null;
+  iframe: HTMLIFrameElement | null = null;
+  handleMessage: (event: MessageEvent) => void = () => {};
+  // #options: ICreatePlayerOptions = {};
   /** Shared state shape; subclasses read/write this instead of defining their own. */
-  protected playerState: TPlayerState;
-  #readyPromise: Promise<EmbedPlayerVideoElement>;
-  #resolveReady!: (value: EmbedPlayerVideoElement) => void;
+  protected playerState: TPlayerState = {
+    currentTime: 0,
+    duration: 0,
+    isPlaying: false,
+    isPaused: true,
+    muted: false,
+    error: null,
+  };
+  #readyPromise: Promise<EmbedPlayerVideoElement> = Promise.resolve(
+    this as EmbedPlayerVideoElement
+  );
 
-  constructor(url: string) {
-    super();
-    this.src = url;
-
-    this.playerState = {
-      currentTime: 0,
-      duration: 0,
-      isPlaying: false,
-      isPaused: true,
-      muted: false,
-      error: null,
-    };
-
-    this.#readyPromise = new Promise((resolve) => {
-      this.#resolveReady = resolve;
-    });
+  connectedCallback(): void {
+    console.log("connectedCallback", this.src);
   }
 
   setPlayer(player: IEmbedPlayer): void {
@@ -37,10 +34,6 @@ export class EmbedPlayerVideoElement extends HTMLVideoElement {
 
   ready(): Promise<EmbedPlayerVideoElement> {
     return this.#readyPromise;
-  }
-
-  protected markReady(): void {
-    this.#resolveReady(this as EmbedPlayerVideoElement);
   }
 
   play(): Promise<void> {
