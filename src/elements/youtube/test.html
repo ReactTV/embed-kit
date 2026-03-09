@@ -1,54 +1,77 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>YouTube embed — embed-kit</title>
-  <style>
-    body { font-family: system-ui, sans-serif; max-width: 42rem; margin: 2rem auto; padding: 0 1rem; }
-    h1 { font-size: 1.25rem; }
-    .embed-wrap { margin: 1rem 0; }
-    youtube-embed { display: block; }
-    youtube-embed:not(:defined) { min-height: 200px; background: #eee; display: flex; align-items: center; justify-content: center; color: #666; }
-    youtube-embed:not(:defined)::before { content: "Loading… (use npx serve . if this stays)"; }
-    .server-hint { font-size: 0.875rem; color: #666; margin-bottom: 1rem; }
-  </style>
-</head>
-<body>
-  <h1>YouTube embed</h1>
-  <p class="server-hint">If embeds don’t appear, run <code>npx serve .</code> from the project root (ES modules require a server).</p>
-  <h2>Autoplay</h2>
-  <div class="embed-wrap" id="yt-autoplay-wrap"></div>
-  <button type="button" id="yt-autoplay-btn">Load autoplay video</button>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>YouTube video — embed-kit</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 42rem;
+        margin: 2rem auto;
+        padding: 0 1rem;
+      }
+      h1 {
+        font-size: 1.25rem;
+      }
+      .embed-wrap {
+        margin: 1rem 0;
+      }
+      youtube-video {
+        display: block;
+      }
+      youtube-video:not(:defined) {
+        min-height: 200px;
+        background: #eee;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #666;
+      }
+      youtube-video:not(:defined)::before {
+        content: "Loading… (use npx serve . if this stays)";
+      }
+      .server-hint {
+        font-size: 0.875rem;
+        color: #666;
+        margin-bottom: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>YouTube embed</h1>
+    <p class="server-hint">
+      If embeds don’t appear, run <code>npx serve .</code> from the project root (ES modules require
+      a server).
+    </p>
+    <h2>Autoplay</h2>
+    <div class="embed-wrap" id="yt-autoplay-wrap"></div>
+    <button type="button" id="yt-autoplay-btn">Load autoplay video</button>
 
-  <h2>By URL (<code>src</code>)</h2>
-  <div class="embed-wrap">
-    <youtube-embed id="yt-by-src" width="560" height="315" title="YouTube video"></youtube-embed>
-  </div>
-  <h2>By video id (<code>video-id</code>)</h2>
-  <div class="embed-wrap">
-    <youtube-embed id="yt-by-id" width="560" height="315" title="YouTube video"></youtube-embed>
-  </div>
-  <p><a href="../../test/index.html">← Back to test index</a></p>
+    <h2>By URL (<code>src</code>)</h2>
+    <div class="embed-wrap">
+      <youtube-video
+        id="yt-by-src"
+        width="560"
+        height="315"
+        title="YouTube video"
+        src="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+      />
+    </div>
+    <h2>By video id (<code>video-id</code>)</h2>
+    <div class="embed-wrap">
+      <youtube-video
+        id="yt-by-id"
+        width="560"
+        height="315"
+        title="YouTube video"
+        src="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+      />
+    </div>
+    <p><a href="../../test/index.html">← Back to test index</a></p>
 
-  <script type="module">
-    import { registerYouTubeEmbed } from "../../dist/youtube/index.js";
-    import { SOURCE_URL, VIDEO_ID } from "../../dist/youtube/constants.js";
-    registerYouTubeEmbed();
-    document.getElementById("yt-by-src").setAttribute("src", SOURCE_URL);
-    document.getElementById("yt-by-id").setAttribute("video-id", VIDEO_ID);
-    document.getElementById("yt-autoplay-btn").addEventListener("click", () => {
-      const wrap = document.getElementById("yt-autoplay-wrap");
-      if (wrap.querySelector("youtube-embed")) return;
-      const el = document.createElement("youtube-embed");
-      el.setAttribute("width", "560");
-      el.setAttribute("height", "315");
-      el.setAttribute("title", "YouTube video (autoplay)");
-      el.setAttribute("autoplay", "");
-      el.setAttribute("src", SOURCE_URL);
-      wrap.appendChild(el);
-      document.getElementById("yt-autoplay-btn").disabled = true;
-    });
-  </script>
-</body>
+    <script type="module">
+      import "../../../dist/elements/youtube/player.js";
+    </script>
+  </body>
 </html>

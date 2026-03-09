@@ -1,4 +1,4 @@
-import type { IEmbedPlayer, TPlayerState } from "./player.js";
+import type { ICreatePlayerOptions, TPlayerState } from "./player.js";
 
 /**
  * Class-based mimic of HTMLVideoElement. Providers can either (1) extend this
@@ -7,11 +7,11 @@ import type { IEmbedPlayer, TPlayerState } from "./player.js";
  */
 export class EmbedPlayerVideoElement extends HTMLElement {
   readonly src: string = "";
-  #player: IEmbedPlayer | null = null;
   iframe: HTMLIFrameElement | null = null;
   handleMessage: (event: MessageEvent) => void = () => {};
-  // #options: ICreatePlayerOptions = {};
   /** Shared state shape; subclasses read/write this instead of defining their own. */
+  protected options: ICreatePlayerOptions = {};
+
   protected playerState: TPlayerState = {
     currentTime: 0,
     duration: 0,
@@ -20,69 +20,51 @@ export class EmbedPlayerVideoElement extends HTMLElement {
     muted: false,
     error: null,
   };
-  #readyPromise: Promise<EmbedPlayerVideoElement> = Promise.resolve(
-    this as EmbedPlayerVideoElement
-  );
-
-  connectedCallback(): void {
-    console.log("connectedCallback", this.src);
-  }
-
-  setPlayer(player: IEmbedPlayer): void {
-    this.#player = player;
-  }
-
-  ready(): Promise<EmbedPlayerVideoElement> {
-    return this.#readyPromise;
-  }
 
   play(): Promise<void> {
-    return Promise.resolve(this.#player?.play()).then(() => undefined);
+    return Promise.resolve();
   }
   pause(): Promise<void> {
-    return Promise.resolve(this.#player?.pause()).then(() => undefined);
+    return Promise.resolve();
   }
-  seek(seconds: number): void | Promise<void> {
-    return this.#player?.seek(seconds);
+  seek(_seconds: number): void | Promise<void> {
+    return Promise.resolve();
   }
   mute(): void | Promise<void> {
-    return this.#player?.mute();
+    return Promise.resolve();
   }
   unmute(): void | Promise<void> {
-    return this.#player?.unmute();
+    return Promise.resolve();
   }
   destroy(): void | Promise<void> {
-    return this.#player?.destroy?.();
+    return Promise.resolve();
   }
   get paused(): boolean {
-    return this.#player?.paused ?? true;
+    return false;
   }
   get currentTime(): number {
-    return this.#player?.currentTime ?? 0;
+    return 0;
   }
-  set currentTime(seconds: number) {
-    this.#player?.seek(seconds);
+  set currentTime(_seconds: number) {
+    //
   }
   get duration(): number {
-    return this.#player?.duration ?? 0;
+    return 0;
   }
   get muted(): boolean {
-    return this.#player?.muted ?? false;
+    return false;
   }
-  set muted(value: boolean) {
-    if (value) this.#player?.mute();
-    else this.#player?.unmute();
+  set muted(_value: boolean) {
+    //
   }
+
   get volume(): number {
-    return this.#player?.volume ?? 1;
+    return 1;
   }
-  set volume(value: number) {
-    this.#player?.setVolume?.(value);
+  set volume(_value: number) {
+    //
   }
   get error() {
     return this.playerState.error;
-  }
-  setVolume(volume: number): void | Promise<void> {
-    return this.#player?.setVolume?.(volume);
   }
 }
