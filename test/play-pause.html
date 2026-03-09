@@ -1,354 +1,460 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Play / Pause API tests — embed-kit</title>
-  <style>
-    body { font-family: system-ui, sans-serif; max-width: 42rem; margin: 2rem auto; padding: 0 1rem; }
-    h1 { font-size: 1.25rem; }
-    .player-container { margin: 1rem 0; min-height: 320px; border: 1px solid #ccc; }
-    .results { margin-top: 1rem; }
-    .result { margin: 0.25rem 0; }
-    .pass { color: #0a0; }
-    .fail { color: #c00; }
-    .pending { color: #666; }
-    button { margin-top: 0.5rem; padding: 0.5rem 1rem; cursor: pointer; }
-  </style>
-</head>
-<body>
-  <h1>Normalized play / pause and mute API tests</h1>
-  <p>Tests each provider’s play/pause API: mount the embed, assert <code>currentTime === 0</code> before play, then <code>provider.play()</code>, <code>onPlay</code> fired, <code>await provider.paused</code>, <code>provider.pause()</code>, <code>onPause</code> fired, <code>provider.seek(seconds)</code>, and assert <code>currentTime</code> ≈ seek target. Also tests <code>provider.mute()</code>, <code>provider.muted</code>, <code>provider.unmute()</code>, and <code>provider.volume</code> / <code>provider.setVolume(0–1)</code> where supported.</p>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Play / Pause API tests — embed-kit</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 42rem;
+        margin: 2rem auto;
+        padding: 0 1rem;
+      }
+      h1 {
+        font-size: 1.25rem;
+      }
+      .player-container {
+        margin: 1rem 0;
+        min-height: 320px;
+        border: 1px solid #ccc;
+      }
+      .results {
+        margin-top: 1rem;
+      }
+      .result {
+        margin: 0.25rem 0;
+      }
+      .pass {
+        color: #0a0;
+      }
+      .fail {
+        color: #c00;
+      }
+      .pending {
+        color: #666;
+      }
+      button {
+        margin-top: 0.5rem;
+        padding: 0.5rem 1rem;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Normalized play / pause and mute API tests</h1>
+    <p>
+      Tests each provider’s play/pause API: mount the embed, assert
+      <code>currentTime === 0</code> before play, then <code>provider.play()</code>,
+      <code>onPlay</code> fired, <code>await provider.paused</code>, <code>provider.pause()</code>,
+      <code>onPause</code> fired, <code>provider.seek(seconds)</code>, and assert
+      <code>currentTime</code> ≈ seek target. Also tests <code>provider.mute()</code>,
+      <code>provider.muted</code>, <code>provider.unmute()</code>, and
+      <code>provider.volume</code> / <code>provider.setVolume(0–1)</code> where supported.
+    </p>
 
-  <p><button id="run-all" type="button">Run all tests</button> <span id="run-all-status"></span></p>
+    <p>
+      <button id="run-all" type="button">Run all tests</button> <span id="run-all-status"></span>
+    </p>
 
-  <section id="youtube-section">
-    <h2>YouTube</h2>
-    <div id="youtube-container" class="player-container"></div>
-    <div id="youtube-results" class="results"></div>
-    <button id="youtube-run">Run tests</button>
-  </section>
+    <section id="youtube-section">
+      <h2>YouTube</h2>
+      <div id="youtube-container" class="player-container"></div>
+      <div id="youtube-results" class="results"></div>
+      <button id="youtube-run">Run tests</button>
+    </section>
 
-  <section id="vimeo-section" style="margin-top: 2rem;">
-    <h2>Vimeo</h2>
-    <div id="vimeo-container" class="player-container"></div>
-    <div id="vimeo-results" class="results"></div>
-    <button id="vimeo-run">Run tests</button>
-  </section>
+    <section id="vimeo-section" style="margin-top: 2rem">
+      <h2>Vimeo</h2>
+      <div id="vimeo-container" class="player-container"></div>
+      <div id="vimeo-results" class="results"></div>
+      <button id="vimeo-run">Run tests</button>
+    </section>
 
-  <section id="twitch-section" style="margin-top: 2rem;">
-    <h2>Twitch</h2>
-    <p><small>Play may be blocked by the browser (autoplay policy) when not triggered by a direct user gesture.</small></p>
-    <div id="twitch-container" class="player-container"></div>
-    <div id="twitch-results" class="results"></div>
-    <button id="twitch-run">Run tests</button>
-  </section>
+    <section id="twitch-section" style="margin-top: 2rem">
+      <h2>Twitch</h2>
+      <p>
+        <small
+          >Play may be blocked by the browser (autoplay policy) when not triggered by a direct user
+          gesture.</small
+        >
+      </p>
+      <div id="twitch-container" class="player-container"></div>
+      <div id="twitch-results" class="results"></div>
+      <button id="twitch-run">Run tests</button>
+    </section>
 
-  <section id="tiktok-section" style="margin-top: 2rem;">
-    <h2>TikTok</h2>
-    <div id="tiktok-container" class="player-container"></div>
-    <div id="tiktok-results" class="results"></div>
-    <button id="tiktok-run">Run tests</button>
-  </section>
+    <section id="tiktok-section" style="margin-top: 2rem">
+      <h2>TikTok</h2>
+      <div id="tiktok-container" class="player-container"></div>
+      <div id="tiktok-results" class="results"></div>
+      <button id="tiktok-run">Run tests</button>
+    </section>
 
-  <section id="dailymotion-section" style="margin-top: 2rem;">
-    <h2>Dailymotion</h2>
-    <div id="dailymotion-container" class="player-container"></div>
-    <div id="dailymotion-results" class="results"></div>
-    <button id="dailymotion-run">Run tests</button>
-  </section>
+    <section id="dailymotion-section" style="margin-top: 2rem">
+      <h2>Dailymotion</h2>
+      <div id="dailymotion-container" class="player-container"></div>
+      <div id="dailymotion-results" class="results"></div>
+      <button id="dailymotion-run">Run tests</button>
+    </section>
 
-  <p style="margin-top: 2rem;"><a href="index.html">← Back to test index</a></p>
+    <p style="margin-top: 2rem"><a href="index.html">← Back to test index</a></p>
 
-  <script type="module">
-    const READY_TIMEOUT_MS = 30000; // YouTube iframe API + player init can be slow
-    const delay = (ms) => new Promise((r) => setTimeout(r, ms));
+    <script type="module">
+      const READY_TIMEOUT_MS = 30000; // YouTube iframe API + player init can be slow
+      const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
-    function showTimeoutFailure(resultsId, label = "ready") {
-      return setTimeout(() => {
-        document.getElementById(resultsId)?.appendChild(
-          Object.assign(document.createElement("div"), {
-            className: "result fail",
-            textContent: `${label} timed out after ${READY_TIMEOUT_MS}ms`,
+      function showTimeoutFailure(resultsId, label = "ready") {
+        return setTimeout(() => {
+          document.getElementById(resultsId)?.appendChild(
+            Object.assign(document.createElement("div"), {
+              className: "result fail",
+              textContent: `${label} timed out after ${READY_TIMEOUT_MS}ms`,
+            })
+          );
+        }, READY_TIMEOUT_MS);
+      }
+
+      function showResults(containerId, results) {
+        const el = document.getElementById(containerId);
+        if (!el) return;
+        el.innerHTML = results
+          .map((r) => `<div class="result ${r.status}">${r.label}: ${r.status.toUpperCase()}</div>`)
+          .join("");
+      }
+
+      const INTER_STEP_DELAY_MS = 500;
+
+      async function runPlayPauseTests(provider, resultsId, options = {}) {
+        const {
+          skipGetPaused = false,
+          skipSeek = false,
+          skipMute = false,
+          skipVolume = false,
+          delayAfterPlay = 2000,
+          delayAfterPause = 600,
+        } = options;
+        const seekLabel = skipSeek ? "Seek (not supported)" : `seek(${5}) then currentTime ≈ 5`;
+        const muteLabel = skipMute
+          ? "Mute/Unmute (not supported)"
+          : "Mute then unmute (muted true/false)";
+        const volumeLabel = skipVolume
+          ? "Volume get/set (not supported)"
+          : "Volume get/set (setVolume(0.5) then volume ≈ 0.5)";
+        const muteEvents = Array.isArray(options.muteEvents) ? options.muteEvents : null;
+        const playEvents = Array.isArray(options.playEvents) ? options.playEvents : null;
+        const pauseEvents = Array.isArray(options.pauseEvents) ? options.pauseEvents : null;
+        const testOnMuteEvent = muteEvents != null && !skipMute;
+        const testOnPlayPauseEvents = playEvents != null && pauseEvents != null;
+        showResults(resultsId, [
+          { label: "currentTime === 0 before play", status: "pending" },
+          { label: "Play", status: "pending" },
+          ...(testOnPlayPauseEvents
+            ? [{ label: "onPlay fired when playing", status: "pending" }]
+            : []),
+          { label: "Pause", status: "pending" },
+          ...(testOnPlayPauseEvents
+            ? [{ label: "onPause fired when paused", status: "pending" }]
+            : []),
+          { label: seekLabel, status: "pending" },
+          { label: muteLabel, status: "pending" },
+          ...(testOnMuteEvent
+            ? [{ label: "onMute fired when mute state changed", status: "pending" }]
+            : []),
+          { label: volumeLabel, status: "pending" },
+        ]);
+        try {
+          const timeBeforePlay = await provider.currentTime;
+          const timeBeforePlayOk =
+            typeof timeBeforePlay === "number" &&
+            !Number.isNaN(timeBeforePlay) &&
+            timeBeforePlay === 0;
+
+          await delay(INTER_STEP_DELAY_MS);
+          const playResult = provider.play();
+          if (playResult && typeof playResult.then === "function") await playResult;
+          await delay(delayAfterPlay);
+          const pausedAfterPlay = skipGetPaused ? false : await provider.paused;
+          const playOk = skipGetPaused ? true : pausedAfterPlay === false;
+          const onPlayOk = !testOnPlayPauseEvents || playEvents.length >= 1;
+
+          await delay(INTER_STEP_DELAY_MS);
+          const pauseResult = provider.pause();
+          if (pauseResult && typeof pauseResult.then === "function") await pauseResult;
+          await delay(delayAfterPause);
+          const pausedAfterPause = skipGetPaused ? true : await provider.paused;
+          const pauseOk = skipGetPaused ? true : pausedAfterPause === true;
+          const onPauseOk = !testOnPlayPauseEvents || pauseEvents.length >= 1;
+
+          await delay(INTER_STEP_DELAY_MS);
+          const SEEK_TIME = 5;
+          const SEEK_TOLERANCE = 1;
+          let seekOk = skipSeek;
+          if (!skipSeek) {
+            try {
+              const seekResult = provider.seek(SEEK_TIME);
+              if (seekResult && typeof seekResult.then === "function") await seekResult;
+              await delay(800);
+              const timeAfterSeek = await provider.currentTime;
+              seekOk =
+                typeof timeAfterSeek === "number" &&
+                !Number.isNaN(timeAfterSeek) &&
+                Math.abs(timeAfterSeek - SEEK_TIME) <= SEEK_TOLERANCE;
+            } catch (_e) {
+              seekOk = false;
+            }
+          }
+
+          await delay(INTER_STEP_DELAY_MS);
+          let muteOk = skipMute;
+          if (
+            !skipMute &&
+            typeof provider.mute === "function" &&
+            typeof provider.unmute === "function" &&
+            provider.muted != null
+          ) {
+            try {
+              const mutedBefore = await provider.muted;
+              const muteResult = provider.mute();
+              if (muteResult && typeof muteResult.then === "function") await muteResult;
+              await delay(400);
+              const mutedAfterMute = await provider.muted;
+              const unmuteResult = provider.unmute();
+              if (unmuteResult && typeof unmuteResult.then === "function") await unmuteResult;
+              await delay(400);
+              const mutedAfterUnmute = await provider.muted;
+              muteOk = mutedAfterMute === true && mutedAfterUnmute === false;
+            } catch (_e) {
+              muteOk = false;
+            }
+          }
+
+          const onMuteOk =
+            !testOnMuteEvent ||
+            (muteEvents.length >= 2 &&
+              muteEvents.some((e) => e.muted === true) &&
+              muteEvents.some((e) => e.muted === false));
+
+          await delay(INTER_STEP_DELAY_MS);
+          const VOLUME_TARGET = 0.5;
+          const VOLUME_TOLERANCE = 0.2;
+          let volumeOk = skipVolume;
+          if (!skipVolume && typeof provider.setVolume === "function") {
+            try {
+              const setResult = provider.setVolume(VOLUME_TARGET);
+              if (setResult && typeof setResult.then === "function") await setResult;
+              await delay(600);
+              const volAfterSet = provider.volume;
+              volumeOk =
+                typeof volAfterSet === "number" &&
+                !Number.isNaN(volAfterSet) &&
+                Math.abs(volAfterSet - VOLUME_TARGET) <= VOLUME_TOLERANCE;
+              const restoreResult = provider.setVolume(1);
+              if (restoreResult && typeof restoreResult.then === "function") await restoreResult;
+            } catch (_e) {
+              volumeOk = false;
+            }
+          } else if (!skipVolume) {
+            volumeOk = true; // not supported, row shows "not supported"
+          }
+
+          showResults(resultsId, [
+            { label: "currentTime === 0 before play", status: timeBeforePlayOk ? "pass" : "fail" },
+            {
+              label: skipGetPaused ? "Play (no throw)" : "Play (getPaused() false after play)",
+              status: playOk ? "pass" : "fail",
+            },
+            ...(testOnPlayPauseEvents
+              ? [{ label: "onPlay fired when playing", status: onPlayOk ? "pass" : "fail" }]
+              : []),
+            {
+              label: skipGetPaused ? "Pause (no throw)" : "Pause (getPaused() true after pause)",
+              status: pauseOk ? "pass" : "fail",
+            },
+            ...(testOnPlayPauseEvents
+              ? [{ label: "onPause fired when paused", status: onPauseOk ? "pass" : "fail" }]
+              : []),
+            { label: seekLabel, status: seekOk ? "pass" : "fail" },
+            { label: muteLabel, status: muteOk ? "pass" : "fail" },
+            ...(testOnMuteEvent
+              ? [
+                  {
+                    label: "onMute fired when mute state changed",
+                    status: onMuteOk ? "pass" : "fail",
+                  },
+                ]
+              : []),
+            { label: volumeLabel, status: volumeOk ? "pass" : "fail" },
+          ]);
+        } catch (err) {
+          showResults(resultsId, [{ label: "Error", status: "fail" }]);
+          document.getElementById(resultsId).appendChild(
+            Object.assign(document.createElement("div"), {
+              className: "result fail",
+              textContent: String(err?.message || err),
+            })
+          );
+        }
+      }
+
+      function mountAndTest(containerId, resultsId, tagName, sourceUrl, options = {}) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = "";
+
+        const muteEvents = [];
+        const playEvents = [];
+        const pauseEvents = [];
+        const el = document.createElement(tagName);
+        el.setAttribute("src", sourceUrl);
+        el.setAttribute("width", "560");
+        el.setAttribute("height", "315");
+        el.setAttribute("title", "Test");
+        if (options.initialOptions) el.options = options.initialOptions;
+
+        el.addEventListener("mute", (e) =>
+          muteEvents.push({
+            muted: typeof e.detail === "boolean" ? e.detail : (e.detail?.muted ?? false),
           })
         );
-      }, READY_TIMEOUT_MS);
-    }
+        el.addEventListener("play", () => playEvents.push(1));
+        el.addEventListener("pause", () => pauseEvents.push(1));
 
-    function showResults(containerId, results) {
-      const el = document.getElementById(containerId);
-      if (!el) return;
-      el.innerHTML = results.map((r) => `<div class="result ${r.status}">${r.label}: ${r.status.toUpperCase()}</div>`).join("");
-    }
-
-    const INTER_STEP_DELAY_MS = 500;
-
-    async function runPlayPauseTests(provider, resultsId, options = {}) {
-      const { skipGetPaused = false, skipSeek = false, skipMute = false, skipVolume = false, delayAfterPlay = 2000, delayAfterPause = 600 } = options;
-      const seekLabel = skipSeek ? "Seek (not supported)" : `seek(${5}) then currentTime ≈ 5`;
-      const muteLabel = skipMute ? "Mute/Unmute (not supported)" : "Mute then unmute (muted true/false)";
-      const volumeLabel = skipVolume ? "Volume get/set (not supported)" : "Volume get/set (setVolume(0.5) then volume ≈ 0.5)";
-      const muteEvents = Array.isArray(options.muteEvents) ? options.muteEvents : null;
-      const playEvents = Array.isArray(options.playEvents) ? options.playEvents : null;
-      const pauseEvents = Array.isArray(options.pauseEvents) ? options.pauseEvents : null;
-      const testOnMuteEvent = muteEvents != null && !skipMute;
-      const testOnPlayPauseEvents = playEvents != null && pauseEvents != null;
-      showResults(resultsId, [
-        { label: "currentTime === 0 before play", status: "pending" },
-        { label: "Play", status: "pending" },
-        ...(testOnPlayPauseEvents ? [{ label: "onPlay fired when playing", status: "pending" }] : []),
-        { label: "Pause", status: "pending" },
-        ...(testOnPlayPauseEvents ? [{ label: "onPause fired when paused", status: "pending" }] : []),
-        { label: seekLabel, status: "pending" },
-        { label: muteLabel, status: "pending" },
-        ...(testOnMuteEvent ? [{ label: "onMute fired when mute state changed", status: "pending" }] : []),
-        { label: volumeLabel, status: "pending" },
-      ]);
-      try {
-        const timeBeforePlay = await provider.currentTime;
-        const timeBeforePlayOk =
-          typeof timeBeforePlay === "number" && !Number.isNaN(timeBeforePlay) && timeBeforePlay === 0;
-
-        await delay(INTER_STEP_DELAY_MS);
-        const playResult = provider.play();
-        if (playResult && typeof playResult.then === "function") await playResult;
-        await delay(delayAfterPlay);
-        const pausedAfterPlay = skipGetPaused ? false : await provider.paused;
-        const playOk = skipGetPaused ? true : pausedAfterPlay === false;
-        const onPlayOk = !testOnPlayPauseEvents || playEvents.length >= 1;
-
-        await delay(INTER_STEP_DELAY_MS);
-        const pauseResult = provider.pause();
-        if (pauseResult && typeof pauseResult.then === "function") await pauseResult;
-        await delay(delayAfterPause);
-        const pausedAfterPause = skipGetPaused ? true : await provider.paused;
-        const pauseOk = skipGetPaused ? true : pausedAfterPause === true;
-        const onPauseOk = !testOnPlayPauseEvents || pauseEvents.length >= 1;
-
-        await delay(INTER_STEP_DELAY_MS);
-        const SEEK_TIME = 5;
-        const SEEK_TOLERANCE = 1;
-        let seekOk = skipSeek;
-        if (!skipSeek) {
-          try {
-            const seekResult = provider.seek(SEEK_TIME);
-            if (seekResult && typeof seekResult.then === "function") await seekResult;
-            await delay(800);
-            const timeAfterSeek = await provider.currentTime;
-            seekOk =
-              typeof timeAfterSeek === "number" &&
-              !Number.isNaN(timeAfterSeek) &&
-              Math.abs(timeAfterSeek - SEEK_TIME) <= SEEK_TOLERANCE;
-          } catch (_e) {
-            seekOk = false;
-          }
-        }
-
-        await delay(INTER_STEP_DELAY_MS);
-        let muteOk = skipMute;
-        if (!skipMute && typeof provider.mute === "function" && typeof provider.unmute === "function" && provider.muted != null) {
-          try {
-            const mutedBefore = await provider.muted;
-            const muteResult = provider.mute();
-            if (muteResult && typeof muteResult.then === "function") await muteResult;
-            await delay(400);
-            const mutedAfterMute = await provider.muted;
-            const unmuteResult = provider.unmute();
-            if (unmuteResult && typeof unmuteResult.then === "function") await unmuteResult;
-            await delay(400);
-            const mutedAfterUnmute = await provider.muted;
-            muteOk = mutedAfterMute === true && mutedAfterUnmute === false;
-          } catch (_e) {
-            muteOk = false;
-          }
-        }
-
-        const onMuteOk = !testOnMuteEvent || (muteEvents.length >= 2 && muteEvents.some((e) => e.muted === true) && muteEvents.some((e) => e.muted === false));
-
-        await delay(INTER_STEP_DELAY_MS);
-        const VOLUME_TARGET = 0.5;
-        const VOLUME_TOLERANCE = 0.2;
-        let volumeOk = skipVolume;
-        if (!skipVolume && typeof provider.setVolume === "function") {
-          try {
-            const setResult = provider.setVolume(VOLUME_TARGET);
-            if (setResult && typeof setResult.then === "function") await setResult;
-            await delay(600);
-            const volAfterSet = provider.volume;
-            volumeOk = typeof volAfterSet === "number" && !Number.isNaN(volAfterSet) && Math.abs(volAfterSet - VOLUME_TARGET) <= VOLUME_TOLERANCE;
-            const restoreResult = provider.setVolume(1);
-            if (restoreResult && typeof restoreResult.then === "function") await restoreResult;
-          } catch (_e) {
-            volumeOk = false;
-          }
-        } else if (!skipVolume) {
-          volumeOk = true; // not supported, row shows "not supported"
-        }
-
-        showResults(resultsId, [
-          { label: "currentTime === 0 before play", status: timeBeforePlayOk ? "pass" : "fail" },
-          { label: skipGetPaused ? "Play (no throw)" : "Play (getPaused() false after play)", status: playOk ? "pass" : "fail" },
-          ...(testOnPlayPauseEvents ? [{ label: "onPlay fired when playing", status: onPlayOk ? "pass" : "fail" }] : []),
-          { label: skipGetPaused ? "Pause (no throw)" : "Pause (getPaused() true after pause)", status: pauseOk ? "pass" : "fail" },
-          ...(testOnPlayPauseEvents ? [{ label: "onPause fired when paused", status: onPauseOk ? "pass" : "fail" }] : []),
-          { label: seekLabel, status: seekOk ? "pass" : "fail" },
-          { label: muteLabel, status: muteOk ? "pass" : "fail" },
-          ...(testOnMuteEvent ? [{ label: "onMute fired when mute state changed", status: onMuteOk ? "pass" : "fail" }] : []),
-          { label: volumeLabel, status: volumeOk ? "pass" : "fail" },
-        ]);
-      } catch (err) {
-        showResults(resultsId, [
-          { label: "Error", status: "fail" },
-        ]);
-        document.getElementById(resultsId).appendChild(
-          Object.assign(document.createElement("div"), { className: "result fail", textContent: String(err?.message || err) })
-        );
-      }
-    }
-
-    function mountAndTest(containerId, resultsId, register, provider, tagName, sourceUrl, options = {}) {
-      const container = document.getElementById(containerId);
-      container.innerHTML = "";
-      register();
-
-      const muteEvents = [];
-      const playEvents = [];
-      const pauseEvents = [];
-      const el = document.createElement(tagName);
-      el.setAttribute("src", sourceUrl);
-      el.setAttribute("width", "560");
-      el.setAttribute("height", "315");
-      el.setAttribute("title", "Test");
-      el.onMute = (data) => muteEvents.push(data);
-      el.onPlay = () => playEvents.push(1);
-      el.onPause = () => pauseEvents.push(1);
-      const t = showTimeoutFailure(resultsId, "Embed ready");
-      el.onReady = () => {
-        clearTimeout(t);
-        runPlayPauseTests(provider, resultsId, { ...options, muteEvents, playEvents, pauseEvents }).finally(() => options.onComplete?.());
-      };
-      container.appendChild(el);
-    }
-
-    async function runYouTubeTests() {
-      const { registerYouTubeEmbed, youtubeEmbedProvider } = await import("../dist/youtube/index.js");
-      const { SOURCE_URL } = await import("../dist/youtube/constants.js");
-      return new Promise((resolve) => {
-        mountAndTest("youtube-container", "youtube-results", registerYouTubeEmbed, youtubeEmbedProvider, "youtube-embed", SOURCE_URL, { onComplete: resolve });
-      });
-    }
-
-    async function runVimeoTests() {
-      const { registerVimeoEmbed, vimeoEmbedProvider } = await import("../dist/vimeo/index.js");
-      const { SOURCE_URL } = await import("../dist/vimeo/constants.js");
-      return new Promise((resolve) => {
-        mountAndTest("vimeo-container", "vimeo-results", registerVimeoEmbed, vimeoEmbedProvider, "vimeo-embed", SOURCE_URL, { onComplete: resolve });
-      });
-    }
-
-    async function runTwitchTests() {
-      const { registerTwitchEmbed, twitchEmbedProvider } = await import("../dist/twitch/index.js");
-      const { VIDEO_SOURCE_URL } = await import("../dist/twitch/constants.js");
-      const container = document.getElementById("twitch-container");
-      const resultsId = "twitch-results";
-      container.innerHTML = "";
-      registerTwitchEmbed();
-      const muteEvents = [];
-      const playEvents = [];
-      const pauseEvents = [];
-      const el = document.createElement("twitch-embed");
-      el.setAttribute("src", VIDEO_SOURCE_URL);
-      el.setAttribute("width", "560");
-      el.setAttribute("height", "315");
-      el.setAttribute("title", "Test");
-      el.onMute = (data) => muteEvents.push(data);
-      el.onPlay = () => playEvents.push(1);
-      el.onPause = () => pauseEvents.push(1);
-      const t = showTimeoutFailure(resultsId, "Twitch embed ready");
-      return new Promise((resolve) => {
-        el.onReady = async () => {
+        const t = showTimeoutFailure(resultsId, "Embed ready");
+        el.addEventListener("ready", () => {
           clearTimeout(t);
-          const embedEl = container.querySelector("twitch-embed");
-          if (embedEl && typeof embedEl.play === "function") {
-            await embedEl.play();
-            if (typeof embedEl.pause === "function") await embedEl.pause();
-            await delay(400);
-          }
-          await runPlayPauseTests(twitchEmbedProvider, resultsId, { delayAfterPlay: 800, delayAfterPause: 800, muteEvents, playEvents, pauseEvents });
-          resolve();
-        };
-        container.appendChild(el);
-      });
-    }
-
-    async function runTikTokTests() {
-      const { registerTikTokEmbed, tiktokEmbedProvider } = await import("../dist/tiktok/index.js");
-      const { SOURCE_URL } = await import("../dist/tiktok/constants.js");
-      return new Promise((resolve) => {
-        mountAndTest("tiktok-container", "tiktok-results", registerTikTokEmbed, tiktokEmbedProvider, "tiktok-embed", SOURCE_URL, {
-          delayAfterPlay: 1500,
-          delayAfterPause: 1000,
-          onComplete: resolve,
-          });
-      });
-    }
-
-    async function runDailymotionTests() {
-      const { registerDailymotionEmbed, dailymotionEmbedProvider } = await import("../dist/dailymotion/index.js");
-      const { VIDEO_ID } = await import("../dist/dailymotion/constants.js");
-      registerDailymotionEmbed();
-      const container = document.getElementById("dailymotion-container");
-      const resultsId = "dailymotion-results";
-      container.innerHTML = "";
-      const mountDiv = document.createElement("div");
-      mountDiv.style.width = "560px";
-      mountDiv.style.height = "315px";
-      container.appendChild(mountDiv);
-      const muteEvents = [];
-      const playEvents = [];
-      const pauseEvents = [];
-      const t = showTimeoutFailure(resultsId, "Dailymotion ready");
-      return new Promise((resolve) => {
-        dailymotionEmbedProvider.createPlayer(mountDiv, VIDEO_ID, {
-          width: "560",
-          height: "315",
-          onReady: () => {
-            clearTimeout(t);
-            runPlayPauseTests(dailymotionEmbedProvider, resultsId, { muteEvents, playEvents, pauseEvents }).finally(resolve);
-          },
-          onMute: (data) => muteEvents.push(data),
-          onPlay: () => playEvents.push(1),
-          onPause: () => pauseEvents.push(1),
+          runPlayPauseTests(el, resultsId, {
+            ...options,
+            muteEvents,
+            playEvents,
+            pauseEvents,
+          }).finally(() => options.onComplete?.());
         });
-      });
-    }
-
-    document.getElementById("youtube-run").addEventListener("click", () => runYouTubeTests());
-    document.getElementById("vimeo-run").addEventListener("click", () => runVimeoTests());
-    document.getElementById("twitch-run").addEventListener("click", () => runTwitchTests());
-    document.getElementById("tiktok-run").addEventListener("click", () => runTikTokTests());
-    document.getElementById("dailymotion-run").addEventListener("click", () => runDailymotionTests());
-
-    document.getElementById("run-all").addEventListener("click", async () => {
-      const runAllBtn = document.getElementById("run-all");
-      const statusEl = document.getElementById("run-all-status");
-      runAllBtn.disabled = true;
-      statusEl.textContent = "Running all…";
-      try {
-        await Promise.all([
-          runYouTubeTests(),
-          runVimeoTests(),
-          runTwitchTests(),
-          runTikTokTests(),
-          runDailymotionTests(),
-        ]);
-        statusEl.textContent = "Done.";
-      } catch (err) {
-        statusEl.textContent = `Error: ${err?.message || err}`;
-      } finally {
-        runAllBtn.disabled = false;
+        container.appendChild(el);
       }
-    });
-  </script>
-</body>
+
+      async function runYouTubeTests() {
+        await import("/dist/elements/youtube/player.js");
+        const { SOURCE_URL } = await import("/dist/elements/youtube/constants.js");
+        return new Promise((resolve) => {
+          mountAndTest("youtube-container", "youtube-results", "youtube-video", SOURCE_URL, {
+            onComplete: resolve,
+            initialOptions: { width: 560, height: 315 },
+          });
+        });
+      }
+
+      async function runVimeoTests() {
+        await import("/dist/elements/vimeo/player.js");
+        const { SOURCE_URL } = await import("/dist/elements/vimeo/constants.js");
+        return new Promise((resolve) => {
+          mountAndTest("vimeo-container", "vimeo-results", "vimeo-video", SOURCE_URL, {
+            onComplete: resolve,
+          });
+        });
+      }
+
+      async function runTwitchTests() {
+        await import("/dist/elements/twitch/player.js");
+        const { VIDEO_SOURCE_URL } = await import("/dist/elements/twitch/constants.js");
+        const container = document.getElementById("twitch-container");
+        const resultsId = "twitch-results";
+        container.innerHTML = "";
+
+        const muteEvents = [];
+        const playEvents = [];
+        const pauseEvents = [];
+        const el = document.createElement("twitch-video");
+        el.setAttribute("src", VIDEO_SOURCE_URL);
+        el.setAttribute("width", "560");
+        el.setAttribute("height", "315");
+        el.setAttribute("title", "Test");
+        el.addEventListener("mute", (e) =>
+          muteEvents.push({
+            muted: typeof e.detail === "boolean" ? e.detail : (e.detail?.muted ?? false),
+          })
+        );
+        el.addEventListener("play", () => playEvents.push(1));
+        el.addEventListener("pause", () => pauseEvents.push(1));
+
+        const t = showTimeoutFailure(resultsId, "Twitch embed ready");
+        return new Promise((resolve) => {
+          el.addEventListener(
+            "ready",
+            async () => {
+              clearTimeout(t);
+              if (typeof el.play === "function") await el.play();
+              if (typeof el.pause === "function") await el.pause();
+              await delay(400);
+              await runPlayPauseTests(el, resultsId, {
+                delayAfterPlay: 800,
+                delayAfterPause: 800,
+                muteEvents,
+                playEvents,
+                pauseEvents,
+              }).finally(resolve);
+            },
+            { once: true }
+          );
+          container.appendChild(el);
+        });
+      }
+
+      async function runTikTokTests() {
+        await import("/dist/elements/tiktok/player.js");
+        const { SOURCE_URL } = await import("/dist/elements/tiktok/constants.js");
+        return new Promise((resolve) => {
+          mountAndTest("tiktok-container", "tiktok-results", "tiktok-video", SOURCE_URL, {
+            delayAfterPlay: 1500,
+            delayAfterPause: 1000,
+            onComplete: resolve,
+          });
+        });
+      }
+
+      async function runDailymotionTests() {
+        await import("/dist/elements/dailymotion/player.js");
+        const { SOURCE_URL } = await import("/dist/elements/dailymotion/constants.js");
+        return new Promise((resolve) => {
+          mountAndTest(
+            "dailymotion-container",
+            "dailymotion-results",
+            "dailymotion-video",
+            SOURCE_URL,
+            {
+              onComplete: resolve,
+            }
+          );
+        });
+      }
+
+      document.getElementById("youtube-run").addEventListener("click", () => runYouTubeTests());
+      document.getElementById("vimeo-run").addEventListener("click", () => runVimeoTests());
+      document.getElementById("twitch-run").addEventListener("click", () => runTwitchTests());
+      document.getElementById("tiktok-run").addEventListener("click", () => runTikTokTests());
+      document
+        .getElementById("dailymotion-run")
+        .addEventListener("click", () => runDailymotionTests());
+
+      document.getElementById("run-all").addEventListener("click", async () => {
+        const runAllBtn = document.getElementById("run-all");
+        const statusEl = document.getElementById("run-all-status");
+        runAllBtn.disabled = true;
+        statusEl.textContent = "Running all…";
+        try {
+          await Promise.all([
+            runYouTubeTests(),
+            runVimeoTests(),
+            runTwitchTests(),
+            runTikTokTests(),
+            runDailymotionTests(),
+          ]);
+          statusEl.textContent = "Done.";
+        } catch (err) {
+          statusEl.textContent = `Error: ${err?.message || err}`;
+        } finally {
+          runAllBtn.disabled = false;
+        }
+      });
+    </script>
+  </body>
 </html>
