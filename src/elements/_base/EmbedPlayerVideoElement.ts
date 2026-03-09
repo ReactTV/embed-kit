@@ -1,21 +1,11 @@
-import type { IEmbedPlayer, IErrorData, TPlayerState } from "./player.js";
-
-/**
- * Subset of HTMLVideoElement that EmbedPlayerVideoElement implements.
- * Type against this when you only need play, pause, currentTime, duration,
- * paused, muted, volume, src.
- */
-export type HTMLVideoElementSubset = Pick<
-  HTMLVideoElement,
-  "play" | "pause" | "currentTime" | "duration" | "paused" | "muted" | "volume" | "src"
->;
+import type { IEmbedPlayer, TPlayerState } from "./player.js";
 
 /**
  * Class-based mimic of HTMLVideoElement. Providers can either (1) extend this
  * class and override play(), pause(), seek(), getters, etc., or (2) construct
  * it and call setPlayer(inner) when the inner IEmbedPlayer is ready.
  */
-export class EmbedPlayerVideoElement implements HTMLVideoElementSubset {
+export class EmbedPlayerVideoElement extends HTMLVideoElement {
   readonly src: string;
   #player: IEmbedPlayer | null = null;
   /** Shared state shape; subclasses read/write this instead of defining their own. */
@@ -24,6 +14,7 @@ export class EmbedPlayerVideoElement implements HTMLVideoElementSubset {
   #resolveReady!: (value: EmbedPlayerVideoElement) => void;
 
   constructor(url: string) {
+    super();
     this.src = url;
 
     this.playerState = {
@@ -95,13 +86,10 @@ export class EmbedPlayerVideoElement implements HTMLVideoElementSubset {
   set volume(value: number) {
     this.#player?.setVolume?.(value);
   }
-  get error(): IErrorData | null {
-    return this.#player?.error ?? null;
+  get error() {
+    return this.playerState.error;
   }
   setVolume(volume: number): void | Promise<void> {
     return this.#player?.setVolume?.(volume);
-  }
-  requestPictureInPicture(): Promise<void> {
-    return this.#player?.requestPictureInPicture?.() ?? Promise.resolve();
   }
 }

@@ -81,7 +81,7 @@ export interface TPlayerState {
   muted: boolean;
   /** Volume 0–1 when supported by the provider. */
   volume?: number;
-  error: IErrorData | null;
+  error: MediaError | null;
 }
 
 /** Returned by createPlayer(); normalized API across all providers. */
@@ -102,7 +102,7 @@ export interface IEmbedPlayer {
   setVolume?(volume: number): void | Promise<void>;
   /** Request picture-in-picture. Not supported by all providers (e.g. iframe embeds). */
   requestPictureInPicture?(): Promise<void>;
-  readonly error: IErrorData | null;
+  readonly error: MediaError | null;
 }
 
 export type TCreatePlayer = (

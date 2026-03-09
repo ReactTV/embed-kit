@@ -1,10 +1,6 @@
-import type { ICreatePlayerOptions, TCreatePlayer } from "../_base/index.js";
+import type { ICreatePlayerOptions } from "../_base/index.js";
 import type { DailymotionPlayer, DailymotionPlayerState } from "./player.types.js";
-import {
-  createPlayerContainer,
-  loadScript,
-  EmbedPlayerVideoElement,
-} from "../_base/index.js";
+import { createPlayerContainer, loadScript, EmbedPlayerVideoElement } from "../_base/index.js";
 
 const DAILYMOTION_LIB = "https://geo.dailymotion.com/libs/player.js";
 
@@ -16,15 +12,10 @@ class DailymotionEmbedPlayer extends EmbedPlayerVideoElement {
   #wrapper: HTMLElement;
   #options: ICreatePlayerOptions;
 
-  constructor(
-    container: HTMLElement,
-    id: string,
-    options: ICreatePlayerOptions = {},
-  ) {
+  constructor(container: HTMLElement, id: string, options: ICreatePlayerOptions = {}) {
     super(options.url ?? `https://www.dailymotion.com/video/${id}`);
     this.#options = options;
-    const { width = 560, height = 315, autoplay = false, controls = true } =
-      this.#options;
+    const { width = 560, height = 315, autoplay = false, controls = true } = this.#options;
 
     const params: Record<string, unknown> = {};
     if (autoplay) params.autoplay = true;
@@ -33,7 +24,7 @@ class DailymotionEmbedPlayer extends EmbedPlayerVideoElement {
     const { element: wrapper, id: containerId } = createPlayerContainer(
       container,
       "dailymotion-player",
-      { width, height },
+      { width, height }
     );
     this.#wrapper = wrapper;
 
@@ -97,7 +88,7 @@ class DailymotionEmbedPlayer extends EmbedPlayerVideoElement {
           }
         });
         const handleError = (): void => {
-          this.playerState.error = { message: "Dailymotion playback error" };
+          this.playerState.error = { code: 0, message: "Dailymotion playback error" } as MediaError;
           onError(this.playerState.error);
         };
         dmPlayer.on(events.PLAYER_ERROR, handleError);
@@ -169,11 +160,8 @@ class DailymotionEmbedPlayer extends EmbedPlayerVideoElement {
   }
 }
 
-/**
- * Create a controllable Dailymotion player in the given container.
- * Returns an EmbedPlayerVideoElement that mimics HTMLVideoElement.
- */
-export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
-  const element = new DailymotionEmbedPlayer(container, id, options);
-  return element.ready();
-};
+if (globalThis.customElements && !globalThis.customElements.get("dailymotion-video")) {
+  globalThis.customElements.define("dailymotion-video", DailymotionEmbedPlayer, {
+    extends: "video",
+  });
+}
