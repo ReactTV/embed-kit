@@ -1,8 +1,15 @@
 {
-  "name": "embed-kit",
+  "name": "@reacttv/embed-kit",
   "version": "0.1.0",
   "description": "Normalized API across YouTube, Twitch, TikTok, and other embed sources",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ReactTV/embed-kit.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "globals": {
     "globalThis": "writable"
   },
