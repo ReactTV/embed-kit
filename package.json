@@ -1,8 +1,20 @@
 {
   "name": "@reacttv/embed-kit",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Normalized API across YouTube, Twitch, TikTok, and other embed sources",
   "type": "module",
+  "exports": {
+    "./base": {
+      "types": "./dist/elements/_base/index.d.ts",
+      "import": "./dist/elements/_base/index.js",
+      "default": "./dist/elements/_base/index.js"
+    },
+    "./react-embed-kit": {
+      "types": "./dist/react-embed-kit/index.d.ts",
+      "import": "./dist/react-embed-kit/index.js",
+      "default": "./dist/react-embed-kit/index.js"
+    }
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/ReactTV/embed-kit.git"
