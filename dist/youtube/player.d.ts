@@ -54,7 +54,7 @@ interface YTPlayer {
 }
 /**
  * Create a controllable YouTube player in the given container.
- * Returns a normalized IEmbedPlayer (play, pause, getPaused).
+ * Returns an EmbedPlayerVideoElement that mimics HTMLVideoElement (play, pause, currentTime, etc.).
  */
 export declare const createPlayer: TCreatePlayer;
 export {};

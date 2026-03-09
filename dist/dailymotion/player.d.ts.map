@@ -1,1 +1,1 @@
-{"version":3,"file":"player.d.ts","sourceRoot":"","sources":["../../src/dailymotion/player.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,aAAa,EAAgB,MAAM,mBAAmB,CAAC;AAMrE;;;;GAIG;AACH,eAAO,MAAM,YAAY,EAAE,aA4J1B,CAAC"}
+{"version":3,"file":"player.d.ts","sourceRoot":"","sources":["../../src/dailymotion/player.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,aAAa,EAAgB,MAAM,mBAAmB,CAAC;AAWrE;;GAEG;AACH,eAAO,MAAM,YAAY,EAAE,aAmK1B,CAAC"}

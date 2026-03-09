@@ -1,12 +1,15 @@
-import { createEmbedIframeElement, loadScript, } from "../_base/index.js";
+import { createEmbedIframeElement, loadScript, EmbedPlayerVideoElement, wrapOptionsForEventTarget, } from "../_base/index.js";
 const VIMEO_SCRIPT = "https://player.vimeo.com/api/player.js";
 const EMBED_BASE = "https://player.vimeo.com/video/";
 /**
  * Create a controllable Vimeo player in the given container.
- * Returns a normalized IEmbedPlayer (play, pause, paused, currentTime).
+ * Returns an EmbedPlayerVideoElement that mimics HTMLVideoElement.
  */
 export const createPlayer = (container, id, options = {}) => {
-    const { width = 560, height = 315, autoplay = false, volume: initialVolume, controls = true, config, onReady = () => { }, onPlay = () => { }, onPause = () => { }, onBuffering = () => { }, onEnded = () => { }, onProgress = () => { }, onDurationChange = () => { }, onSeek = () => { }, onMute = () => { }, onError = () => { }, vimeoHash, } = options;
+    const opts = options;
+    const element = new EmbedPlayerVideoElement(opts.url ?? `https://player.vimeo.com/video/${id}`);
+    const wrappedOptions = wrapOptionsForEventTarget(element, options);
+    const { width = 560, height = 315, autoplay = false, volume: initialVolume, controls = true, config, onReady = () => { }, onPlay = () => { }, onPause = () => { }, onBuffering = () => { }, onEnded = () => { }, onProgress = () => { }, onDurationChange = () => { }, onSeek = () => { }, onMute = () => { }, onError = () => { }, vimeoHash, } = { ...opts, ...wrappedOptions };
     const query = new URLSearchParams({ api: "1" });
     if (vimeoHash)
         query.set("h", vimeoHash);
@@ -93,7 +96,7 @@ export const createPlayer = (container, id, options = {}) => {
         };
         onReady();
         applyInitialVolume();
-        return {
+        const inner = {
             play: () => vimeoPlayer.play(),
             pause: () => vimeoPlayer.pause(),
             get paused() {
@@ -141,6 +144,8 @@ export const createPlayer = (container, id, options = {}) => {
                     container.removeChild(iframe);
             },
         };
+        element.setPlayer(inner);
+        return element;
     });
 };
 //# sourceMappingURL=player.js.map

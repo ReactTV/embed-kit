@@ -6,6 +6,8 @@
 export interface ICreatePlayerOptions {
     width?: number;
     height?: number;
+    /** Full source URL for the embed. Used by the class-based player for the .src property. */
+    url?: string;
     autoplay?: boolean;
     /** Initial volume 0–1. Not all providers support volume (e.g. some iframe embeds). */
     volume?: number;

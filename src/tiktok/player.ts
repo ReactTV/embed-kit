@@ -1,5 +1,7 @@
 import {
   createEmbedIframeElement,
+  EmbedPlayerVideoElement,
+  wrapOptionsForEventTarget,
   type IEmbedPlayer,
   type IProgressData,
   type TCreatePlayer,
@@ -25,9 +27,14 @@ function post(iframe: HTMLIFrameElement, type: string, value?: unknown): void {
 
 /**
  * Create a controllable TikTok player in the given container.
- * Uses postMessage: play, pause, seekTo; listens for onStateChange and onCurrentTime.
+ * Returns an EmbedPlayerVideoElement that mimics HTMLVideoElement.
  */
 export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
+  const element = new EmbedPlayerVideoElement(
+    options.url ?? `https://www.tiktok.com/@/video/${id}`
+  );
+  const wrappedOptions = wrapOptionsForEventTarget(element, options);
+
   const {
     width = 325,
     height = 575,
@@ -43,7 +50,7 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     onSeek = () => {},
     onMute = () => {},
     onError = () => {},
-  } = options;
+  } = wrappedOptions;
 
   const params = new URLSearchParams({ controls: controls ? "1" : "0" });
   if (autoplay) params.set("autoplay", "1");
@@ -88,7 +95,8 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
       case "onPlayerReady":
         resolveReady();
         onReady();
-        resolvePlayer(player);
+        element.setPlayer(player);
+        resolvePlayer(element);
         break;
       case "onStateChange":
         if (typeof data.value === "number") {

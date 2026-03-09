@@ -26,6 +26,7 @@ export function ReactEmbedKit({ url, playerRef: playerRefProp, onUnsupportedUrl,
         let cancelled = false;
         const promise = provider.createPlayer(container, id, {
             ...playerOptions,
+            url,
             width: playerOptions.width ?? defaultWidth,
             height: playerOptions.height ?? defaultHeight,
             onReady: noop,

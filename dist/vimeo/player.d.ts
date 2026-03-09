@@ -9,7 +9,7 @@ declare global {
 }
 /**
  * Create a controllable Vimeo player in the given container.
- * Returns a normalized IEmbedPlayer (play, pause, paused, currentTime).
+ * Returns an EmbedPlayerVideoElement that mimics HTMLVideoElement.
  */
 export declare const createPlayer: TCreatePlayer;
 //# sourceMappingURL=player.d.ts.map

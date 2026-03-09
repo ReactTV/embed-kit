@@ -1,20 +1,24 @@
-import { createEmbedIframeElement, } from "../_base/index.js";
+import { createEmbedIframeElement, EmbedPlayerVideoElement, wrapOptionsForEventTarget, } from "../_base/index.js";
 import { EMBED_ORIGIN, NS_EMBED, NS_PLAYER_PROXY, PlaybackState, PlayerCommands, } from "./constants.js";
 /**
  * Create a Twitch player in the given container (video by id, channel by name, or clip by slug).
- * Uses player.twitch.tv for VOD/channel (postMessage API) or clips.twitch.tv/embed for clips (no control API).
- * Same player interface; clip embeds do not respond to play/pause/seek/mute.
+ * Returns an EmbedPlayerVideoElement that mimics HTMLVideoElement.
  */
 export const createPlayer = (container, id, options = {}) => {
-    const { width = 560, height = 315, autoplay = false, controls = true, enableCaptions, onReady = () => { }, onPlay = () => { }, onPause = () => { }, onBuffering = () => { }, onEnded = () => { }, onProgress = () => { }, onDurationChange = () => { }, onSeek = () => { }, onMute = () => { }, onError = () => { }, } = options;
+    const embedUrl = options.twitchType === "clip"
+        ? `https://clips.twitch.tv/embed?clip=${encodeURIComponent(id)}`
+        : `https://player.twitch.tv/?video=${encodeURIComponent(id)}`;
+    const element = new EmbedPlayerVideoElement(options.url ?? embedUrl);
+    const wrappedOptions = wrapOptionsForEventTarget(element, options);
+    const { width = 560, height = 315, autoplay = false, controls = true, enableCaptions, onReady = () => { }, onPlay = () => { }, onPause = () => { }, onBuffering = () => { }, onEnded = () => { }, onProgress = () => { }, onDurationChange = () => { }, onSeek = () => { }, onMute = () => { }, onError = () => { }, } = wrappedOptions;
     const { twitchType } = options;
     const isChannel = twitchType === "channel";
     const mediaParam = isChannel ? "channel" : "video";
-    const embedUrl = twitchType === "clip"
+    const iframeSrc = twitchType === "clip"
         ? `https://clips.twitch.tv/embed?clip=${encodeURIComponent(id)}&parent=${encodeURIComponent(window.location.hostname)}`
         : `${EMBED_ORIGIN}/?${mediaParam}=${encodeURIComponent(id)}&parent=${encodeURIComponent(window.location.hostname)}&controls=${controls}${autoplay ? "&autoplay=true" : ""}`;
     const iframe = createEmbedIframeElement({
-        src: embedUrl,
+        src: iframeSrc,
         width,
         height,
         allow: "accelerometer; fullscreen; autoplay; encrypted-media; picture-in-picture",
@@ -86,7 +90,7 @@ export const createPlayer = (container, id, options = {}) => {
             return;
         iframe.contentWindow.postMessage({ eventName: command, params, namespace: NS_PLAYER_PROXY }, EMBED_ORIGIN);
     };
-    const player = {
+    const inner = {
         play() {
             playerState.isPaused = false;
             send(PlayerCommands.PLAY);
@@ -141,6 +145,7 @@ export const createPlayer = (container, id, options = {}) => {
                 iframe.remove();
         },
     };
-    return Promise.resolve(player);
+    element.setPlayer(inner);
+    return Promise.resolve(element);
 };
 //# sourceMappingURL=player.js.map

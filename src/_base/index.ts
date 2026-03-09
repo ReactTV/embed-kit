@@ -1,6 +1,13 @@
 // Player: createPlayer options, callback payloads, and returned player
 export type { TCreatePlayer, ICreatePlayerOptions, IEmbedPlayer, IErrorData, IMuteData, IProgressData, ISeekData, TPlayerState } from "./player.js";
 
+// Video element mimic for ref compatibility (e.g. React Player)
+export type { IVideoElementMimic, HTMLVideoElementSubset } from "./videoElementMimic.js";
+export {
+  EmbedPlayerVideoElement,
+  wrapOptionsForEventTarget,
+} from "./videoElementMimic.js";
+
 // Iframe helpers (for provider implementations)
 export type { IIframeEmbedProps } from "./createEmbedIframeElement.js";
 export { createEmbedIframeElement, renderEmbedIframe } from "./createEmbedIframeElement.js";

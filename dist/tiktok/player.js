@@ -1,4 +1,4 @@
-import { createEmbedIframeElement, } from "../_base/index.js";
+import { createEmbedIframeElement, EmbedPlayerVideoElement, wrapOptionsForEventTarget, } from "../_base/index.js";
 const EMBED_ORIGIN = "https://www.tiktok.com";
 const EMBED_BASE = "https://www.tiktok.com/player/v1/";
 /** TikTok onStateChange values: -1 init, 0 ended, 1 playing, 2 paused, 3 buffering */
@@ -16,10 +16,12 @@ function post(iframe, type, value) {
 }
 /**
  * Create a controllable TikTok player in the given container.
- * Uses postMessage: play, pause, seekTo; listens for onStateChange and onCurrentTime.
+ * Returns an EmbedPlayerVideoElement that mimics HTMLVideoElement.
  */
 export const createPlayer = (container, id, options = {}) => {
-    const { width = 325, height = 575, autoplay = false, controls = true, onReady = () => { }, onPlay = () => { }, onPause = () => { }, onBuffering = () => { }, onEnded = () => { }, onProgress = () => { }, onDurationChange = () => { }, onSeek = () => { }, onMute = () => { }, onError = () => { }, } = options;
+    const element = new EmbedPlayerVideoElement(options.url ?? `https://www.tiktok.com/@/video/${id}`);
+    const wrappedOptions = wrapOptionsForEventTarget(element, options);
+    const { width = 325, height = 575, autoplay = false, controls = true, onReady = () => { }, onPlay = () => { }, onPause = () => { }, onBuffering = () => { }, onEnded = () => { }, onProgress = () => { }, onDurationChange = () => { }, onSeek = () => { }, onMute = () => { }, onError = () => { }, } = wrappedOptions;
     const params = new URLSearchParams({ controls: controls ? "1" : "0" });
     if (autoplay)
         params.set("autoplay", "1");
@@ -62,7 +64,8 @@ export const createPlayer = (container, id, options = {}) => {
             case "onPlayerReady":
                 resolveReady();
                 onReady();
-                resolvePlayer(player);
+                element.setPlayer(player);
+                resolvePlayer(element);
                 break;
             case "onStateChange":
                 if (typeof data.value === "number") {

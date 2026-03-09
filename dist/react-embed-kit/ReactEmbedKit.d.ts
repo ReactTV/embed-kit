@@ -9,7 +9,7 @@ export interface ReactEmbedKitProps {
     autoplay?: boolean;
     /** When set, syncs play/pause to the player (e.g. playing={true} calls play()). Undefined is treated as false. */
     playing?: boolean;
-    /** When true, requests picture-in-picture when the player is ready. Only supported when the provider implements requestPictureInPicture (e.g. not most iframe embeds). */
+    /** When true, requests picture-in-picture when ready. Only if the provider supports it. */
     pip?: boolean;
     /** Initial volume 0–1. Not all providers support volume. */
     volume?: number;
@@ -25,7 +25,7 @@ export interface ReactEmbedKitProps {
         youtube?: Record<string, number | string | undefined>;
         vimeo?: Record<string, number | string | undefined>;
     };
-    /** Ref set to the IEmbedPlayer when ready and cleared on unmount. Use for play/pause/seek and error (e.g. playerRef.current?.play(), playerRef.current?.error). */
+    /** Ref set to EmbedPlayerVideoElement when ready (play, pause, currentTime, addEventListener). Cleared on unmount. */
     playerRef?: React.Ref<IEmbedPlayer | null>;
     onUnsupportedUrl?: (url: string) => void;
     onError?: (data: IErrorData) => void;

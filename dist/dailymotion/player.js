@@ -1,12 +1,12 @@
-import { createPlayerContainer, loadScript } from "../_base/index.js";
+import { createPlayerContainer, loadScript, EmbedPlayerVideoElement, wrapOptionsForEventTarget, } from "../_base/index.js";
 const DAILYMOTION_LIB = "https://geo.dailymotion.com/libs/player.js";
 /**
- * Create a controllable Dailymotion player. The SDK finds the mount element by id via
- * document.getElementById. The container must be in the light DOM (e.g. a direct child
- * of the host element) so the SDK can find it; the base controllable element mounts there.
+ * Create a controllable Dailymotion player. Returns an EmbedPlayerVideoElement that mimics HTMLVideoElement.
  */
 export const createPlayer = (container, id, options = {}) => {
-    const { width = 560, height = 315, autoplay = false, controls = true, onReady = () => { }, onPlay = () => { }, onPause = () => { }, onBuffering = () => { }, onEnded = () => { }, onProgress = () => { }, onDurationChange = () => { }, onSeek = () => { }, onSeeking = () => { }, onMute = () => { }, onError = () => { }, } = options;
+    const element = new EmbedPlayerVideoElement(options.url ?? `https://www.dailymotion.com/video/${id}`);
+    const wrappedOptions = wrapOptionsForEventTarget(element, options);
+    const { width = 560, height = 315, autoplay = false, controls = true, onReady = () => { }, onPlay = () => { }, onPause = () => { }, onBuffering = () => { }, onEnded = () => { }, onProgress = () => { }, onDurationChange = () => { }, onSeek = () => { }, onSeeking = () => { }, onMute = () => { }, onError = () => { }, } = wrappedOptions;
     const params = {};
     if (autoplay)
         params.autoplay = true;
@@ -82,7 +82,7 @@ export const createPlayer = (container, id, options = {}) => {
             playerState.currentTime = state?.videoTime ?? 0;
             onProgress(playerState.currentTime);
         });
-        return {
+        const inner = {
             get currentTime() {
                 return playerState.currentTime;
             },
@@ -131,6 +131,8 @@ export const createPlayer = (container, id, options = {}) => {
                 playerState.volume = v;
             },
         };
+        element.setPlayer(inner);
+        return element;
     })
         .catch((err) => {
         wrapper.remove();

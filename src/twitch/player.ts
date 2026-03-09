@@ -1,5 +1,7 @@
 import {
   createEmbedIframeElement,
+  EmbedPlayerVideoElement,
+  wrapOptionsForEventTarget,
   type IEmbedPlayer,
   type TCreatePlayer,
   type TPlayerState,
@@ -15,10 +17,16 @@ import type { TTwitchMessage } from "./player.types.js";
 
 /**
  * Create a Twitch player in the given container (video by id, channel by name, or clip by slug).
- * Uses player.twitch.tv for VOD/channel (postMessage API) or clips.twitch.tv/embed for clips (no control API).
- * Same player interface; clip embeds do not respond to play/pause/seek/mute.
+ * Returns an EmbedPlayerVideoElement that mimics HTMLVideoElement.
  */
 export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
+  const embedUrl =
+    (options as typeof options & { twitchType?: string }).twitchType === "clip"
+      ? `https://clips.twitch.tv/embed?clip=${encodeURIComponent(id)}`
+      : `https://player.twitch.tv/?video=${encodeURIComponent(id)}`;
+  const element = new EmbedPlayerVideoElement(options.url ?? embedUrl);
+  const wrappedOptions = wrapOptionsForEventTarget(element, options);
+
   const {
     width = 560,
     height = 315,
@@ -35,18 +43,18 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     onSeek = () => {},
     onMute = () => {},
     onError = () => {},
-  } = options;
+  } = wrappedOptions;
   const { twitchType } = options as typeof options & { twitchType?: string };
   const isChannel = twitchType === "channel";
 
   const mediaParam = isChannel ? "channel" : "video";
-  const embedUrl =
+  const iframeSrc =
     twitchType === "clip"
       ? `https://clips.twitch.tv/embed?clip=${encodeURIComponent(id)}&parent=${encodeURIComponent(window.location.hostname)}`
       : `${EMBED_ORIGIN}/?${mediaParam}=${encodeURIComponent(id)}&parent=${encodeURIComponent(window.location.hostname)}&controls=${controls}${autoplay ? "&autoplay=true" : ""}`;
 
   const iframe = createEmbedIframeElement({
-    src: embedUrl,
+    src: iframeSrc,
     width,
     height,
     allow: "accelerometer; fullscreen; autoplay; encrypted-media; picture-in-picture",
@@ -129,7 +137,7 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
       EMBED_ORIGIN
     );
   };
-  const player: IEmbedPlayer = {
+  const inner: IEmbedPlayer = {
     play() {
       playerState.isPaused = false;
       send(PlayerCommands.PLAY);
@@ -184,5 +192,6 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     },
   };
 
-  return Promise.resolve(player);
+  element.setPlayer(inner);
+  return Promise.resolve(element);
 };

@@ -1,6 +1,8 @@
 import {
   createEmbedIframeElement,
   loadScript,
+  EmbedPlayerVideoElement,
+  wrapOptionsForEventTarget,
   type TCreatePlayer,
   type TPlayerState,
 } from "../_base/index.js";
@@ -23,9 +25,15 @@ declare global {
 
 /**
  * Create a controllable Vimeo player in the given container.
- * Returns a normalized IEmbedPlayer (play, pause, paused, currentTime).
+ * Returns an EmbedPlayerVideoElement that mimics HTMLVideoElement.
  */
 export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
+  const opts = options as typeof options & { vimeoHash?: string };
+  const element = new EmbedPlayerVideoElement(
+    opts.url ?? `https://player.vimeo.com/video/${id}`
+  );
+  const wrappedOptions = wrapOptionsForEventTarget(element, options);
+
   const {
     width = 560,
     height = 315,
@@ -44,7 +52,7 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     onMute = () => {},
     onError = () => {},
     vimeoHash,
-  } = options as typeof options & { vimeoHash?: string };
+  } = { ...opts, ...wrappedOptions } as typeof wrappedOptions & { vimeoHash?: string };
   const query = new URLSearchParams({ api: "1" });
   if (vimeoHash) query.set("h", vimeoHash);
   if (autoplay) query.set("autoplay", "1");
@@ -131,7 +139,7 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
     onReady();
     applyInitialVolume();
 
-    return {
+    const inner = {
       play: () => vimeoPlayer.play(),
       pause: () => vimeoPlayer.pause(),
       get paused() {
@@ -178,5 +186,7 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
         if (iframe.parentNode) container.removeChild(iframe);
       },
     };
+    element.setPlayer(inner);
+    return element;
   });
 };

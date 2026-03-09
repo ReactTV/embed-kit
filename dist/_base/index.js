@@ -1,3 +1,4 @@
+export { EmbedPlayerVideoElement, wrapOptionsForEventTarget, } from "./videoElementMimic.js";
 export { createEmbedIframeElement, renderEmbedIframe } from "./createEmbedIframeElement.js";
 export { createPlayerContainer } from "./createPlayerContainer.js";
 export { createEmbedElement } from "./element.js";
