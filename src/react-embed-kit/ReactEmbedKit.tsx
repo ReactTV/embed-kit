@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState } from "react";
 import type {
+  EmbedPlayerRef,
   ICreatePlayerOptions,
   IEmbedPlayer,
   IEmbedProgressEvent,
@@ -26,10 +27,10 @@ export interface ReactEmbedKitProps {
     youtube?: Record<string, number | string | undefined>;
     vimeo?: Record<string, number | string | undefined>;
   };
-  playerRef?: React.Ref<IEmbedPlayer | null>;
+  playerRef?: React.Ref<EmbedPlayerRef>;
   onUnsupportedUrl?: (url: string) => void;
   onError?: (data: IErrorData) => void;
-  onReady?: (player: IEmbedPlayer) => void;
+  onReady?: (player: NonNullable<EmbedPlayerRef>) => void;
   onPlay?: () => void;
   onPause?: () => void;
   onBuffering?: () => void;
@@ -82,7 +83,7 @@ export function ReactEmbedKit({
   onApiChange,
 }: ReactEmbedKitProps): React.ReactElement {
   const containerRef = useRef<HTMLDivElement>(null);
-  const playerRef = useRef<IEmbedPlayer | null>(null);
+  const playerRef = useRef<NonNullable<EmbedPlayerRef> | null>(null);
   const playerRefPropRef = useRef(playerRefProp);
   playerRefPropRef.current = playerRefProp;
   const [playerReady, setPlayerReady] = useState<IEmbedPlayer | null>(null);
@@ -168,14 +169,15 @@ export function ReactEmbedKit({
         });
         el.addEventListener("ready", () => {
           if (cancelled) return;
-          playerRef.current = el;
+          const elAsVideo = el as unknown as NonNullable<EmbedPlayerRef>;
+          playerRef.current = elAsVideo;
           setPlayerReady(el);
           const ref = playerRefPropRef.current;
           if (ref != null) {
-            if (typeof ref === "function") ref(el);
-            else (ref as React.MutableRefObject<IEmbedPlayer | null>).current = el;
+            if (typeof ref === "function") ref(elAsVideo);
+            else (ref as { current: EmbedPlayerRef }).current = elAsVideo;
           }
-          optionsRef.current.onReady?.(el);
+          optionsRef.current.onReady?.(elAsVideo);
         });
         el.addEventListener("play", () => optionsRef.current.onPlay?.());
         el.addEventListener("pause", () => optionsRef.current.onPause?.());
@@ -222,7 +224,7 @@ export function ReactEmbedKit({
       const ref = playerRefPropRef.current;
       if (ref != null) {
         if (typeof ref === "function") ref(null);
-        else (ref as React.MutableRefObject<IEmbedPlayer | null>).current = null;
+        else (ref as { current: EmbedPlayerRef }).current = null;
       }
       try {
         element?.destroy?.();

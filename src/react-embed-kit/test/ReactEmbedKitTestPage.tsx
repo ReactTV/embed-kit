@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import type { IEmbedPlayer } from "../../elements/_base/player.js";
+import type { EmbedPlayerRef } from "../../elements/_base/player.js";
 import { ReactEmbedKit } from "../ReactEmbedKit.js";
 import {
   SOURCE_URL as YOUTUBE_SOURCE_URL,
@@ -40,7 +40,7 @@ interface PollData {
  */
 export function ReactEmbedKitTestPage(): React.ReactElement {
   const [url, setUrl] = useState<string>(PRESETS[0]?.url ?? "");
-  const [player, setPlayer] = useState<IEmbedPlayer | null>(null);
+  const [player, setPlayer] = useState<NonNullable<EmbedPlayerRef> | null>(null);
   const [buffering, setBuffering] = useState(false);
   const [seeking, setSeeking] = useState(false);
   const [controls, setControls] = useState(true);
@@ -207,7 +207,7 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
           disabled={!player}
           onClick={() => {
             setSeeking(true);
-            player?.seek(0);
+            if (player) player.currentTime = 0;
           }}
         >
           Seek to 0:00
@@ -217,15 +217,27 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
           disabled={!player}
           onClick={() => {
             setSeeking(true);
-            player?.seek(30);
+            if (player) player.currentTime = 30;
           }}
         >
           Seek to 0:30
         </button>
-        <button type="button" disabled={!player} onClick={() => player?.mute()}>
+        <button
+          type="button"
+          disabled={!player}
+          onClick={() => {
+            if (player) player.muted = true;
+          }}
+        >
           Mute
         </button>
-        <button type="button" disabled={!player} onClick={() => player?.unmute()}>
+        <button
+          type="button"
+          disabled={!player}
+          onClick={() => {
+            if (player) player.muted = false;
+          }}
+        >
           Unmute
         </button>
       </div>
