@@ -1,6 +1,6 @@
 /**
  * Normalized player API and options.
- * createPlayer(container, id, options) returns an IEmbedPlayer; options callbacks use the I*Data types.
+ * Embed elements are typed as HTMLVideoElement (EmbedPlayerRef) for consumers.
  */
 export interface ICreatePlayerOptions {
   width?: number;
@@ -67,23 +67,6 @@ export interface TPlayerState {
   error: MediaError | null;
 }
 
-export interface IEmbedPlayer {
-  play(): void | Promise<void>;
-  pause(): void | Promise<void>;
-  seek(seconds: number): void | Promise<void>;
-  mute(): void | Promise<void>;
-  unmute(): void | Promise<void>;
-  destroy?(): void | Promise<void>;
-  readonly paused: boolean;
-  readonly currentTime: number;
-  readonly duration: number;
-  readonly muted: boolean;
-  readonly volume?: number | undefined;
-  setVolume?(volume: number): void | Promise<void>;
-  requestPictureInPicture?(): Promise<void>;
-  readonly error: MediaError | null;
-}
-
 /**
  * Public ref type for embed players. Typed as HTMLVideoElement so consuming apps
  * can use the ref like a native video element (play, pause, currentTime, etc.),
@@ -95,4 +78,4 @@ export type TCreatePlayer = (
   container: HTMLElement,
   id: string,
   options?: ICreatePlayerOptions
-) => Promise<IEmbedPlayer>;
+) => Promise<NonNullable<EmbedPlayerRef>>;

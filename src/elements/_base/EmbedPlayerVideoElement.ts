@@ -3,7 +3,7 @@ import type { ICreatePlayerOptions, IEmbedProgressEvent, TPlayerState } from "./
 /**
  * Class-based mimic of HTMLVideoElement. Providers can either (1) extend this
  * class and override play(), pause(), seek(), getters, etc., or (2) construct
- * it and call setPlayer(inner) when the inner IEmbedPlayer is ready.
+ * it and call setPlayer(inner) when the inner player is ready.
  */
 export class EmbedPlayerVideoElement extends HTMLElement {
   readonly src: string = "";

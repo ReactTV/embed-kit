@@ -2,7 +2,6 @@ import { useRef, useEffect, useState } from "react";
 import type {
   EmbedPlayerRef,
   ICreatePlayerOptions,
-  IEmbedPlayer,
   IEmbedProgressEvent,
   IErrorData,
   IMuteData,
@@ -86,7 +85,7 @@ export function ReactEmbedKit({
   const playerRef = useRef<NonNullable<EmbedPlayerRef> | null>(null);
   const playerRefPropRef = useRef(playerRefProp);
   playerRefPropRef.current = playerRefProp;
-  const [playerReady, setPlayerReady] = useState<IEmbedPlayer | null>(null);
+  const [playerReady, setPlayerReady] = useState<NonNullable<EmbedPlayerRef> | null>(null);
 
   const optionsRef = useRef({
     onReady,
@@ -135,7 +134,7 @@ export function ReactEmbedKit({
 
     const { tagName, url: embedUrl } = resolved;
     let cancelled = false;
-    let element: (HTMLElement & IEmbedPlayer) | null = null;
+    let element: NonNullable<EmbedPlayerRef> | null = null;
 
     const opts: ICreatePlayerOptions = {
       width,
@@ -153,7 +152,7 @@ export function ReactEmbedKit({
       .then(() => {
         if (cancelled) return;
         container.innerHTML = "";
-        const el = document.createElement(tagName) as HTMLElement & IEmbedPlayer;
+        const el = document.createElement(tagName) as unknown as NonNullable<EmbedPlayerRef>;
         element = el;
 
         (el as unknown as { options: ICreatePlayerOptions }).options = opts;
@@ -227,7 +226,7 @@ export function ReactEmbedKit({
         else (ref as { current: EmbedPlayerRef }).current = null;
       }
       try {
-        element?.destroy?.();
+        (element as { destroy?: () => void })?.destroy?.();
       } finally {
         container.innerHTML = "";
       }
