@@ -1,28 +1,31 @@
-import type { ICreatePlayerOptions, IEmbedPlayer, IErrorData } from "./player.js";
-type EventListener = (ev: Event) => void;
-type EventListenerObject = {
-    handleEvent(ev: Event): void;
-};
+import type { IEmbedPlayer, IErrorData, TPlayerState } from "./player.js";
+/**
+ * Default player state. Subclasses mutate this.playerState as the embed updates.
+ */
+export declare function createDefaultPlayerState(overrides?: Partial<TPlayerState>): TPlayerState;
 /**
  * Subset of HTMLVideoElement that EmbedPlayerVideoElement implements.
  * Type against this when you only need play, pause, currentTime, duration,
- * paused, muted, volume, src, and EventTarget. Lets refs be typed so the
- * mimic is assignable: RefObject<HTMLVideoElementSubset | null>.
+ * paused, muted, volume, src.
  */
-export type HTMLVideoElementSubset = Pick<HTMLVideoElement, "play" | "pause" | "currentTime" | "duration" | "paused" | "muted" | "volume" | "src" | "addEventListener" | "removeEventListener" | "dispatchEvent">;
+export type HTMLVideoElementSubset = Pick<HTMLVideoElement, "play" | "pause" | "currentTime" | "duration" | "paused" | "muted" | "volume" | "src">;
 /**
- * Class-based mimic of HTMLVideoElement that delegates to an IEmbedPlayer.
- * Use as the return value of createPlayer so refs typed as HTMLVideoElement
- * (e.g. React Player) work with embed players. Supports addEventListener,
- * dispatchEvent, and the full HTMLMediaElement-like surface (play, pause,
- * currentTime, duration, paused, muted, volume, src, error).
+ * Class-based mimic of HTMLVideoElement. Providers can either (1) extend this
+ * class and override play(), pause(), seek(), getters, etc., or (2) construct
+ * it and call setPlayer(inner) when the inner IEmbedPlayer is ready.
  */
 export declare class EmbedPlayerVideoElement implements IEmbedPlayer, HTMLVideoElementSubset {
     #private;
     readonly src: string;
-    constructor(url: string);
-    /** Set the underlying player after it is ready. Called by each provider. */
+    /** Shared state shape; subclasses read/write this instead of defining their own. */
+    protected playerState: TPlayerState;
+    constructor(url: string, stateOverrides?: Partial<TPlayerState>);
+    /** Set the underlying player when ready. Omit if the subclass overrides play(), pause(), etc. */
     setPlayer(player: IEmbedPlayer): void;
+    /** Resolve when the player is ready. Subclasses should call markReady() when ready. */
+    ready(): Promise<EmbedPlayerVideoElement>;
+    /** Call when the player is ready (e.g. after first frame or API ready). Used by subclasses. */
+    protected markReady(): void;
     play(): Promise<void>;
     pause(): Promise<void>;
     seek(seconds: number): void | Promise<void>;
@@ -40,9 +43,6 @@ export declare class EmbedPlayerVideoElement implements IEmbedPlayer, HTMLVideoE
     get error(): IErrorData | null;
     setVolume(volume: number): void | Promise<void>;
     requestPictureInPicture(): Promise<void>;
-    addEventListener(type: string, callback: EventListener | EventListenerObject): void;
-    removeEventListener(type: string, callback: EventListener | EventListenerObject): void;
-    dispatchEvent(event: Event): boolean;
 }
 /** Subset of HTMLVideoElement we implement for ref compatibility. */
 export interface IVideoElementMimic {
@@ -55,14 +55,5 @@ export interface IVideoElementMimic {
     volume: number;
     readonly src: string;
     readonly error: IErrorData | null;
-    addEventListener(type: string, callback: EventListener | EventListenerObject): void;
-    removeEventListener(type: string, callback: EventListener | EventListenerObject): void;
-    dispatchEvent(event: Event): boolean;
 }
-/**
- * Wraps createPlayer options so that when callbacks run, the element also dispatches
- * the corresponding DOM events (play, pause, timeupdate, etc.). Use so ref.addEventListener works.
- */
-export declare function wrapOptionsForEventTarget(element: EmbedPlayerVideoElement, options: ICreatePlayerOptions): ICreatePlayerOptions;
-export {};
 //# sourceMappingURL=videoElementMimic.d.ts.map

@@ -1,10 +1,5 @@
-import type { IEmbedPlayer, TCreatePlayer, TPlayerState } from "../_base/index.js";
-import {
-  createPlayerContainer,
-  loadScript,
-  EmbedPlayerVideoElement,
-  wrapOptionsForEventTarget,
-} from "../_base/index.js";
+import type { ICreatePlayerOptions, IEmbedPlayer, TCreatePlayer } from "../_base/index.js";
+import { createPlayerContainer, loadScript, EmbedPlayerVideoElement } from "../_base/index.js";
 
 const YT_SCRIPT = "https://www.youtube.com/iframe_api";
 
@@ -37,15 +32,15 @@ interface YTOptions {
 interface YTPlayer {
   playVideo: () => void;
   pauseVideo: () => void;
-  getPlayerState: () => number; // 1=playing, 2=paused, etc.
-  getCurrentTime: () => number; // seconds
-  getDuration: () => number; // seconds (0 until metadata loaded)
+  getPlayerState: () => number;
+  getCurrentTime: () => number;
+  getDuration: () => number;
   seekTo: (seconds: number, allowSeekAhead: boolean) => void;
   mute: () => void;
   unMute: () => void;
   isMuted: () => boolean;
-  getVolume: () => number; // 0-100
-  setVolume: (volume: number) => void; // 0-100
+  getVolume: () => number;
+  setVolume: (volume: number) => void;
 }
 
 function loadYTScript(): Promise<void> {
@@ -64,121 +59,67 @@ function loadYTScript(): Promise<void> {
 }
 
 /**
- * Create a controllable YouTube player in the given container.
- * Returns an EmbedPlayerVideoElement that mimics HTMLVideoElement (play, pause, currentTime, etc.).
+ * YouTube embed player as a subclass of EmbedPlayerVideoElement.
  */
-export const createPlayer: TCreatePlayer = (container, id, options = {}): Promise<IEmbedPlayer> => {
-  const element = new EmbedPlayerVideoElement(
-    options.url ?? `https://www.youtube.com/watch?v=${id}`
-  );
-  const wrappedOptions = wrapOptionsForEventTarget(element, options);
+class YouTubeEmbedPlayer extends EmbedPlayerVideoElement {
+  #player: YTPlayer | null = null;
+  #div: HTMLElement | null = null;
+  #readyState: { progressIntervalId: ReturnType<typeof setInterval> | undefined; destroyed: boolean };
+  #options: ICreatePlayerOptions;
+  #initialVolume: number | undefined;
+  #progressInterval: number;
 
-  const {
-    width = 560,
-    height = 315,
-    autoplay = false,
-    volume: initialVolume,
-    controls = true,
-    enableCaptions,
-    showAnnotations,
-    config,
-    onReady = () => {},
-    onPlay = () => {},
-    onPause = () => {},
-    onBuffering = () => {},
-    onEnded = () => {},
-    onProgress = () => {},
-    onDurationChange = () => {},
-    onSeek = () => {},
-    onMute = () => {},
-    onError = () => {},
-    onPlaybackQualityChange = () => {},
-    onPlaybackRateChange = () => {},
-    onAutoplayBlocked = () => {},
-    onApiChange = () => {},
-    progressInterval = 50,
-  } = wrappedOptions;
-
-  const youtubeConfig = config?.youtube ?? {};
-  const playerVars: Record<string, number | string> = {
-    autoplay: autoplay ? 1 : 0,
-    ...youtubeConfig,
-  };
-  if (controls !== undefined) playerVars.controls = controls ? 1 : 0;
-  if (enableCaptions !== undefined) playerVars.cc_load_policy = enableCaptions ? 1 : 0;
-  if (showAnnotations !== undefined) playerVars.iv_load_policy = showAnnotations ? 1 : 3;
-
-  const playerState: TPlayerState = {
-    currentTime: 0,
-    duration: 0,
-    isPlaying: false,
-    isPaused: true,
-    muted: false,
-    ...(typeof initialVolume === "number" &&
+  constructor(
+    container: HTMLElement,
+    id: string,
+    options: ICreatePlayerOptions = {},
+  ) {
+    const initialVolume = options.volume;
+    const stateOverrides =
+      typeof initialVolume === "number" &&
       initialVolume >= 0 &&
-      initialVolume <= 1 && { volume: initialVolume }),
-    error: null,
-  };
+      initialVolume <= 1
+        ? { volume: initialVolume }
+        : undefined;
+    super(options.url ?? `https://www.youtube.com/watch?v=${id}`, stateOverrides);
+    this.#options = options;
+    const {
+      width = 560,
+      height = 315,
+      autoplay = false,
+      volume: vol,
+      controls = true,
+      enableCaptions,
+      showAnnotations,
+      config,
+      progressInterval = 50,
+    } = this.#options;
+    this.#initialVolume = vol;
+    this.#progressInterval = progressInterval;
 
-  return loadYTScript().then(() => {
-    return new Promise<IEmbedPlayer>((resolve) => {
-      const { element: div } = createPlayerContainer(container, "yt-player");
+    const youtubeConfig = config?.youtube ?? {};
+    const playerVars: Record<string, number | string> = {
+      autoplay: autoplay ? 1 : 0,
+      ...youtubeConfig,
+    };
+    if (controls !== undefined) playerVars.controls = controls ? 1 : 0;
+    if (enableCaptions !== undefined) playerVars.cc_load_policy = enableCaptions ? 1 : 0;
+    if (showAnnotations !== undefined) playerVars.iv_load_policy = showAnnotations ? 1 : 3;
+
+    this.#readyState = { progressIntervalId: undefined, destroyed: false };
+
+    const { onReady = () => {}, onPlay = () => {}, onPause = () => {}, onBuffering = () => {},
+      onEnded = () => {}, onProgress = () => {}, onDurationChange = () => {},
+      onMute = () => {}, onError = () => {}, onPlaybackQualityChange = () => {},
+      onPlaybackRateChange = () => {}, onAutoplayBlocked = () => {}, onApiChange = () => {} } =
+      this.#options;
+
+    void loadYTScript().then(() => {
+      if (this.#readyState.destroyed) return;
       const YT = window.YT!;
       const { PlayerState } = YT;
-
-      let player: YTPlayer | null = null;
-
-      const readyState = {
-        progressIntervalId: undefined as ReturnType<typeof setInterval> | undefined,
-        destroyed: false,
-      };
-
-      const inner: IEmbedPlayer = {
-        play: () => player!.playVideo(),
-        pause: () => player!.pauseVideo(),
-        get paused() {
-          return playerState.isPaused;
-        },
-        get currentTime() {
-          return playerState.currentTime;
-        },
-        get duration() {
-          return playerState.duration;
-        },
-        seek(seconds: number) {
-          player!.seekTo(seconds, true);
-          onSeek(seconds);
-        },
-        mute: () => {
-          player!.mute();
-          playerState.muted = true;
-          onMute({ muted: true });
-        },
-        unmute: () => {
-          player!.unMute();
-          playerState.muted = false;
-          onMute({ muted: false });
-        },
-        get muted() {
-          return playerState.muted;
-        },
-        get volume() {
-          return playerState.volume;
-        },
-        setVolume(vol: number) {
-          const v = Math.max(0, Math.min(1, vol));
-          player!.setVolume(Math.round(v * 100));
-          playerState.volume = v;
-        },
-        get error() {
-          return playerState.error;
-        },
-        destroy() {
-          readyState.destroyed = true;
-          if (readyState.progressIntervalId) clearInterval(readyState.progressIntervalId);
-          if (div.parentNode) div.remove();
-        },
-      };
+      const { element: div } = createPlayerContainer(container, "yt-player");
+      this.#div = div;
 
       new YT.Player(div, {
         videoId: id,
@@ -186,69 +127,127 @@ export const createPlayer: TCreatePlayer = (container, id, options = {}): Promis
         height,
         playerVars,
         events: {
-          onError(ev: { data: number }) {
-            playerState.error = { code: ev.data };
-            onError(playerState.error);
+          onError: (ev: { data: number }) => {
+            this.playerState.error = { code: ev.data };
+            onError(this.playerState.error);
           },
-          onReady(ev: { target: YTPlayer }) {
-            if (readyState.destroyed) return;
-            player = ev.target;
-            if (typeof initialVolume === "number" && initialVolume >= 0 && initialVolume <= 1) {
-              player.setVolume(Math.round(initialVolume * 100));
-              playerState.volume = initialVolume;
+          onReady: (ev: { target: YTPlayer }) => {
+            if (this.#readyState.destroyed) return;
+            this.#player = ev.target;
+            const player = this.#player;
+            if (
+              typeof this.#initialVolume === "number" &&
+              this.#initialVolume >= 0 &&
+              this.#initialVolume <= 1
+            ) {
+              player.setVolume(Math.round(this.#initialVolume * 100));
+              this.playerState.volume = this.#initialVolume;
             } else {
-              playerState.volume = player.getVolume() / 100;
+              this.playerState.volume = player.getVolume() / 100;
             }
             onReady();
-
-            // YouTube IFrame API has no timeupdate/progress event and no volume/mute event; polling required.
-            if (readyState.destroyed) return;
-            readyState.progressIntervalId = setInterval(() => {
-              if (readyState.destroyed || !player) return;
-
-              playerState.currentTime = player.getCurrentTime();
-              onProgress(playerState.currentTime);
-
-              const isMuted = player.isMuted();
-              if (playerState.muted !== isMuted) {
-                playerState.muted = isMuted;
+            if (this.#readyState.destroyed) return;
+            this.#readyState.progressIntervalId = setInterval(() => {
+              if (this.#readyState.destroyed || !this.#player) return;
+              this.playerState.currentTime = this.#player.getCurrentTime();
+              onProgress(this.playerState.currentTime);
+              const isMuted = this.#player.isMuted();
+              if (this.playerState.muted !== isMuted) {
+                this.playerState.muted = isMuted;
                 onMute({ muted: isMuted });
               }
-              playerState.volume = player.getVolume() / 100;
-
-              playerState.isPlaying = player.getPlayerState() === PlayerState.PLAYING;
-              playerState.isPaused = player.getPlayerState() === PlayerState.PAUSED;
-              const newDuration = player.getDuration();
-              if (newDuration !== playerState.duration) {
-                playerState.duration = newDuration;
-                onDurationChange(playerState.duration);
+              this.playerState.volume = this.#player.getVolume() / 100;
+              this.playerState.isPlaying = this.#player.getPlayerState() === PlayerState.PLAYING;
+              this.playerState.isPaused = this.#player.getPlayerState() === PlayerState.PAUSED;
+              const newDuration = this.#player.getDuration();
+              if (newDuration !== this.playerState.duration) {
+                this.playerState.duration = newDuration;
+                onDurationChange(this.playerState.duration);
               }
-              playerState.currentTime = player.getCurrentTime();
-              playerState.error = null;
-            }, progressInterval);
-            element.setPlayer(inner);
-            resolve(element);
+              this.playerState.currentTime = this.#player.getCurrentTime();
+              this.playerState.error = null;
+            }, this.#progressInterval);
+            this.markReady();
           },
-          onStateChange(ev: { data: number }) {
+          onStateChange: (ev: { data: number }) => {
             if (ev.data === PlayerState.PLAYING) onPlay();
             if (ev.data === PlayerState.PAUSED) onPause();
             if (ev.data === PlayerState.BUFFERING) onBuffering();
             if (ev.data === PlayerState.ENDED) onEnded();
           },
-          onPlaybackQualityChange(ev: { data: string }) {
-            onPlaybackQualityChange(ev.data);
-          },
-          onPlaybackRateChange(ev: { data: number }) {
-            onPlaybackRateChange(ev.data);
-          },
-          onAutoplayBlocked() {
-            onAutoplayBlocked();
-          },
-          onApiChange() {
-            onApiChange();
-          },
+          onPlaybackQualityChange: (ev: { data: string }) => onPlaybackQualityChange(ev.data),
+          onPlaybackRateChange: (ev: { data: number }) => onPlaybackRateChange(ev.data),
+          onAutoplayBlocked: () => onAutoplayBlocked(),
+          onApiChange: () => onApiChange(),
         },
       });
     });
-  });
+  }
+
+  override play(): Promise<void> {
+    this.#player?.playVideo();
+    return Promise.resolve();
+  }
+  override pause(): Promise<void> {
+    this.#player?.pauseVideo();
+    return Promise.resolve();
+  }
+  override seek(seconds: number): void {
+    this.#player?.seekTo(seconds, true);
+    this.#options.onSeek?.(seconds);
+  }
+  override mute(): void {
+    this.#player?.mute();
+    this.playerState.muted = true;
+    this.#options.onMute?.({ muted: true });
+  }
+  override unmute(): void {
+    this.#player?.unMute();
+    this.playerState.muted = false;
+    this.#options.onMute?.({ muted: false });
+  }
+  override destroy(): void {
+    this.#readyState.destroyed = true;
+    if (this.#readyState.progressIntervalId) clearInterval(this.#readyState.progressIntervalId);
+    if (this.#div?.parentNode) this.#div.remove();
+  }
+  override get paused(): boolean {
+    return this.playerState.isPaused;
+  }
+  override get currentTime(): number {
+    return this.playerState.currentTime;
+  }
+  override set currentTime(seconds: number) {
+    this.seek(seconds);
+  }
+  override get duration(): number {
+    return this.playerState.duration;
+  }
+  override get muted(): boolean {
+    return this.playerState.muted;
+  }
+  override get volume(): number {
+    return this.playerState.volume ?? 1;
+  }
+  override set volume(vol: number) {
+    const v = Math.max(0, Math.min(1, vol));
+    this.#player?.setVolume(Math.round(v * 100));
+    this.playerState.volume = v;
+  }
+  override get error() {
+    return this.playerState.error;
+  }
+}
+
+/**
+ * Create a controllable YouTube player in the given container.
+ * Returns an EmbedPlayerVideoElement that mimics HTMLVideoElement.
+ */
+export const createPlayer: TCreatePlayer = (
+  container,
+  id,
+  options = {},
+): Promise<IEmbedPlayer> => {
+  const element = new YouTubeEmbedPlayer(container, id, options);
+  return element.ready();
 };

@@ -1,11 +1,10 @@
 import {
   createEmbedIframeElement,
   EmbedPlayerVideoElement,
-  wrapOptionsForEventTarget,
+  type ICreatePlayerOptions,
   type IEmbedPlayer,
   type IProgressData,
   type TCreatePlayer,
-  type TPlayerState,
 } from "../_base/index.js";
 
 const EMBED_ORIGIN = "https://www.tiktok.com";
@@ -26,166 +25,171 @@ function post(iframe: HTMLIFrameElement, type: string, value?: unknown): void {
 }
 
 /**
+ * TikTok embed player as a subclass of EmbedPlayerVideoElement.
+ * Implements the subset directly via postMessage to the TikTok iframe.
+ */
+class TikTokEmbedPlayer extends EmbedPlayerVideoElement {
+  #iframe: HTMLIFrameElement;
+  #handleMessage: (event: MessageEvent) => void;
+  #options: ICreatePlayerOptions;
+
+  constructor(
+    container: HTMLElement,
+    id: string,
+    options: ICreatePlayerOptions = {},
+  ) {
+    super(options.url ?? `https://www.tiktok.com/@/video/${id}`);
+    this.#options = options;
+    const {
+      width = 325,
+      height = 575,
+      autoplay = false,
+      controls = true,
+      onReady = () => {},
+      onPlay = () => {},
+      onPause = () => {},
+      onBuffering = () => {},
+      onEnded = () => {},
+      onProgress = () => {},
+      onDurationChange = () => {},
+      onError = () => {},
+    } = this.#options;
+
+    const params = new URLSearchParams({ controls: controls ? "1" : "0" });
+    if (autoplay) params.set("autoplay", "1");
+
+    const iframe = createEmbedIframeElement({
+      src: `${EMBED_BASE}${id}?${params.toString()}`,
+      width,
+      height,
+      allow: "autoplay; fullscreen",
+      allowFullScreen: true,
+    });
+    iframe.style.display = "block";
+    iframe.style.maxWidth = "100%";
+    iframe.style.maxHeight = "100%";
+    container.appendChild(iframe);
+    this.#iframe = iframe;
+
+    const handleMessage = (event: MessageEvent): void => {
+      if (event.origin !== EMBED_ORIGIN || event.source !== iframe.contentWindow)
+        return;
+      const data = event.data;
+      if (!data || typeof data !== "object" || !("type" in data)) return;
+
+      switch (data.type) {
+        case "onPlayerReady":
+          onReady();
+          this.markReady();
+          break;
+        case "onStateChange":
+          if (typeof data.value === "number") {
+            this.playerState.isPaused = data.value === STATE_PAUSED;
+            if (data.value === 1) onPlay();
+            if (data.value === STATE_PAUSED) onPause();
+            if (data.value === 3) onBuffering();
+            if (data.value === STATE_ENDED) onEnded();
+          }
+          break;
+        case "onCurrentTime": {
+          const t = data.value as Partial<IProgressData> | undefined;
+          if (t) {
+            if (typeof t.currentTime === "number")
+              this.playerState.currentTime = t.currentTime;
+            if (typeof t.duration === "number") {
+              if (t.duration !== this.playerState.duration) {
+                this.playerState.duration = t.duration;
+                onDurationChange(t.duration);
+              }
+            }
+            onProgress(this.playerState.currentTime);
+          }
+          break;
+        }
+        case "onError":
+        case "error": {
+          const err = data.value as
+            | { message?: string; code?: number | string }
+            | undefined;
+          const errorData = {
+            ...(err?.message != null ? { message: err.message } : {}),
+            ...(err?.code != null ? { code: err.code } : {}),
+          };
+          this.playerState.error =
+            Object.keys(errorData).length > 0
+              ? errorData
+              : { message: "TikTok embed error" };
+          onError(this.playerState.error);
+          break;
+        }
+      }
+    };
+    this.#handleMessage = handleMessage;
+    window.addEventListener("message", handleMessage);
+  }
+
+  override play(): Promise<void> {
+    post(this.#iframe, "play");
+    return Promise.resolve();
+  }
+  override pause(): Promise<void> {
+    post(this.#iframe, "pause");
+    return Promise.resolve();
+  }
+  override seek(seconds: number): void {
+    post(this.#iframe, "seekTo", seconds);
+    this.playerState.currentTime = seconds;
+    this.#options.onSeek?.(seconds);
+  }
+  override mute(): void {
+    this.playerState.muted = true;
+    post(this.#iframe, "mute", true);
+    this.#options.onMute?.({ muted: true });
+  }
+  override unmute(): void {
+    this.playerState.muted = false;
+    post(this.#iframe, "mute", false);
+    this.#options.onMute?.({ muted: false });
+  }
+  override destroy(): void {
+    window.removeEventListener("message", this.#handleMessage);
+    if (this.#iframe.parentNode) this.#iframe.remove();
+  }
+  override get currentTime(): number {
+    return this.playerState.currentTime;
+  }
+  override set currentTime(seconds: number) {
+    this.seek(seconds);
+  }
+  override get duration(): number {
+    return this.playerState.duration;
+  }
+  override get paused(): boolean {
+    return this.playerState.isPaused;
+  }
+  override get muted(): boolean {
+    return this.playerState.muted;
+  }
+  override get volume(): number {
+    return this.playerState.volume ?? 1;
+  }
+  override set volume(vol: number) {
+    this.playerState.volume = vol;
+  }
+  override get error() {
+    return this.playerState.error;
+  }
+}
+
+/**
  * Create a controllable TikTok player in the given container.
  * Returns an EmbedPlayerVideoElement that mimics HTMLVideoElement.
  */
-export const createPlayer: TCreatePlayer = (container, id, options = {}) => {
-  const element = new EmbedPlayerVideoElement(
-    options.url ?? `https://www.tiktok.com/@/video/${id}`
-  );
-  const wrappedOptions = wrapOptionsForEventTarget(element, options);
-
-  const {
-    width = 325,
-    height = 575,
-    autoplay = false,
-    controls = true,
-    onReady = () => {},
-    onPlay = () => {},
-    onPause = () => {},
-    onBuffering = () => {},
-    onEnded = () => {},
-    onProgress = () => {},
-    onDurationChange = () => {},
-    onSeek = () => {},
-    onMute = () => {},
-    onError = () => {},
-  } = wrappedOptions;
-
-  const params = new URLSearchParams({ controls: controls ? "1" : "0" });
-  if (autoplay) params.set("autoplay", "1");
-
-  // Vertical video: width is the narrow dimension, height the tall one (e.g. 325×575).
-  const iframe = createEmbedIframeElement({
-    src: `${EMBED_BASE}${id}?${params.toString()}`,
-    width,
-    height,
-    allow: "autoplay; fullscreen",
-    allowFullScreen: true,
-  });
-  iframe.style.display = "block";
-  iframe.style.maxWidth = "100%";
-  iframe.style.maxHeight = "100%";
-  container.appendChild(iframe);
-
-  const playerState: TPlayerState = {
-    currentTime: 0,
-    isPaused: true,
-    muted: false,
-    volume: 1,
-    error: null,
-    isPlaying: false,
-    duration: 0,
-  };
-  let resolveReady: () => void;
-  new Promise<void>((resolve) => {
-    resolveReady = resolve;
-  });
-  let resolvePlayer: (p: IEmbedPlayer) => void;
-  const playerPromise = new Promise<IEmbedPlayer>((resolve) => {
-    resolvePlayer = resolve;
-  });
-
-  const handleMessage = (event: MessageEvent): void => {
-    if (event.origin !== EMBED_ORIGIN || event.source !== iframe.contentWindow) return;
-    const data = event.data;
-    if (!data || typeof data !== "object" || !("type" in data)) return;
-
-    switch (data.type) {
-      case "onPlayerReady":
-        resolveReady();
-        onReady();
-        element.setPlayer(player);
-        resolvePlayer(element);
-        break;
-      case "onStateChange":
-        if (typeof data.value === "number") {
-          playerState.isPaused = data.value === STATE_PAUSED;
-          if (data.value === 1) onPlay(); // 1 = playing
-          if (data.value === STATE_PAUSED) onPause();
-          if (data.value === 3) onBuffering(); // 3 = buffering
-          if (data.value === STATE_ENDED) onEnded();
-        }
-        break;
-      case "onCurrentTime":
-        const t = data.value as Partial<IProgressData> | undefined;
-        if (t) {
-          if (typeof t.currentTime === "number") playerState.currentTime = t.currentTime;
-          if (typeof t.duration === "number") {
-            if (t.duration !== playerState.duration) {
-              playerState.duration = t.duration;
-              onDurationChange(t.duration);
-            }
-          }
-          onProgress(playerState.currentTime);
-        }
-        break;
-      case "onError":
-      case "error": {
-        const err = data.value as { message?: string; code?: number | string } | undefined;
-        const errorData = {
-          ...(err?.message != null ? { message: err.message } : {}),
-          ...(err?.code != null ? { code: err.code } : {}),
-        };
-        playerState.error =
-          Object.keys(errorData).length > 0 ? errorData : { message: "TikTok embed error" };
-        onError(playerState.error);
-        break;
-      }
-    }
-  };
-
-  window.addEventListener("message", handleMessage);
-
-  const player: IEmbedPlayer = {
-    async play() {
-      post(iframe, "play");
-    },
-    async pause() {
-      post(iframe, "pause");
-    },
-    get paused(): boolean {
-      return playerState.isPaused;
-    },
-    get currentTime(): number {
-      return playerState.currentTime;
-    },
-    get duration(): number {
-      return playerState.duration;
-    },
-    seek(seconds: number) {
-      post(iframe, "seekTo", seconds);
-      playerState.currentTime = seconds;
-      onSeek(seconds);
-    },
-    mute() {
-      playerState.muted = true;
-      post(iframe, "mute", true);
-      onMute({ muted: true });
-    },
-    unmute() {
-      playerState.muted = false;
-      post(iframe, "mute", false);
-      onMute({ muted: false });
-    },
-    get muted(): boolean {
-      return playerState.muted;
-    },
-    get volume() {
-      return playerState.volume;
-    },
-    setVolume(vol: number) {
-      // TikTok does not support volume
-      playerState.volume = vol;
-    },
-    get error() {
-      return playerState.error;
-    },
-    destroy() {
-      window.removeEventListener("message", handleMessage);
-      if (iframe.parentNode) container.removeChild(iframe);
-    },
-  };
-
-  return playerPromise;
+export const createPlayer: TCreatePlayer = (
+  container,
+  id,
+  options = {},
+): Promise<IEmbedPlayer> => {
+  const element = new TikTokEmbedPlayer(container, id, options);
+  return element.ready();
 };

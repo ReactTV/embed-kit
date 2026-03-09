@@ -25,7 +25,7 @@ export interface ReactEmbedKitProps {
         youtube?: Record<string, number | string | undefined>;
         vimeo?: Record<string, number | string | undefined>;
     };
-    /** Ref set to EmbedPlayerVideoElement when ready (play, pause, currentTime, addEventListener). Cleared on unmount. */
+    /** Ref set to EmbedPlayerVideoElement when ready (play, pause, currentTime, etc.). Cleared on unmount. */
     playerRef?: React.Ref<IEmbedPlayer | null>;
     onUnsupportedUrl?: (url: string) => void;
     onError?: (data: IErrorData) => void;

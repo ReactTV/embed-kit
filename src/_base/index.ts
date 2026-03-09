@@ -4,8 +4,8 @@ export type { TCreatePlayer, ICreatePlayerOptions, IEmbedPlayer, IErrorData, IMu
 // Video element mimic for ref compatibility (e.g. React Player)
 export type { IVideoElementMimic, HTMLVideoElementSubset } from "./videoElementMimic.js";
 export {
+  createDefaultPlayerState,
   EmbedPlayerVideoElement,
-  wrapOptionsForEventTarget,
 } from "./videoElementMimic.js";
 
 // Iframe helpers (for provider implementations)

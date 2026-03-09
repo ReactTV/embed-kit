@@ -1,22 +1,49 @@
 /**
- * Class-based mimic of HTMLVideoElement that delegates to an IEmbedPlayer.
- * Use as the return value of createPlayer so refs typed as HTMLVideoElement
- * (e.g. React Player) work with embed players. Supports addEventListener,
- * dispatchEvent, and the full HTMLMediaElement-like surface (play, pause,
- * currentTime, duration, paused, muted, volume, src, error).
+ * Default player state. Subclasses mutate this.playerState as the embed updates.
+ */
+export function createDefaultPlayerState(overrides) {
+    return {
+        currentTime: 0,
+        duration: 0,
+        isPlaying: false,
+        isPaused: true,
+        muted: false,
+        error: null,
+        ...overrides,
+    };
+}
+/**
+ * Class-based mimic of HTMLVideoElement. Providers can either (1) extend this
+ * class and override play(), pause(), seek(), getters, etc., or (2) construct
+ * it and call setPlayer(inner) when the inner IEmbedPlayer is ready.
  */
 export class EmbedPlayerVideoElement {
     src;
     #player = null;
-    #listeners = new Map();
-    constructor(url) {
+    /** Shared state shape; subclasses read/write this instead of defining their own. */
+    playerState;
+    #readyPromise;
+    #resolveReady;
+    constructor(url, stateOverrides) {
         this.src = url;
+        this.playerState = createDefaultPlayerState(stateOverrides);
+        this.#readyPromise = new Promise((resolve) => {
+            this.#resolveReady = resolve;
+        });
     }
-    /** Set the underlying player after it is ready. Called by each provider. */
+    /** Set the underlying player when ready. Omit if the subclass overrides play(), pause(), etc. */
     setPlayer(player) {
         this.#player = player;
     }
-    // ——— IEmbedPlayer (delegate to #player) ———
+    /** Resolve when the player is ready. Subclasses should call markReady() when ready. */
+    ready() {
+        return this.#readyPromise;
+    }
+    /** Call when the player is ready (e.g. after first frame or API ready). Used by subclasses. */
+    markReady() {
+        this.#resolveReady(this);
+    }
+    // ——— IEmbedPlayer / HTMLVideoElementSubset (override in subclasses or use setPlayer) ———
     play() {
         return Promise.resolve(this.#player?.play()).then(() => undefined);
     }
@@ -71,84 +98,5 @@ export class EmbedPlayerVideoElement {
     requestPictureInPicture() {
         return this.#player?.requestPictureInPicture?.() ?? Promise.resolve();
     }
-    // ——— EventTarget ———
-    addEventListener(type, callback) {
-        let set = this.#listeners.get(type);
-        if (!set) {
-            set = new Set();
-            this.#listeners.set(type, set);
-        }
-        set.add(callback);
-    }
-    removeEventListener(type, callback) {
-        this.#listeners.get(type)?.delete(callback);
-    }
-    dispatchEvent(event) {
-        const set = this.#listeners.get(event.type);
-        if (set) {
-            for (const cb of set) {
-                if (typeof cb === "function")
-                    cb.call(null, event);
-                else
-                    cb.handleEvent(event);
-            }
-        }
-        return true;
-    }
-}
-/**
- * Wraps createPlayer options so that when callbacks run, the element also dispatches
- * the corresponding DOM events (play, pause, timeupdate, etc.). Use so ref.addEventListener works.
- */
-export function wrapOptionsForEventTarget(element, options) {
-    return {
-        ...options,
-        onReady: () => {
-            element.dispatchEvent(new Event("loadedmetadata"));
-            element.dispatchEvent(new Event("durationchange"));
-            element.dispatchEvent(new Event("canplay"));
-            options.onReady?.();
-        },
-        onPlay: () => {
-            element.dispatchEvent(new Event("play"));
-            options.onPlay?.();
-        },
-        onPause: () => {
-            element.dispatchEvent(new Event("pause"));
-            options.onPause?.();
-        },
-        onEnded: () => {
-            element.dispatchEvent(new Event("ended"));
-            options.onEnded?.();
-        },
-        onProgress: (t) => {
-            element.dispatchEvent(new Event("timeupdate"));
-            options.onProgress?.(t);
-        },
-        onDurationChange: (d) => {
-            element.dispatchEvent(new Event("durationchange"));
-            options.onDurationChange?.(d);
-        },
-        onSeeking: () => {
-            element.dispatchEvent(new Event("seeking"));
-            options.onSeeking?.();
-        },
-        onSeek: (t) => {
-            element.dispatchEvent(new Event("seeked"));
-            options.onSeek?.(t);
-        },
-        onMute: (data) => {
-            element.dispatchEvent(new Event("volumechange"));
-            options.onMute?.(data);
-        },
-        onPlaybackRateChange: (rate) => {
-            element.dispatchEvent(new Event("ratechange"));
-            options.onPlaybackRateChange?.(rate);
-        },
-        onError: (data) => {
-            element.dispatchEvent(new Event("error"));
-            options.onError?.(data);
-        },
-    };
 }
 //# sourceMappingURL=videoElementMimic.js.map
