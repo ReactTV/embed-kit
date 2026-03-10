@@ -55,20 +55,19 @@ class VimeoEmbedPlayer extends EmbedPlayerVideoElement {
     const { videoId, vimeoHash } = parseVimeoId(src);
     if (!videoId) return;
 
-    const width = Number(this.getAttribute("width")) || (this.options.width ?? 560);
-    const height = Number(this.getAttribute("height")) || (this.options.height ?? 315);
+    const width = Number(this.getAttribute("width"));
+    const height = Number(this.getAttribute("height"));
     const autoplay =
       this.getAttribute("autoplay") != null
         ? this.getAttribute("autoplay") !== "false"
         : (this.options.autoplay ?? false);
-    const optionsMuted = this.options.muted;
     const controls =
       this.getAttribute("controls") != null
         ? this.getAttribute("controls") !== "false"
         : (this.options.controls ?? true);
     const { config } = this.options;
 
-    const initialVolume = this.getAttribute("volume") ?? this.options.volume;
+    const initialVolume = this.getAttribute("volume");
 
     const query = new URLSearchParams({ api: "1" });
     const h = vimeoHash ?? (config?.vimeo?.h != null ? String(config.vimeo.h) : undefined);
@@ -145,20 +144,7 @@ class VimeoEmbedPlayer extends EmbedPlayerVideoElement {
         });
       }
 
-      const applyMutedState = (): void => {
-        if (optionsMuted === true) {
-          vimeoPlayer.setMuted(true).then(() => {
-            this.playerState.muted = true;
-            this.dispatchEvent(new Event("ready"));
-          });
-        } else {
-          vimeoPlayer.getMuted().then((m) => {
-            this.playerState.muted = m;
-            this.dispatchEvent(new Event("ready"));
-          });
-        }
-      };
-      applyMutedState();
+      this.dispatchEvent(new Event("ready"));
     });
   }
 

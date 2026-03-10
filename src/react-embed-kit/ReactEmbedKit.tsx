@@ -136,8 +136,8 @@ export function ReactEmbedKit({
     let element: NonNullable<EmbedPlayerRef> | null = null;
 
     const opts: ICreatePlayerOptions = {
-      width,
-      height,
+      width: width ?? 560,
+      height: height ?? 315,
       ...(autoplay !== undefined && { autoplay }),
       ...(muted !== undefined && { muted }),
       ...(volume !== undefined && { volume }),

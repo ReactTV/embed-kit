@@ -42,13 +42,12 @@ class TikTokEmbedPlayer extends EmbedPlayerVideoElement {
     const videoId = parseTiktokId(src);
     if (!videoId) return;
 
-    const width = Number(this.getAttribute("width")) || (this.options.width ?? 325);
-    const height = Number(this.getAttribute("height")) || (this.options.height ?? 575);
+    const width = Number(this.getAttribute("width"));
+    const height = Number(this.getAttribute("height"));
     const autoplay =
       this.getAttribute("autoplay") != null
         ? this.getAttribute("autoplay") !== "false"
         : (this.options.autoplay ?? false);
-    const optionsMuted = this.options.muted;
     const controls =
       this.getAttribute("controls") != null
         ? this.getAttribute("controls") !== "false"
@@ -77,10 +76,6 @@ class TikTokEmbedPlayer extends EmbedPlayerVideoElement {
 
       switch (data.type) {
         case "onPlayerReady":
-          if (optionsMuted === true) {
-            post(iframe, "mute", true);
-            this.playerState.muted = true;
-          }
           this.dispatchEvent(new Event("ready"));
           break;
         case "onStateChange":
@@ -96,14 +91,11 @@ class TikTokEmbedPlayer extends EmbedPlayerVideoElement {
         case "onCurrentTime": {
           const t = data.value as { currentTime?: number; duration?: number } | undefined;
           if (t) {
-            if (typeof t.currentTime === "number")
-              this.playerState.currentTime = t.currentTime;
+            if (typeof t.currentTime === "number") this.playerState.currentTime = t.currentTime;
             if (typeof t.duration === "number") {
               if (t.duration !== this.playerState.duration) {
                 this.playerState.duration = t.duration;
-                this.dispatchEvent(
-                  new CustomEvent("durationchange", { detail: t.duration })
-                );
+                this.dispatchEvent(new CustomEvent("durationchange", { detail: t.duration }));
               }
             }
             this.emitProgress(this.playerState.currentTime);

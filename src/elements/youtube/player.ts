@@ -40,10 +40,7 @@ class YouTubeEmbedPlayer extends EmbedPlayerVideoElement {
     if (!videoId) return;
 
     const {
-      width = 560,
-      height = 315,
       autoplay = false,
-      muted: optionsMuted,
       controls = true,
       enableCaptions,
       showAnnotations,
@@ -71,8 +68,6 @@ class YouTubeEmbedPlayer extends EmbedPlayerVideoElement {
 
       new YT.Player(div, {
         videoId,
-        width,
-        height,
         playerVars,
         events: {
           onError: (ev: { data: number }) => {
@@ -85,12 +80,7 @@ class YouTubeEmbedPlayer extends EmbedPlayerVideoElement {
 
             this.player = ev.target;
             this.playerState.currentTime = 0;
-            if (optionsMuted === true) {
-              this.player.mute();
-              this.playerState.muted = true;
-            } else {
-              this.playerState.muted = this.player.isMuted();
-            }
+            this.playerState.muted = this.player.isMuted();
             if (typeof initialVolume === "number" && initialVolume >= 0 && initialVolume <= 1) {
               this.player.setVolume(Math.round(initialVolume * 100));
               this.playerState.volume = initialVolume;

@@ -1,4 +1,10 @@
-import type { ICreatePlayerOptions, IEmbedProgressEvent, TPlayerState } from "./player.js";
+import type { IEmbedProgressEvent } from "./player.js";
+
+const getAttributes = (attributes: NamedNodeMap) =>
+  Array.from(attributes).reduce<Record<string, string>>((acc, attr) => {
+    acc[attr.name] = attr.value;
+    return acc;
+  }, {});
 
 /**
  * Class-based mimic of HTMLVideoElement. Providers can either (1) extend this
@@ -9,17 +15,35 @@ export class EmbedPlayerVideoElement extends HTMLElement {
   readonly src: string = "";
   iframe: HTMLIFrameElement | null = null;
   handleMessage: (event: MessageEvent) => void = () => {};
-  /** Shared state shape; subclasses read/write this instead of defining their own. */
-  protected options: ICreatePlayerOptions = {};
+  protected options = {
+    autoplay: false,
+    progressInterval: 50,
+    controls: true,
+    enableCaptions: false,
+    showAnnotations: false,
+    config: {
+      youtube: {},
+      vimeo: {
+        h: "0",
+      },
+    },
+  };
 
-  protected playerState: TPlayerState = {
+  protected playerState = {
     currentTime: 0,
     duration: 0,
     isPlaying: false,
     isPaused: true,
     muted: false,
-    error: null,
+    error: null as MediaError | null,
+    volume: 0.2,
   };
+
+  constructor() {
+    super();
+    const attributes = getAttributes(this.attributes);
+    console.log("??", attributes);
+  }
 
   play(): Promise<void> {
     return Promise.resolve();
@@ -74,11 +98,12 @@ export class EmbedPlayerVideoElement extends HTMLElement {
    */
   protected emitProgress(currentTime: number): void {
     if (Number.isFinite(currentTime)) this.playerState.currentTime = currentTime;
-    this.dispatchEvent(
-      new CustomEvent("progress", { detail: this.playerState.currentTime })
-    );
-    const optsRef = (this as unknown as { optionsRef?: { current: { onProgress?: (e: IEmbedProgressEvent) => void } } })
-      .optionsRef;
+    this.dispatchEvent(new CustomEvent("progress", { detail: this.playerState.currentTime }));
+    const optsRef = (
+      this as unknown as {
+        optionsRef?: { current: { onProgress?: (e: IEmbedProgressEvent) => void } };
+      }
+    ).optionsRef;
     optsRef?.current?.onProgress?.({ target: this, detail: this.playerState.currentTime });
   }
 }

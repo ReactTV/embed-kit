@@ -49,34 +49,9 @@ export interface IEmbedProgressEvent {
   detail: number;
 }
 
-export interface IProgressData {
-  currentTime: number;
-  duration?: number;
-}
-
-export interface ISeekData {
-  currentTime: number;
-}
-
-export interface TPlayerState {
-  currentTime: number;
-  duration: number;
-  isPlaying: boolean;
-  isPaused: boolean;
-  muted: boolean;
-  volume?: number;
-  error: MediaError | null;
-}
-
 /**
  * Public ref type for embed players. Typed as HTMLVideoElement so consuming apps
  * can use the ref like a native video element (play, pause, currentTime, etc.),
  * matching react-player and media-elements behavior.
  */
 export type EmbedPlayerRef = HTMLVideoElement | null;
-
-export type TCreatePlayer = (
-  container: HTMLElement,
-  id: string,
-  options?: ICreatePlayerOptions
-) => Promise<NonNullable<EmbedPlayerRef>>;
