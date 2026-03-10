@@ -31,6 +31,7 @@ interface PollData {
   duration: number | null;
   paused: boolean | null;
   muted: boolean | null;
+  volume: number | null;
 }
 
 /**
@@ -51,6 +52,7 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
     duration: null,
     paused: null,
     muted: null,
+    volume: null,
   });
 
   useEffect(() => {
@@ -61,7 +63,7 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
 
   useEffect(() => {
     if (!player) {
-      setData({ currentTime: null, duration: null, paused: null, muted: null });
+      setData({ currentTime: null, duration: null, paused: null, muted: null, volume: null });
       return;
     }
     let cancelled = false;
@@ -72,12 +74,14 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
         const duration = player.duration;
         const paused = player.paused;
         const muted = player.muted;
+        const volume = player.volume;
         if (!cancelled) {
           setData({
             currentTime: typeof currentTime === "number" ? currentTime : null,
             duration: typeof duration === "number" ? duration : null,
             paused: typeof paused === "boolean" ? paused : null,
             muted: typeof muted === "boolean" ? muted : null,
+            volume: typeof volume === "number" ? volume : null,
           });
         }
       } catch {
@@ -98,6 +102,7 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
         ["duration", formatTime(data.duration)],
         ["paused", String(data.paused)],
         ["muted", String(data.muted)],
+        ["volume", data.volume != null ? `${Math.round(data.volume * 100)}%` : "—"],
         ["isBuffering", String(buffering)],
         ["isSeeking", String(seeking)],
       ]
@@ -240,6 +245,30 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
         >
           Unmute
         </button>
+        <label
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+            marginLeft: "1rem",
+            minWidth: "140px",
+          }}
+        >
+          <span style={{ whiteSpace: "nowrap", fontSize: "0.9rem" }}>Volume</span>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={player && data.volume != null ? Math.round(data.volume * 100) : 100}
+            disabled={!player}
+            onChange={(e) => {
+              const pct = Number(e.target.value) / 100;
+              if (player) player.volume = pct;
+            }}
+            style={{ flex: 1, minWidth: 0 }}
+            aria-label="Volume"
+          />
+        </label>
       </div>
       <div className="data-panel">
         {dataRows.length > 0 ? (
