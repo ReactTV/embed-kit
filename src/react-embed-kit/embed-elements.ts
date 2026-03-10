@@ -11,8 +11,8 @@ declare module "react" {
           width?: number | undefined;
           height?: number | undefined;
           controls?: string | undefined;
-          enableCaptions?: string | undefined;
-          showAnnotations?: string | undefined;
+          captions?: string | undefined;
+          annotations?: string | undefined;
           playing?: string | undefined;
           volume?: number | undefined;
         },

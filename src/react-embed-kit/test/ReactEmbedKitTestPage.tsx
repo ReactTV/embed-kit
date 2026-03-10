@@ -47,8 +47,8 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
   const [player, setPlayer] = useState<NonNullable<EmbedPlayerRef> | null>(null);
   const [buffering, setBuffering] = useState(false);
   const [controls, setControls] = useState(true);
-  const [enableCaptions, setEnableCaptions] = useState(false);
-  const [showAnnotations, setShowAnnotations] = useState(true);
+  const [captions, setCaptions] = useState(true);
+  const [annotations, setAnnotations] = useState(true);
   const [data, setData] = useState<PollData>({
     currentTime: null,
     duration: null,
@@ -165,16 +165,16 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
         >
           <input
             type="checkbox"
-            checked={enableCaptions}
-            onChange={(e) => setEnableCaptions(e.target.checked)}
+            checked={captions}
+            onChange={(e) => setCaptions(e.target.checked)}
           />
           Enable captions
         </label>
         <label style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
           <input
             type="checkbox"
-            checked={showAnnotations}
-            onChange={(e) => setShowAnnotations(e.target.checked)}
+            checked={annotations}
+            onChange={(e) => setAnnotations(e.target.checked)}
           />
           Show annotations
         </label>
@@ -189,8 +189,8 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
           width={560}
           height={315}
           controls={controls}
-          enableCaptions={enableCaptions}
-          showAnnotations={showAnnotations}
+          captions={captions}
+          annotations={annotations}
           config={embedConfig}
           onReady={() => {}}
           onBuffering={() => setBuffering(true)}

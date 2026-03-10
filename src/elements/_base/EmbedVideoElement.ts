@@ -1,5 +1,29 @@
 import { DISPATCHED_EVENTS, TDispatchedEventPayloads } from "./player.types.js";
 
+export type TEmbedVideoElementOptions = {
+  autoplay: boolean;
+  progressInterval: number;
+  controls: boolean;
+  captions: boolean;
+  annotations: boolean;
+  config: {
+    youtube: Record<string, number | string | undefined>;
+    vimeo: Record<string, number | string | undefined>;
+  };
+};
+
+const generateDefaultOptions = (): TEmbedVideoElementOptions => ({
+  autoplay: false,
+  progressInterval: 50,
+  controls: true,
+  captions: false,
+  annotations: false,
+  config: {
+    youtube: {},
+    vimeo: {},
+  },
+});
+
 /**
  * Class-based mimic of HTMLVideoElement. Providers can either (1) extend this
  * class and override play(), pause(), seek(), getters, etc., or (2) construct
@@ -15,24 +39,12 @@ export class EmbedVideoElement extends HTMLElement {
     "playing",
     "autoplay",
     "controls",
-    "enableCaptions",
-    "showAnnotations",
+    "captions",
+    "annotations",
     "volume",
   ];
 
-  protected options = {
-    autoplay: false,
-    progressInterval: 50,
-    controls: true,
-    enableCaptions: false,
-    showAnnotations: false,
-    config: {
-      youtube: {},
-      vimeo: {
-        h: "0",
-      },
-    },
-  };
+  protected options: TEmbedVideoElementOptions = generateDefaultOptions();
 
   protected playerState = {
     currentTime: 0,
@@ -45,64 +57,94 @@ export class EmbedVideoElement extends HTMLElement {
     playbackQuality: "small",
   };
 
-  load(): void {
-    //
+  loadInitialOptions(): void {
+    const attributes = this.getAttributes();
+    this.options = {
+      autoplay: attributes.autoplay === "true",
+      progressInterval: attributes.progressInterval
+        ? parseInt(attributes.progressInterval, 10)
+        : 50,
+      controls: attributes.controls === "true",
+      captions: attributes.captions === "true",
+      annotations: attributes.annotations === "true",
+      config: {
+        youtube: attributes.youtube ? JSON.parse(attributes.youtube) : {},
+        vimeo: attributes.vimeo ? JSON.parse(attributes.vimeo) : {},
+      },
+    };
+  }
+
+  load(): void {}
+
+  destroy(): void | Promise<void> {
+    return Promise.resolve();
+  }
+
+  mute(): void | Promise<void> {
+    return Promise.resolve();
   }
 
   play(): Promise<void> {
     return Promise.resolve();
   }
+
   pause(): Promise<void> {
     return Promise.resolve();
   }
+
   seek(_seconds: number): void | Promise<void> {
     return Promise.resolve();
   }
-  mute(): void | Promise<void> {
-    return Promise.resolve();
-  }
+
   unmute(): void | Promise<void> {
     return Promise.resolve();
   }
-  destroy(): void | Promise<void> {
-    return Promise.resolve();
-  }
-  get playing(): boolean {
-    return !this.playerState.isPaused;
-  }
-  set playing(_value: boolean) {
-    //
-  }
-  get paused(): boolean {
-    return this.playerState.isPaused;
-  }
+
   get currentTime(): number {
     return this.playerState.currentTime;
   }
+
   set currentTime(_seconds: number) {
     //
   }
+
   get duration(): number {
     return this.playerState.duration;
   }
+
+  get error() {
+    return this.playerState.error;
+  }
+
+  set error(_value: MediaError | null) {
+    //
+  }
+
   get muted(): boolean {
     return this.playerState.muted;
   }
+
   set muted(_value: boolean) {
+    //
+  }
+
+  get paused(): boolean {
+    return this.playerState.isPaused;
+  }
+
+  get playing(): boolean {
+    return !this.playerState.isPaused;
+  }
+
+  set playing(_value: boolean) {
     //
   }
 
   get volume(): number {
     return this.playerState.volume;
   }
-  set volume(_value: number) {
-    //
-  }
-  get error() {
-    return this.playerState.error;
-  }
 
-  set error(_value: MediaError | null) {
+  set volume(_value: number) {
     //
   }
 

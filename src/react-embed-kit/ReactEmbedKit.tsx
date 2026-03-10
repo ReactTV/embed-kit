@@ -3,7 +3,7 @@ import { mergeRefs } from "react-merge-refs";
 import "./embed-elements.js";
 import "../elements/youtube/player.js";
 import type { EmbedPlayerRef, TDispatchedEventPayloads } from "../elements/_base/player.types.js";
-import { DISPATCHED_EVENTS, IDispatchedEventCallbacks } from "../elements/_base/index.js";
+import { IDispatchedEventCallbacks } from "../elements/_base/index.js";
 
 export type ReactEmbedKitProps = IDispatchedEventCallbacks & {
   url: string;
@@ -19,8 +19,8 @@ export type ReactEmbedKitProps = IDispatchedEventCallbacks & {
   seekTo?: number | null;
   progressInterval?: number;
   controls?: boolean;
-  enableCaptions?: boolean;
-  showAnnotations?: boolean;
+  captions?: boolean;
+  annotations?: boolean;
   config?: {
     youtube?: Record<string, number | string | undefined>;
     vimeo?: Record<string, number | string | undefined>;
@@ -35,8 +35,8 @@ export function ReactEmbedKit({
   width,
   height,
   controls = true,
-  enableCaptions = false,
-  showAnnotations = true,
+  captions,
+  annotations,
   playing,
   onReady,
   onPlay,
@@ -53,42 +53,40 @@ export function ReactEmbedKit({
   useEffect(() => {
     const el = elementRef.current;
     if (!el) return;
-    const onReadyHandler = () => onReady?.();
-    const onPlayHandler = () => onPlay?.();
-    const onPauseHandler = () => onPause?.();
-    const onBufferingHandler = () => onBuffering?.();
-    const onEndedHandler = () => onEnded?.();
-    const onProgressHandler = (event: CustomEvent<TDispatchedEventPayloads["onProgress"]>) => {
-      onProgress?.(event.detail);
+
+    const handlers = {
+      onReady: () => onReady?.(),
+      onPlay: () => onPlay?.(),
+      onPause: () => onPause?.(),
+      onBuffering: () => onBuffering?.(),
+      onEnded: () => onEnded?.(),
+      onProgress: (event: CustomEvent<TDispatchedEventPayloads["onProgress"]>) => {
+        onProgress?.(event.detail);
+      },
     };
 
-    el.addEventListener(DISPATCHED_EVENTS.ready, onReadyHandler);
-    el.addEventListener(DISPATCHED_EVENTS.play, onPlayHandler);
-    el.addEventListener(DISPATCHED_EVENTS.pause, onPauseHandler);
-    el.addEventListener(DISPATCHED_EVENTS.buffering, onBufferingHandler);
-    el.addEventListener(DISPATCHED_EVENTS.ended, onEndedHandler);
-    el.addEventListener(DISPATCHED_EVENTS.progress, onProgressHandler as EventListener);
+    Object.entries(handlers).forEach(([event, handler]) => {
+      el.addEventListener(event, handler as EventListener);
+    });
+
     return () => {
-      el.removeEventListener(DISPATCHED_EVENTS.ready, onReadyHandler);
-      el.removeEventListener(DISPATCHED_EVENTS.play, onPlayHandler);
-      el.removeEventListener(DISPATCHED_EVENTS.pause, onPauseHandler);
-      el.removeEventListener(DISPATCHED_EVENTS.buffering, onBufferingHandler);
-      el.removeEventListener(DISPATCHED_EVENTS.ended, onEndedHandler);
-      el.removeEventListener(DISPATCHED_EVENTS.progress, onProgressHandler as EventListener);
+      Object.entries(handlers).forEach(([event, handler]) => {
+        el.removeEventListener(event, handler as EventListener);
+      });
     };
-  }, [onReady]);
+  }, [onReady, onPlay, onPause, onBuffering, onEnded, onProgress]);
 
   return (
     <youtube-video
       ref={mergeRefs([elementRef, playerRef])}
       muted={muted}
-      playing={playing ? "true" : "false"}
+      playing={playing?.toString()}
       src={url}
       width={width}
       height={height}
-      controls={controls ? "true" : "false"}
-      enableCaptions={enableCaptions ? "true" : "false"}
-      showAnnotations={showAnnotations ? "true" : "false"}
+      controls={controls.toString()}
+      captions={captions?.toString()}
+      annotations={annotations?.toString()}
       volume={volume}
     />
   );

@@ -53,8 +53,8 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
         playerVars: {
           autoplay: attributes.autoplay === "true" ? 1 : 0,
           controls: attributes.controls === "false" ? 0 : 1,
-          enableCaptions: attributes.enableCaptions === "true" ? 1 : 0,
-          showAnnotations: attributes.showAnnotations === "true" ? 1 : 0,
+          captions: attributes.captions === "true" ? 1 : 0,
+          annotations: attributes.annotations === "true" ? 1 : 0,
         },
         events: {
           onReady: ({ target }) => {
@@ -129,6 +129,8 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
   }
 
   connectedCallback(): void {
+    this.loadInitialOptions();
+
     const src = this.getAttribute("src");
 
     if (!src) return;
