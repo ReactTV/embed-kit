@@ -241,7 +241,6 @@ export function ReactEmbedKit({
     width,
     height,
     autoplay,
-    muted,
     controls,
     enableCaptions,
     showAnnotations,
@@ -264,6 +263,12 @@ export function ReactEmbedKit({
     const v = Math.max(0, Math.min(1, volume));
     playerReady.volume = v;
   }, [volume, playerReady]);
+
+  // Sync muted prop to the player when it or the player changes (avoids remounting when parent updates muted/volume).
+  useEffect(() => {
+    if (!playerReady || muted === undefined) return;
+    playerReady.muted = muted;
+  }, [muted, playerReady]);
 
   // Request pip when player is ready, if pip prop is true.
   useEffect(() => {
