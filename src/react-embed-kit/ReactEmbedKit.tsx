@@ -198,9 +198,9 @@ export function ReactEmbedKit({
         });
         el.addEventListener("mute", (e: Event) => {
           const detail = (e as CustomEvent).detail;
-          const muted =
+          const isMuted =
             typeof detail === "boolean" ? detail : ((detail as IMuteData)?.muted ?? false);
-          optionsRef.current.onMute?.({ muted });
+          optionsRef.current.onMute?.({ muted: isMuted });
         });
         el.addEventListener("playbackqualitychange", (e: Event) => {
           const q = (e as CustomEvent).detail as string | undefined;
@@ -236,7 +236,17 @@ export function ReactEmbedKit({
         container.innerHTML = "";
       }
     };
-  }, [url, width, height, autoplay, muted, controls, enableCaptions, showAnnotations, progressInterval]);
+  }, [
+    url,
+    width,
+    height,
+    autoplay,
+    muted,
+    controls,
+    enableCaptions,
+    showAnnotations,
+    progressInterval,
+  ]);
 
   // Sync controlled playing state to the player when it or the player changes.
   useEffect(() => {
@@ -247,6 +257,13 @@ export function ReactEmbedKit({
       playerReady.pause();
     }
   }, [playing, playerReady]);
+
+  // Sync volume prop to the player when it or the player changes.
+  useEffect(() => {
+    if (!playerReady || volume === undefined) return;
+    const v = Math.max(0, Math.min(1, volume));
+    playerReady.volume = v;
+  }, [volume, playerReady]);
 
   // Request pip when player is ready, if pip prop is true.
   useEffect(() => {
