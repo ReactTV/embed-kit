@@ -37,6 +37,7 @@ class DailymotionEmbedPlayer extends EmbedPlayerVideoElement {
       this.getAttribute("autoplay") != null
         ? this.getAttribute("autoplay") !== "false"
         : (this.options.autoplay ?? false);
+    const optionsMuted = this.options.muted;
     const controls =
       this.getAttribute("controls") != null
         ? this.getAttribute("controls") !== "false"
@@ -118,6 +119,10 @@ class DailymotionEmbedPlayer extends EmbedPlayerVideoElement {
           this.emitProgress(state?.videoTime ?? this.playerState.currentTime);
         });
 
+        if (optionsMuted === true) {
+          dmPlayer.setMute(true);
+          this.playerState.muted = true;
+        }
         this.dispatchEvent(new Event("ready"));
       })
       .catch((err) => {

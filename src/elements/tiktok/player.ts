@@ -48,6 +48,7 @@ class TikTokEmbedPlayer extends EmbedPlayerVideoElement {
       this.getAttribute("autoplay") != null
         ? this.getAttribute("autoplay") !== "false"
         : (this.options.autoplay ?? false);
+    const optionsMuted = this.options.muted;
     const controls =
       this.getAttribute("controls") != null
         ? this.getAttribute("controls") !== "false"
@@ -76,6 +77,10 @@ class TikTokEmbedPlayer extends EmbedPlayerVideoElement {
 
       switch (data.type) {
         case "onPlayerReady":
+          if (optionsMuted === true) {
+            post(iframe, "mute", true);
+            this.playerState.muted = true;
+          }
           this.dispatchEvent(new Event("ready"));
           break;
         case "onStateChange":

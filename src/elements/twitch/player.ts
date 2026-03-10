@@ -55,6 +55,7 @@ class TwitchEmbedPlayer extends EmbedPlayerVideoElement {
 
     const controls = Boolean(this.getAttribute("controls") ?? true);
     const autoplay = Boolean(this.getAttribute("autoplay") ?? false);
+    const optionsMuted = this.options.muted;
 
     const iframeSrc = generateIframeSrc({ url: src, controls, autoplay });
 
@@ -87,6 +88,11 @@ class TwitchEmbedPlayer extends EmbedPlayerVideoElement {
         if (message.eventName === "ready") {
           if (enableCaptions !== undefined) {
             send(enableCaptions ? PlayerCommands.ENABLE_CAPTIONS : PlayerCommands.DISABLE_CAPTIONS);
+          }
+          if (optionsMuted === true) {
+            send(PlayerCommands.SET_MUTED, true);
+            this.playerState.muted = true;
+            this.dispatchEvent(new CustomEvent("mute", { detail: true }));
           }
           this.dispatchEvent(new Event("ready"));
         }
@@ -122,7 +128,13 @@ class TwitchEmbedPlayer extends EmbedPlayerVideoElement {
           this.playerState.duration = p.duration;
           this.dispatchEvent(new CustomEvent("durationchange", { detail: p.duration }));
         }
-        if (typeof p.muted === "boolean") this.playerState.muted = p.muted;
+        if (typeof p.muted === "boolean") {
+          const wasMuted = this.playerState.muted;
+          this.playerState.muted = p.muted;
+          if (wasMuted !== p.muted) {
+            this.dispatchEvent(new CustomEvent("mute", { detail: p.muted }));
+          }
+        }
         if (typeof p.volume === "number" && !Number.isNaN(p.volume))
           this.playerState.volume = p.volume;
         this.emitProgress(p.currentTime);

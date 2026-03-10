@@ -7,6 +7,7 @@ export interface ICreatePlayerOptions {
   height?: number;
   url?: string;
   autoplay?: boolean;
+  muted?: boolean;
   volume?: number;
   onReady?: () => void;
   onPlay?: () => void;

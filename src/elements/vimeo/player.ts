@@ -61,6 +61,7 @@ class VimeoEmbedPlayer extends EmbedPlayerVideoElement {
       this.getAttribute("autoplay") != null
         ? this.getAttribute("autoplay") !== "false"
         : (this.options.autoplay ?? false);
+    const optionsMuted = this.options.muted;
     const controls =
       this.getAttribute("controls") != null
         ? this.getAttribute("controls") !== "false"
@@ -144,7 +145,20 @@ class VimeoEmbedPlayer extends EmbedPlayerVideoElement {
         });
       }
 
-      this.dispatchEvent(new Event("ready"));
+      const applyMutedState = (): void => {
+        if (optionsMuted === true) {
+          vimeoPlayer.setMuted(true).then(() => {
+            this.playerState.muted = true;
+            this.dispatchEvent(new Event("ready"));
+          });
+        } else {
+          vimeoPlayer.getMuted().then((m) => {
+            this.playerState.muted = m;
+            this.dispatchEvent(new Event("ready"));
+          });
+        }
+      };
+      applyMutedState();
     });
   }
 

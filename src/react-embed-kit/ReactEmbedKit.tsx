@@ -17,6 +17,7 @@ export interface ReactEmbedKitProps {
   autoplay?: boolean;
   playing?: boolean;
   pip?: boolean;
+  muted?: boolean;
   volume?: number;
   progressInterval?: number;
   controls?: boolean;
@@ -61,6 +62,7 @@ export function ReactEmbedKit({
   playing,
   pip,
   autoplay,
+  muted,
   volume,
   progressInterval,
   controls,
@@ -140,6 +142,7 @@ export function ReactEmbedKit({
       width,
       height,
       ...(autoplay !== undefined && { autoplay }),
+      ...(muted !== undefined && { muted }),
       ...(volume !== undefined && { volume }),
       ...(progressInterval !== undefined && { progressInterval }),
       ...(controls !== undefined && { controls }),
@@ -177,6 +180,8 @@ export function ReactEmbedKit({
             else (ref as { current: EmbedPlayerRef }).current = elAsVideo;
           }
           optionsRef.current.onReady?.(elAsVideo);
+          // Report initial muted state so the parent app can sync its UI
+          optionsRef.current.onMute?.({ muted: elAsVideo.muted });
         });
         el.addEventListener("play", () => optionsRef.current.onPlay?.());
         el.addEventListener("pause", () => optionsRef.current.onPause?.());
@@ -231,7 +236,7 @@ export function ReactEmbedKit({
         container.innerHTML = "";
       }
     };
-  }, [url, width, height, autoplay, controls, enableCaptions, showAnnotations, progressInterval]);
+  }, [url, width, height, autoplay, muted, controls, enableCaptions, showAnnotations, progressInterval]);
 
   // Sync controlled playing state to the player when it or the player changes.
   useEffect(() => {

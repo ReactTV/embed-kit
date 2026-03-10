@@ -43,6 +43,7 @@ class YouTubeEmbedPlayer extends EmbedPlayerVideoElement {
       width = 560,
       height = 315,
       autoplay = false,
+      muted: optionsMuted,
       controls = true,
       enableCaptions,
       showAnnotations,
@@ -82,16 +83,22 @@ class YouTubeEmbedPlayer extends EmbedPlayerVideoElement {
           onReady: (ev: { target: YTPlayer }) => {
             if (this.ytPlayerState.destroyed) return;
 
-            this.dispatchEvent(new Event("ready"));
-
             this.player = ev.target;
             this.playerState.currentTime = 0;
+            if (optionsMuted === true) {
+              this.player.mute();
+              this.playerState.muted = true;
+            } else {
+              this.playerState.muted = this.player.isMuted();
+            }
             if (typeof initialVolume === "number" && initialVolume >= 0 && initialVolume <= 1) {
               this.player.setVolume(Math.round(initialVolume * 100));
               this.playerState.volume = initialVolume;
             } else {
               this.playerState.volume = this.player.getVolume() / 100;
             }
+            this.dispatchEvent(new Event("ready"));
+
             if (this.ytPlayerState.destroyed) return;
             this.ytPlayerState.progressIntervalId = setInterval(() => {
               if (this.ytPlayerState.destroyed || !this.player) return;
@@ -109,7 +116,7 @@ class YouTubeEmbedPlayer extends EmbedPlayerVideoElement {
               if (newDuration !== this.playerState.duration) {
                 this.playerState.duration = newDuration;
                 this.dispatchEvent(
-                  new CustomEvent("durationchange", { detail: this.playerState.duration }),
+                  new CustomEvent("durationchange", { detail: this.playerState.duration })
                 );
               }
               const t2 = Number(this.player.getCurrentTime());
