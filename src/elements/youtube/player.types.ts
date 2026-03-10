@@ -1,8 +1,16 @@
+export const YT_PLAYER_STATE = {
+  ENDED: 0,
+  PLAYING: 1,
+  PAUSED: 2,
+  BUFFERING: 3,
+  CUED: 5,
+} as const;
+
 declare global {
   interface Window {
     YT?: {
       Player: new (el: string | HTMLElement, opts: YTOptions) => YTPlayer;
-      PlayerState: { ENDED: 0; PLAYING: 1; PAUSED: 2; BUFFERING: 3; CUED: 5 };
+      PlayerState: typeof YT_PLAYER_STATE;
     };
     onYouTubeIframeAPIReady?: () => void;
   }
@@ -25,6 +33,7 @@ export interface YTOptions {
 }
 
 export interface YTPlayer {
+  addEventListener: (event: string, callback: (data: any) => void) => void;
   playVideo: () => void;
   pauseVideo: () => void;
   getPlayerState: () => number;
@@ -36,4 +45,19 @@ export interface YTPlayer {
   isMuted: () => boolean;
   getVolume: () => number;
   setVolume: (volume: number) => void;
+}
+
+export interface IYTVolumeChangeEvent {
+  target: YTPlayer;
+  data: { volume: number; muted: boolean; unstorable: boolean };
+}
+
+export interface IYTPlaybackRateChangeEvent {
+  target: YTPlayer;
+  data: number;
+}
+
+export interface IYTPlaybackQualityChangeEvent {
+  target: YTPlayer;
+  data: string;
 }

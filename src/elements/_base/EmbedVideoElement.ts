@@ -1,10 +1,20 @@
 import type { IEmbedProgressEvent } from "./player.types.js";
 
-const getAttributes = (attributes: NamedNodeMap) =>
-  Array.from(attributes).reduce<Record<string, string>>((acc, attr) => {
-    acc[attr.name] = attr.value;
-    return acc;
-  }, {});
+export const DISPATCHED_EVENTS = {
+  ready: "onReady",
+  play: "onPlay",
+  pause: "onPause",
+  buffering: "onBuffering",
+  ended: "onEnded",
+  error: "onError",
+  progress: "onProgress",
+  durationchange: "onDurationChange",
+  mute: "onMuteChange",
+  volume: "onVolumeChange",
+  playbackRateChange: "onPlaybackRateChange",
+  playbackQualityChange: "onPlaybackQualityChange",
+  cued: "onCued",
+};
 
 /**
  * Class-based mimic of HTMLVideoElement. Providers can either (1) extend this
@@ -15,6 +25,14 @@ export class EmbedVideoElement extends HTMLElement {
   readonly src: string = "";
   iframe: HTMLIFrameElement | null = null;
   handleMessage: (event: MessageEvent) => void = () => {};
+  static observedAttributes: string[] = [
+    "src",
+    "muted",
+    "autoplay",
+    "controls",
+    "enableCaptions",
+    "showAnnotations",
+  ];
 
   protected options = {
     autoplay: false,
@@ -37,12 +55,13 @@ export class EmbedVideoElement extends HTMLElement {
     muted: false,
     error: null as MediaError | null,
     volume: 0.2,
+    playbackRate: 1,
+    playbackQuality: "small",
   };
 
-  constructor() {
-    super();
-    const attributes = getAttributes(this.attributes);
-    console.log("??", attributes);
+  load(): void {
+    //
+    console.log("load inner");
   }
 
   play(): Promise<void> {
@@ -91,6 +110,28 @@ export class EmbedVideoElement extends HTMLElement {
   get error() {
     return this.playerState.error;
   }
+
+  set error(_value: MediaError | null) {
+    //
+  }
+
+  attributeChangedCallback(name: string, oldValue: string, newValue: string): void {
+    console.log("attributeChangedCallback", name, oldValue, newValue);
+
+    if (name === "src") {
+      this.load();
+    }
+
+    if (name === "muted") {
+      this.muted = newValue === "true";
+    }
+  }
+
+  protected getAttributes = () =>
+    Array.from(this.attributes).reduce<Record<string, string>>((acc, attr) => {
+      acc[attr.name] = attr.value;
+      return acc;
+    }, {});
 
   /**
    * Emit progress: update state, dispatch "progress" event, and call onProgress with { target, detail }.

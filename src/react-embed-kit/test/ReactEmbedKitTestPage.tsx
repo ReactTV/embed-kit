@@ -40,6 +40,7 @@ interface PollData {
  * isBuffering, isSeeking.
  */
 export function ReactEmbedKitTestPage(): React.ReactElement {
+  const [muted, setMuted] = useState(false);
   const [url, setUrl] = useState<string>(PRESETS[0]?.url ?? "");
   const [player, setPlayer] = useState<NonNullable<EmbedPlayerRef> | null>(null);
   const [buffering, setBuffering] = useState(false);
@@ -181,6 +182,7 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
       </div>
       <div className="player-wrap">
         <ReactEmbedKit
+          muted={muted}
           url={url}
           width={560}
           height={315}
@@ -229,18 +231,16 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
         </button>
         <button
           type="button"
-          disabled={!player}
           onClick={() => {
-            if (player) player.muted = true;
+            setMuted(true);
           }}
         >
           Mute
         </button>
         <button
           type="button"
-          disabled={!player}
           onClick={() => {
-            if (player) player.muted = false;
+            setMuted(false);
           }}
         >
           Unmute

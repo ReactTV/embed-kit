@@ -55,8 +55,6 @@ class VimeoEmbedPlayer extends EmbedVideoElement {
     const { videoId, vimeoHash } = parseVimeoId(src);
     if (!videoId) return;
 
-    const width = Number(this.getAttribute("width"));
-    const height = Number(this.getAttribute("height"));
     const autoplay =
       this.getAttribute("autoplay") != null
         ? this.getAttribute("autoplay") !== "false"
