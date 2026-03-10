@@ -211,6 +211,13 @@ class VimeoEmbedPlayer extends EmbedPlayerVideoElement {
   override get muted(): boolean {
     return this.playerState.muted;
   }
+  override set muted(value: boolean) {
+    if (value) {
+      this.mute();
+    } else {
+      this.unmute();
+    }
+  }
   override get volume(): number {
     return this.playerState.volume ?? 1;
   }
