@@ -1,20 +1,4 @@
-import type { IEmbedProgressEvent } from "./player.types.js";
-
-export const DISPATCHED_EVENTS = {
-  ready: "onReady",
-  play: "onPlay",
-  pause: "onPause",
-  buffering: "onBuffering",
-  ended: "onEnded",
-  error: "onError",
-  progress: "onProgress",
-  durationchange: "onDurationChange",
-  mute: "onMuteChange",
-  volume: "onVolumeChange",
-  playbackRateChange: "onPlaybackRateChange",
-  playbackQualityChange: "onPlaybackQualityChange",
-  cued: "onCued",
-};
+import { DISPATCHED_EVENTS, TDispatchedEventPayloads } from "./player.types.js";
 
 /**
  * Class-based mimic of HTMLVideoElement. Providers can either (1) extend this
@@ -28,10 +12,12 @@ export class EmbedVideoElement extends HTMLElement {
   static observedAttributes: string[] = [
     "src",
     "muted",
+    "playing",
     "autoplay",
     "controls",
     "enableCaptions",
     "showAnnotations",
+    "volume",
   ];
 
   protected options = {
@@ -61,7 +47,6 @@ export class EmbedVideoElement extends HTMLElement {
 
   load(): void {
     //
-    console.log("load inner");
   }
 
   play(): Promise<void> {
@@ -81,6 +66,12 @@ export class EmbedVideoElement extends HTMLElement {
   }
   destroy(): void | Promise<void> {
     return Promise.resolve();
+  }
+  get playing(): boolean {
+    return !this.playerState.isPaused;
+  }
+  set playing(_value: boolean) {
+    //
   }
   get paused(): boolean {
     return this.playerState.isPaused;
@@ -115,8 +106,103 @@ export class EmbedVideoElement extends HTMLElement {
     //
   }
 
+  dispatchReadyEvent() {
+    this.dispatchEvent(
+      new CustomEvent<TDispatchedEventPayloads["onReady"]>(DISPATCHED_EVENTS.ready)
+    );
+  }
+
+  dispatchErrorEvent(error: MediaError) {
+    this.dispatchEvent(
+      new CustomEvent<TDispatchedEventPayloads["onError"]>(DISPATCHED_EVENTS.error, {
+        detail: error,
+      })
+    );
+  }
+
+  dispatchPlayEvent() {
+    this.dispatchEvent(new CustomEvent<TDispatchedEventPayloads["onPlay"]>(DISPATCHED_EVENTS.play));
+  }
+
+  dispatchPauseEvent() {
+    this.dispatchEvent(
+      new CustomEvent<TDispatchedEventPayloads["onPause"]>(DISPATCHED_EVENTS.pause)
+    );
+  }
+
+  dispatchBufferingEvent() {
+    this.dispatchEvent(
+      new CustomEvent<TDispatchedEventPayloads["onBuffering"]>(DISPATCHED_EVENTS.buffering)
+    );
+  }
+
+  dispatchEndedEvent() {
+    this.dispatchEvent(
+      new CustomEvent<TDispatchedEventPayloads["onEnded"]>(DISPATCHED_EVENTS.ended)
+    );
+  }
+
+  dispatchCuedEvent() {
+    this.dispatchEvent(new CustomEvent<TDispatchedEventPayloads["onCued"]>(DISPATCHED_EVENTS.cued));
+  }
+
+  dispatchVolumeChangeEvent(volume: TDispatchedEventPayloads["onVolumeChange"]) {
+    this.dispatchEvent(
+      new CustomEvent<TDispatchedEventPayloads["onVolumeChange"]>(DISPATCHED_EVENTS.volume, {
+        detail: volume,
+      })
+    );
+  }
+
+  dispatchMuteChangeEvent(muted: TDispatchedEventPayloads["onMuteChange"]) {
+    this.dispatchEvent(
+      new CustomEvent<TDispatchedEventPayloads["onMuteChange"]>(DISPATCHED_EVENTS.mute, {
+        detail: muted,
+      })
+    );
+  }
+
+  dispatchPlaybackRateChangeEvent(playbackRate: TDispatchedEventPayloads["onPlaybackRateChange"]) {
+    this.dispatchEvent(
+      new CustomEvent<TDispatchedEventPayloads["onPlaybackRateChange"]>(
+        DISPATCHED_EVENTS.playbackRateChange,
+        { detail: playbackRate }
+      )
+    );
+  }
+
+  dispatchPlaybackQualityChangeEvent(
+    playbackQuality: TDispatchedEventPayloads["onPlaybackQualityChange"]
+  ) {
+    this.dispatchEvent(
+      new CustomEvent<TDispatchedEventPayloads["onPlaybackQualityChange"]>(
+        DISPATCHED_EVENTS.playbackQualityChange,
+        { detail: playbackQuality }
+      )
+    );
+  }
+
+  dispatchDurationChangeEvent(duration: TDispatchedEventPayloads["onDurationChange"]) {
+    this.dispatchEvent(
+      new CustomEvent<TDispatchedEventPayloads["onDurationChange"]>(
+        DISPATCHED_EVENTS.durationchange,
+        {
+          detail: duration,
+        }
+      )
+    );
+  }
+
+  dispatchProgressEvent(progress: TDispatchedEventPayloads["onProgress"]) {
+    this.dispatchEvent(
+      new CustomEvent<TDispatchedEventPayloads["onProgress"]>(DISPATCHED_EVENTS.progress, {
+        detail: progress,
+      })
+    );
+  }
+
   attributeChangedCallback(name: string, oldValue: string, newValue: string): void {
-    console.log("attributeChangedCallback", name, oldValue, newValue);
+    if (oldValue === newValue) return;
 
     if (name === "src") {
       this.load();
@@ -125,6 +211,14 @@ export class EmbedVideoElement extends HTMLElement {
     if (name === "muted") {
       this.muted = newValue === "true";
     }
+
+    if (name === "playing") {
+      this.playing = newValue === "true";
+    }
+
+    if (name === "volume") {
+      this.volume = parseFloat(newValue);
+    }
   }
 
   protected getAttributes = () =>
@@ -132,19 +226,4 @@ export class EmbedVideoElement extends HTMLElement {
       acc[attr.name] = attr.value;
       return acc;
     }, {});
-
-  /**
-   * Emit progress: update state, dispatch "progress" event, and call onProgress with { target, detail }.
-   * Use this instead of dispatching CustomEvent("progress") so handlers receive event.target (this element).
-   */
-  protected emitProgress(currentTime: number): void {
-    if (Number.isFinite(currentTime)) this.playerState.currentTime = currentTime;
-    this.dispatchEvent(new CustomEvent("progress", { detail: this.playerState.currentTime }));
-    const optsRef = (
-      this as unknown as {
-        optionsRef?: { current: { onProgress?: (e: IEmbedProgressEvent) => void } };
-      }
-    ).optionsRef;
-    optsRef?.current?.onProgress?.({ target: this, detail: this.playerState.currentTime });
-  }
 }

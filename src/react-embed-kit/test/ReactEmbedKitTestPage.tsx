@@ -41,10 +41,11 @@ interface PollData {
  */
 export function ReactEmbedKitTestPage(): React.ReactElement {
   const [muted, setMuted] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const [volume, setVolume] = useState(1);
   const [url, setUrl] = useState<string>(PRESETS[0]?.url ?? "");
   const [player, setPlayer] = useState<NonNullable<EmbedPlayerRef> | null>(null);
   const [buffering, setBuffering] = useState(false);
-  const [seeking, setSeeking] = useState(false);
   const [controls, setControls] = useState(true);
   const [enableCaptions, setEnableCaptions] = useState(false);
   const [showAnnotations, setShowAnnotations] = useState(true);
@@ -59,7 +60,6 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
   useEffect(() => {
     setPlayer(null);
     setBuffering(false);
-    setSeeking(false);
   }, [url]);
 
   useEffect(() => {
@@ -74,15 +74,15 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
         const currentTime = player.currentTime;
         const duration = player.duration;
         const paused = player.paused;
-        const muted = player.muted;
-        const volume = player.volume;
+        const mutedVal = player.muted;
+        const volumeVal = player.volume;
         if (!cancelled) {
           setData({
             currentTime: typeof currentTime === "number" ? currentTime : null,
             duration: typeof duration === "number" ? duration : null,
             paused: typeof paused === "boolean" ? paused : null,
-            muted: typeof muted === "boolean" ? muted : null,
-            volume: typeof volume === "number" ? volume : null,
+            muted: typeof mutedVal === "boolean" ? mutedVal : null,
+            volume: typeof volumeVal === "number" ? volumeVal : null,
           });
         }
       } catch {
@@ -105,7 +105,6 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
         ["muted", String(data.muted)],
         ["volume", data.volume != null ? `${Math.round(data.volume * 100)}%` : "—"],
         ["isBuffering", String(buffering)],
-        ["isSeeking", String(seeking)],
       ]
     : [];
 
@@ -182,7 +181,10 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
       </div>
       <div className="player-wrap">
         <ReactEmbedKit
+          playerRef={setPlayer}
           muted={muted}
+          playing={playing}
+          volume={volume}
           url={url}
           width={560}
           height={315}
@@ -190,12 +192,15 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
           enableCaptions={enableCaptions}
           showAnnotations={showAnnotations}
           config={embedConfig}
-          onReady={(p) => setPlayer(p)}
+          onReady={() => {}}
           onBuffering={() => setBuffering(true)}
-          onPlay={() => setBuffering(false)}
-          onSeeking={() => setSeeking(true)}
-          onSeek={() => setSeeking(false)}
+          onPlay={() => {
+            setBuffering(false);
+            setPlaying(true);
+          }}
+          onPause={() => setPlaying(false)}
           onError={(d) => console.warn("Embed error:", d)}
+          onProgress={(p) => console.log("Progress:", p)}
           onUnsupportedUrl={(u) => {
             setPlayer(null);
             console.warn("Unsupported URL:", u);
@@ -203,17 +208,16 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
         />
       </div>
       <div className="controls">
-        <button type="button" disabled={!player} onClick={() => player?.play()}>
+        <button type="button" disabled={!player} onClick={() => setPlaying(true)}>
           Play
         </button>
-        <button type="button" disabled={!player} onClick={() => player?.pause()}>
+        <button type="button" disabled={!player} onClick={() => setPlaying(false)}>
           Pause
         </button>
         <button
           type="button"
           disabled={!player}
           onClick={() => {
-            setSeeking(true);
             if (player) player.currentTime = 0;
           }}
         >
@@ -223,26 +227,15 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
           type="button"
           disabled={!player}
           onClick={() => {
-            setSeeking(true);
             if (player) player.currentTime = 30;
           }}
         >
           Seek to 0:30
         </button>
-        <button
-          type="button"
-          onClick={() => {
-            setMuted(true);
-          }}
-        >
+        <button type="button" onClick={() => setMuted(true)}>
           Mute
         </button>
-        <button
-          type="button"
-          onClick={() => {
-            setMuted(false);
-          }}
-        >
+        <button type="button" onClick={() => setMuted(false)}>
           Unmute
         </button>
         <label
@@ -259,12 +252,13 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
             type="range"
             min={0}
             max={100}
-            value={player && data.volume != null ? Math.round(data.volume * 100) : 100}
+            value={
+              player && data.volume != null
+                ? Math.round(data.volume * 100)
+                : Math.round(volume * 100)
+            }
             disabled={!player}
-            onChange={(e) => {
-              const pct = Number(e.target.value) / 100;
-              if (player) player.volume = pct;
-            }}
+            onChange={(e) => setVolume(Number(e.target.value) / 100)}
             style={{ flex: 1, minWidth: 0 }}
             aria-label="Volume"
           />

@@ -1,4 +1,4 @@
-import { loadScript, EmbedVideoElement, DISPATCHED_EVENTS } from "../_base/index.js";
+import { loadScript, EmbedVideoElement } from "../_base/index.js";
 import type { IYTVolumeChangeEvent, YTPlayer } from "./player.types.js";
 import { REGEX_WATCH, REGEX_SHORT, REGEX_EMBED } from "./constants.js";
 import { parseYouTubeUrl } from "./helpers/parseYouTubeUrl.js";
@@ -6,6 +6,7 @@ import {
   IYTPlaybackQualityChangeEvent,
   IYTPlaybackRateChangeEvent,
   YT_PLAYER_STATE,
+  IVideoProgressEvent,
 } from "./player.types.js";
 
 const YT_SCRIPT = "https://www.youtube.com/iframe_api";
@@ -34,6 +35,7 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
     destroyed: boolean;
   } = { progressIntervalId: undefined, destroyed: false };
 
+  api: YTPlayer | null = null;
   player: YTPlayer | null = null;
 
   override load(): void {
@@ -46,7 +48,7 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
 
       if (!videoId) return;
 
-      this.player = new YT.Player(this, {
+      this.api = new YT.Player(this, {
         videoId,
         playerVars: {
           autoplay: attributes.autoplay === "true" ? 1 : 0,
@@ -55,17 +57,16 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
           showAnnotations: attributes.showAnnotations === "true" ? 1 : 0,
         },
         events: {
-          onReady: () => {
-            this.dispatchEvent(new Event(DISPATCHED_EVENTS.ready));
+          onReady: ({ target }) => {
+            this.player = target;
+            this.dispatchReadyEvent();
           },
           onError: (error) => {
             this.playerState.error = {
               code: error.data,
               message: "YouTube playback error",
             } as MediaError;
-            this.dispatchEvent(
-              new CustomEvent(DISPATCHED_EVENTS.error, { detail: this.playerState.error })
-            );
+            this.dispatchErrorEvent(this.playerState.error);
           },
         },
       });
@@ -75,56 +76,53 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
   }
 
   createListeners(): void {
-    this.player?.addEventListener("onStateChange", ({ data }: { data: number }) => {
+    this.api?.addEventListener("onStateChange", ({ data }: { data: number }) => {
       if (data === YT_PLAYER_STATE.PAUSED) {
         this.playerState.isPaused = true;
-        this.dispatchEvent(new Event(DISPATCHED_EVENTS.pause));
+        this.dispatchPauseEvent();
       } else if (data === YT_PLAYER_STATE.PLAYING) {
         this.playerState.isPaused = false;
-        this.dispatchEvent(new Event(DISPATCHED_EVENTS.play));
+        this.dispatchPlayEvent();
       } else if (data === YT_PLAYER_STATE.BUFFERING) {
-        this.dispatchEvent(new Event(DISPATCHED_EVENTS.buffering));
+        this.dispatchBufferingEvent();
       } else if (data === YT_PLAYER_STATE.ENDED) {
-        this.dispatchEvent(new Event(DISPATCHED_EVENTS.ended));
+        this.dispatchEndedEvent();
       } else if (data === YT_PLAYER_STATE.CUED) {
-        this.dispatchEvent(new Event(DISPATCHED_EVENTS.cued));
+        this.dispatchCuedEvent();
       }
     });
 
-    this.player?.addEventListener(
+    this.api?.addEventListener(
       "onVolumeChange",
       ({ data: { volume, muted } }: IYTVolumeChangeEvent) => {
         if (volume !== this.playerState.volume) {
           this.playerState.volume = volume;
-          this.dispatchEvent(new CustomEvent(DISPATCHED_EVENTS.volume, { detail: volume }));
+          this.dispatchVolumeChangeEvent(volume);
         }
         if (muted !== this.playerState.muted) {
           this.playerState.muted = muted;
-          this.dispatchEvent(new CustomEvent(DISPATCHED_EVENTS.mute, { detail: muted }));
+          this.dispatchMuteChangeEvent(muted);
         }
       }
     );
 
-    this.player?.addEventListener(
-      "onPlaybackRateChange",
-      ({ data }: IYTPlaybackRateChangeEvent) => {
-        if (data !== this.playerState.playbackRate) {
-          this.playerState.playbackRate = data;
-          this.dispatchEvent(
-            new CustomEvent(DISPATCHED_EVENTS.playbackRateChange, { detail: data })
-          );
-        }
+    this.api?.addEventListener("onPlaybackRateChange", (event: IYTPlaybackRateChangeEvent) => {
+      if (event.data !== this.playerState.playbackRate) {
+        this.playerState.playbackRate = event.data;
+        this.dispatchPlaybackRateChangeEvent(event.data);
       }
-    );
+    });
 
-    this.player?.addEventListener(
+    this.api?.addEventListener("onVideoProgress", (event: IVideoProgressEvent) => {
+      this.dispatchProgressEvent(event.data / 1000);
+    });
+
+    this.api?.addEventListener(
       "onPlaybackQualityChange",
-      ({ data }: IYTPlaybackQualityChangeEvent) => {
-        if (data !== this.playerState.playbackQuality) {
-          this.playerState.playbackQuality = data;
-          this.dispatchEvent(
-            new CustomEvent(DISPATCHED_EVENTS.playbackQualityChange, { detail: data })
-          );
+      (event: IYTPlaybackQualityChangeEvent) => {
+        if (event.data !== this.playerState.playbackQuality) {
+          this.playerState.playbackQuality = event.data;
+          this.dispatchPlaybackQualityChangeEvent(event.data);
         }
       }
     );
@@ -156,6 +154,18 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
     this.ytPlayerState.destroyed = true;
     if (this.ytPlayerState.progressIntervalId) clearInterval(this.ytPlayerState.progressIntervalId);
     if (this.parentNode) this.remove();
+  }
+
+  override get playing(): boolean {
+    return !this.paused;
+  }
+
+  override set playing(value: boolean) {
+    if (value) {
+      this.play();
+    } else {
+      this.pause();
+    }
   }
 
   override get currentTime(): number {
@@ -195,7 +205,7 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
   }
 
   override set volume(vol: number) {
-    const v = Math.max(0, Math.min(1, vol));
+    const v = Math.max(0, Math.min(100, vol));
     this.player?.setVolume(v);
   }
 }

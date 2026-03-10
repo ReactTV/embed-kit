@@ -122,7 +122,7 @@ class TwitchEmbedPlayer extends EmbedVideoElement {
         }
         if (typeof p.volume === "number" && !Number.isNaN(p.volume))
           this.playerState.volume = p.volume;
-        this.emitProgress(p.currentTime);
+        this.dispatchProgressEvent(p.currentTime);
       }
     };
 
