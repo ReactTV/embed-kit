@@ -1,6 +1,6 @@
 export interface CreatePlayerContainerOptions {
-  width?: number;
-  height?: number;
+  width?: number | string | undefined;
+  height?: number | string | undefined;
   overflow?: string;
 }
 
@@ -18,9 +18,9 @@ export function createPlayerContainer(
   const div = document.createElement("div");
   div.id = id;
 
-  const { width, height, overflow = "hidden" } = options;
-  if (width !== undefined) div.style.width = `${width}px`;
-  if (height !== undefined) div.style.height = `${height}px`;
+  const { width = "100%", height = "100%", overflow = "hidden" } = options;
+  div.style.width = typeof width === "number" ? `${width}px` : width;
+  div.style.height = typeof height === "number" ? `${height}px` : height;
   div.style.overflow = overflow;
 
   container.appendChild(div);

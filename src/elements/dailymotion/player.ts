@@ -31,8 +31,8 @@ class DailymotionEmbedPlayer extends EmbedPlayerVideoElement {
     const videoId = parseDailymotionId(src);
     if (!videoId) return;
 
-    const width = Number(this.getAttribute("width")) || (this.options.width ?? 560);
-    const height = Number(this.getAttribute("height")) || (this.options.height ?? 315);
+    const width = Number(this.getAttribute("width")) || this.options.width;
+    const height = Number(this.getAttribute("height")) || this.options.height;
     const autoplay =
       this.getAttribute("autoplay") != null
         ? this.getAttribute("autoplay") !== "false"

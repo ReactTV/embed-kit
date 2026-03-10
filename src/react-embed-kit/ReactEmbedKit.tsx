@@ -46,9 +46,6 @@ export interface ReactEmbedKitProps {
   onApiChange?: () => void;
 }
 
-const defaultWidth = 560;
-const defaultHeight = 315;
-
 export function ReactEmbedKit({
   url,
   playerRef: playerRefProp,
@@ -57,8 +54,8 @@ export function ReactEmbedKit({
   onReady = () => {},
   className,
   style,
-  width = defaultWidth,
-  height = defaultHeight,
+  width,
+  height,
   playing,
   pip,
   autoplay,
@@ -236,16 +233,7 @@ export function ReactEmbedKit({
         container.innerHTML = "";
       }
     };
-  }, [
-    url,
-    width,
-    height,
-    autoplay,
-    controls,
-    enableCaptions,
-    showAnnotations,
-    progressInterval,
-  ]);
+  }, [url, width, height, autoplay, controls, enableCaptions, showAnnotations, progressInterval]);
 
   // Sync controlled playing state to the player when it or the player changes.
   useEffect(() => {
