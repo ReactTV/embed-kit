@@ -1,4 +1,4 @@
-import { createEmbedIframeElement, EmbedPlayerVideoElement } from "../_base/index.js";
+import { createIframe, EmbedVideoElement } from "../_base/index.js";
 import {
   EMBED_ORIGIN,
   NS_EMBED,
@@ -45,9 +45,9 @@ const generateIframeSrc = ({ url, controls, autoplay }: TGenerateIframeSrcProps)
   `${getTwitchEmbedSrc(url)}&parent=${encodeURIComponent(window.location.hostname)}&controls=${controls}&autoplay=${autoplay}`;
 
 /**
- * Twitch embed player as a subclass of EmbedPlayerVideoElement.
+ * Twitch embed player as a subclass of EmbedVideoElement.
  */
-class TwitchEmbedPlayer extends EmbedPlayerVideoElement {
+class TwitchEmbedPlayer extends EmbedVideoElement {
   connectedCallback(): void {
     const src = this.getAttribute("src");
 
@@ -58,15 +58,7 @@ class TwitchEmbedPlayer extends EmbedPlayerVideoElement {
 
     const iframeSrc = generateIframeSrc({ url: src, controls, autoplay });
 
-    const width = this.getAttribute("width") ?? 560;
-    const height = this.getAttribute("height") ?? 315;
-    const iframe = createEmbedIframeElement({
-      src: iframeSrc,
-      width: Number(width),
-      height: Number(height),
-      allow: "accelerometer; fullscreen; autoplay; encrypted-media; picture-in-picture",
-      allowFullScreen: true,
-    });
+    const iframe = createIframe(iframeSrc);
 
     this.appendChild(iframe);
 
@@ -110,13 +102,12 @@ class TwitchEmbedPlayer extends EmbedPlayerVideoElement {
       }
       if (message.namespace === NS_PLAYER_PROXY && message.eventName === "UPDATE_STATE") {
         const p = message.params;
-        const isPlaying = p.playback === PlaybackState.PLAYING;
-        if (isPlaying && !this.playerState.isPlaying) this.dispatchEvent(new Event("play"));
-        if (!isPlaying && this.playerState.isPlaying) this.dispatchEvent(new Event("pause"));
+        const isPaused = p.playback === PlaybackState.PAUSED;
+        if (isPaused && !this.playerState.isPaused) this.dispatchEvent(new Event("play"));
+        if (!isPaused && this.playerState.isPaused) this.dispatchEvent(new Event("pause"));
         if (p.playback === PlaybackState.BUFFERING) this.dispatchEvent(new Event("buffering"));
         if (p.playback === PlaybackState.ENDED) this.dispatchEvent(new Event("ended"));
-        this.playerState.isPlaying = isPlaying;
-        this.playerState.isPaused = !isPlaying;
+        this.playerState.isPaused = !isPaused;
         this.playerState.currentTime = p.currentTime;
         if (p.duration !== this.playerState.duration) {
           this.playerState.duration = p.duration;

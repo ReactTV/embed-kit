@@ -1,4 +1,4 @@
-import { createEmbedIframeElement, loadScript, EmbedPlayerVideoElement } from "../_base/index.js";
+import { createIframe, loadScript, EmbedVideoElement } from "../_base/index.js";
 import {
   REGEX_PLAYER,
   REGEX_DIRECT,
@@ -41,9 +41,9 @@ function parseVimeoId(src: string): { videoId: string | undefined; vimeoHash: st
 }
 
 /**
- * Vimeo embed player as a subclass of EmbedPlayerVideoElement.
+ * Vimeo embed player as a subclass of EmbedVideoElement.
  */
-class VimeoEmbedPlayer extends EmbedPlayerVideoElement {
+class VimeoEmbedPlayer extends EmbedVideoElement {
   protected player: IVimeoPlayer | null = null;
   protected vimeoPlayerState: { destroyed: boolean } = { destroyed: false };
 
@@ -79,13 +79,7 @@ class VimeoEmbedPlayer extends EmbedPlayerVideoElement {
       if (value !== undefined && value !== "" && key !== "h") query.set(key, String(value));
     }
 
-    const iframe = createEmbedIframeElement({
-      src: `${EMBED_BASE}${videoId}?${query.toString()}`,
-      width,
-      height,
-      allow: "autoplay; fullscreen; picture-in-picture",
-      allowFullScreen: true,
-    });
+    const iframe = createIframe(`${EMBED_BASE}${videoId}?${query.toString()}`);
     this.appendChild(iframe);
     this.iframe = iframe;
     this.vimeoPlayerState = { destroyed: false };
@@ -106,12 +100,10 @@ class VimeoEmbedPlayer extends EmbedPlayerVideoElement {
         this.dispatchEvent(new CustomEvent("error", { detail: customError }));
       });
       vimeoPlayer.on("play", () => {
-        this.playerState.isPlaying = true;
         this.playerState.isPaused = false;
         this.dispatchEvent(new Event("play"));
       });
       vimeoPlayer.on("pause", () => {
-        this.playerState.isPlaying = false;
         this.playerState.isPaused = true;
         this.dispatchEvent(new Event("pause"));
       });

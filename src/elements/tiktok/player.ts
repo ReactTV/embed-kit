@@ -1,4 +1,4 @@
-import { createEmbedIframeElement, EmbedPlayerVideoElement } from "../_base/index.js";
+import { createIframe, EmbedVideoElement } from "../_base/index.js";
 import { REGEX_PLAYER, REGEX_VM, REGEX_VIDEO, REGEX_EMBED } from "./constants.js";
 
 const EMBED_ORIGIN = "https://www.tiktok.com";
@@ -30,10 +30,10 @@ function parseTiktokId(src: string): string | undefined {
 }
 
 /**
- * TikTok embed player as a subclass of EmbedPlayerVideoElement.
+ * TikTok embed player as a subclass of EmbedVideoElement.
  * Implements the subset directly via postMessage to the TikTok iframe.
  */
-class TikTokEmbedPlayer extends EmbedPlayerVideoElement {
+class TikTokEmbedPlayer extends EmbedVideoElement {
   connectedCallback(): void {
     const src = this.getAttribute("src");
 
@@ -42,8 +42,6 @@ class TikTokEmbedPlayer extends EmbedPlayerVideoElement {
     const videoId = parseTiktokId(src);
     if (!videoId) return;
 
-    const width = Number(this.getAttribute("width"));
-    const height = Number(this.getAttribute("height"));
     const autoplay =
       this.getAttribute("autoplay") != null
         ? this.getAttribute("autoplay") !== "false"
@@ -56,16 +54,7 @@ class TikTokEmbedPlayer extends EmbedPlayerVideoElement {
     const params = new URLSearchParams({ controls: controls ? "1" : "0" });
     if (autoplay) params.set("autoplay", "1");
 
-    const iframe = createEmbedIframeElement({
-      src: `${EMBED_BASE}${videoId}?${params.toString()}`,
-      width,
-      height,
-      allow: "autoplay; fullscreen",
-      allowFullScreen: true,
-    });
-    iframe.style.display = "block";
-    iframe.style.maxWidth = "100%";
-    iframe.style.maxHeight = "100%";
+    const iframe = createIframe(`${EMBED_BASE}${videoId}?${params.toString()}`);
     this.appendChild(iframe);
     this.iframe = iframe;
 
@@ -80,7 +69,6 @@ class TikTokEmbedPlayer extends EmbedPlayerVideoElement {
           break;
         case "onStateChange":
           if (typeof data.value === "number") {
-            this.playerState.isPlaying = data.value === STATE_PLAYING;
             this.playerState.isPaused = data.value === STATE_PAUSED;
             if (data.value === STATE_PLAYING) this.dispatchEvent(new Event("play"));
             if (data.value === STATE_PAUSED) this.dispatchEvent(new Event("pause"));
@@ -142,8 +130,6 @@ class TikTokEmbedPlayer extends EmbedPlayerVideoElement {
   override destroy(): void {
     window.removeEventListener("message", this.handleMessage);
     if (this.iframe?.parentNode) this.iframe.remove();
-    this.iframe = null;
-    if (this.parentNode) this.remove();
   }
   override get paused(): boolean {
     return this.playerState.isPaused;

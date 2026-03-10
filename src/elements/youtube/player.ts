@@ -1,4 +1,4 @@
-import { createPlayerContainer, loadScript, EmbedPlayerVideoElement } from "../_base/index.js";
+import { loadScript, EmbedVideoElement } from "../_base/index.js";
 import type { YTPlayer } from "./player.types.js";
 import { REGEX_WATCH, REGEX_SHORT, REGEX_EMBED } from "./constants.js";
 
@@ -20,9 +20,9 @@ function loadYTScript(): Promise<void> {
 }
 
 /**
- * YouTube embed player as a subclass of EmbedPlayerVideoElement.
+ * YouTube embed player as a subclass of EmbedVideoElement.
  */
-class YouTubeEmbedPlayer extends EmbedPlayerVideoElement {
+class YouTubeEmbedPlayer extends EmbedVideoElement {
   protected ytPlayerState: {
     progressIntervalId: ReturnType<typeof setInterval> | undefined;
     destroyed: boolean;
@@ -62,11 +62,10 @@ class YouTubeEmbedPlayer extends EmbedPlayerVideoElement {
       if (this.ytPlayerState.destroyed) return;
       const YT = window.YT!;
       const { PlayerState } = YT;
-      const { element: div } = createPlayerContainer(this, "yt-player");
 
       const initialVolume = this.getAttribute("volume") ?? 0.5;
 
-      new YT.Player(div, {
+      new YT.Player(this, {
         videoId,
         playerVars,
         events: {
@@ -100,7 +99,6 @@ class YouTubeEmbedPlayer extends EmbedPlayerVideoElement {
                 this.dispatchEvent(new CustomEvent("mute", { detail: isMuted }));
               }
               this.playerState.volume = this.player.getVolume() / 100;
-              this.playerState.isPlaying = this.player.getPlayerState() === PlayerState.PLAYING;
               this.playerState.isPaused = this.player.getPlayerState() === PlayerState.PAUSED;
               const newDuration = this.player.getDuration();
               if (newDuration !== this.playerState.duration) {

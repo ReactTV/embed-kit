@@ -1,4 +1,4 @@
-import { createPlayerContainer, loadScript, EmbedPlayerVideoElement } from "../_base/index.js";
+import { loadScript, EmbedVideoElement } from "../_base/index.js";
 import { REGEX_VIDEO, REGEX_SHORT, REGEX_EMBED } from "./constants.js";
 import type { DailymotionPlayer, DailymotionPlayerState } from "./player.types.js";
 
@@ -18,9 +18,8 @@ function parseDailymotionId(src: string): string | undefined {
 /**
  * Dailymotion embed player as a subclass of EmbedPlayerVideoElement.
  */
-class DailymotionEmbedPlayer extends EmbedPlayerVideoElement {
+class DailymotionEmbedPlayer extends EmbedVideoElement {
   protected player: DailymotionPlayer | null = null;
-  protected wrapper: HTMLDivElement | null = null;
   protected dmPlayerState: { destroyed: boolean } = { destroyed: false };
 
   connectedCallback(): void {
@@ -31,8 +30,6 @@ class DailymotionEmbedPlayer extends EmbedPlayerVideoElement {
     const videoId = parseDailymotionId(src);
     if (!videoId) return;
 
-    const width = Number(this.getAttribute("width"));
-    const height = Number(this.getAttribute("height"));
     const autoplay =
       this.getAttribute("autoplay") != null
         ? this.getAttribute("autoplay") !== "false"
@@ -46,12 +43,7 @@ class DailymotionEmbedPlayer extends EmbedPlayerVideoElement {
     if (autoplay) params.autoplay = true;
     if (!controls) params.controls = false;
 
-    const { element: wrapper, id: containerId } = createPlayerContainer(
-      this,
-      "dailymotion-player",
-      { width, height }
-    );
-    this.wrapper = wrapper;
+    this.id = `${Math.random().toString(36).slice(2, 11)}`;
     this.dmPlayerState = { destroyed: false };
 
     void loadDailymotionScript()
@@ -60,7 +52,7 @@ class DailymotionEmbedPlayer extends EmbedPlayerVideoElement {
         if (!window.dailymotion?.createPlayer) {
           return Promise.reject(new Error("Dailymotion player API not available"));
         }
-        return window.dailymotion.createPlayer(containerId, {
+        return window.dailymotion.createPlayer(this.id, {
           video: videoId,
           ...(Object.keys(params).length > 0 ? { params } : {}),
         });
@@ -80,12 +72,10 @@ class DailymotionEmbedPlayer extends EmbedPlayerVideoElement {
         };
 
         dmPlayer.on(events.VIDEO_PLAY, () => {
-          this.playerState.isPlaying = true;
           this.playerState.isPaused = false;
           this.dispatchEvent(new Event("play"));
         });
         dmPlayer.on(events.VIDEO_PAUSE, () => {
-          this.playerState.isPlaying = false;
           this.playerState.isPaused = true;
           this.dispatchEvent(new Event("pause"));
         });
@@ -121,8 +111,6 @@ class DailymotionEmbedPlayer extends EmbedPlayerVideoElement {
         this.dispatchEvent(new Event("ready"));
       })
       .catch((err) => {
-        if (this.wrapper?.parentNode) this.wrapper.remove();
-        this.wrapper = null;
         throw err;
       });
   }
@@ -154,8 +142,6 @@ class DailymotionEmbedPlayer extends EmbedPlayerVideoElement {
     this.dmPlayerState.destroyed = true;
     this.player?.destroy();
     this.player = null;
-    if (this.wrapper?.parentNode) this.wrapper.remove();
-    this.wrapper = null;
     if (this.parentNode) this.remove();
   }
   override get paused(): boolean {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import type { EmbedPlayerRef } from "../../elements/_base/player.js";
+import type { EmbedPlayerRef } from "../../elements/_base/player.types.js";
 import { ReactEmbedKit } from "../ReactEmbedKit.js";
 import {
   SOURCE_URL as YOUTUBE_SOURCE_URL,
@@ -116,7 +116,7 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
         origin: typeof window !== "undefined" ? window.location.origin : undefined,
       },
     }),
-    [],
+    []
   );
 
   return (

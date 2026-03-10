@@ -1,4 +1,4 @@
-import type { IEmbedProgressEvent } from "./player.js";
+import type { IEmbedProgressEvent } from "./player.types.js";
 
 const getAttributes = (attributes: NamedNodeMap) =>
   Array.from(attributes).reduce<Record<string, string>>((acc, attr) => {
@@ -11,10 +11,11 @@ const getAttributes = (attributes: NamedNodeMap) =>
  * class and override play(), pause(), seek(), getters, etc., or (2) construct
  * it and call setPlayer(inner) when the inner player is ready.
  */
-export class EmbedPlayerVideoElement extends HTMLElement {
+export class EmbedVideoElement extends HTMLElement {
   readonly src: string = "";
   iframe: HTMLIFrameElement | null = null;
   handleMessage: (event: MessageEvent) => void = () => {};
+
   protected options = {
     autoplay: false,
     progressInterval: 50,
@@ -32,7 +33,6 @@ export class EmbedPlayerVideoElement extends HTMLElement {
   protected playerState = {
     currentTime: 0,
     duration: 0,
-    isPlaying: false,
     isPaused: true,
     muted: false,
     error: null as MediaError | null,
@@ -64,26 +64,26 @@ export class EmbedPlayerVideoElement extends HTMLElement {
     return Promise.resolve();
   }
   get paused(): boolean {
-    return false;
+    return this.playerState.isPaused;
   }
   get currentTime(): number {
-    return 0;
+    return this.playerState.currentTime;
   }
   set currentTime(_seconds: number) {
     //
   }
   get duration(): number {
-    return 0;
+    return this.playerState.duration;
   }
   get muted(): boolean {
-    return false;
+    return this.playerState.muted;
   }
   set muted(_value: boolean) {
     //
   }
 
   get volume(): number {
-    return 1;
+    return this.playerState.volume;
   }
   set volume(_value: number) {
     //

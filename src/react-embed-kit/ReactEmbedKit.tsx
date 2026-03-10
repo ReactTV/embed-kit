@@ -1,11 +1,10 @@
 import { useRef, useEffect, useState } from "react";
 import type {
   EmbedPlayerRef,
-  ICreatePlayerOptions,
   IEmbedProgressEvent,
   IErrorData,
   IMuteData,
-} from "../elements/_base/player.js";
+} from "../elements/_base/player.types.js";
 import { getProviderForUrl, loadPlayerModule } from "./providers.js";
 
 export interface ReactEmbedKitProps {
@@ -135,9 +134,9 @@ export function ReactEmbedKit({
     let cancelled = false;
     let element: NonNullable<EmbedPlayerRef> | null = null;
 
-    const opts: ICreatePlayerOptions = {
-      width: width ?? 560,
-      height: height ?? 315,
+    const opts = {
+      width,
+      height,
       ...(autoplay !== undefined && { autoplay }),
       ...(muted !== undefined && { muted }),
       ...(volume !== undefined && { volume }),
@@ -155,7 +154,7 @@ export function ReactEmbedKit({
         const el = document.createElement(tagName) as unknown as NonNullable<EmbedPlayerRef>;
         element = el;
 
-        (el as unknown as { options: ICreatePlayerOptions }).options = opts;
+        (el as unknown as { options: typeof opts }).options = opts;
         (el as unknown as { optionsRef: typeof optionsRef }).optionsRef = optionsRef;
         el.setAttribute("src", embedUrl);
         el.setAttribute("width", String(width));
