@@ -24,7 +24,7 @@ export interface VideoElementProps extends React.DetailedHTMLProps<
 
 type HtmlPlayerProps = ReactEmbedKitProps & { ref?: React.Ref<HTMLVideoElement> };
 
-function HtmlPlayer({ ref, playing, ...props }: HtmlPlayerProps) {
+function HtmlPlayer({ ref, playing, volume, muted, ...props }: HtmlPlayerProps) {
   const Media = AUDIO_EXTENSIONS.test(`${props.src}`) ? "audio" : "video";
   const internalRef = useRef<HTMLVideoElement | null>(null);
 
@@ -37,7 +37,7 @@ function HtmlPlayer({ ref, playing, ...props }: HtmlPlayerProps) {
         refObj.current = el;
       }
     },
-    [ref],
+    [ref]
   );
 
   useEffect(() => {
@@ -48,6 +48,16 @@ function HtmlPlayer({ ref, playing, ...props }: HtmlPlayerProps) {
     }
   }, [playing]);
 
+  useEffect(() => {
+    const el = internalRef.current;
+    if (!el) return;
+    if (volume != null) {
+      const v = Math.max(0, Math.min(1, volume / 100));
+      el.volume = v;
+    }
+    el.muted = !!muted;
+  }, [volume, muted]);
+
   return (
     <Media
       {...props}
@@ -55,8 +65,8 @@ function HtmlPlayer({ ref, playing, ...props }: HtmlPlayerProps) {
       onVolumeChange={
         props.onVolumeChange
           ? (e: React.SyntheticEvent<HTMLMediaElement, Event>) => {
-              const volume = e.currentTarget?.volume;
-              if (volume) props.onVolumeChange?.(volume);
+              const currentVolume = e.currentTarget?.volume;
+              if (currentVolume !== undefined) props.onVolumeChange?.(currentVolume * 100);
             }
           : undefined
       }
