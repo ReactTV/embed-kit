@@ -2,8 +2,16 @@ import React, { useRef, useEffect } from "react";
 import { mergeRefs } from "react-merge-refs";
 import "./embed-elements.js";
 import "../elements/youtube/player.js";
+import "../elements/twitch/player.js";
 import type { EmbedPlayerRef, TDispatchedEventPayloads } from "../elements/_base/player.types.js";
 import { IDispatchedEventCallbacks } from "../elements/_base/index.js";
+
+const getUrlSource = (url: string) => {
+  if (url.includes("youtube.com")) return "youtube";
+  if (url.includes("vimeo.com")) return "vimeo";
+  if (url.includes("twitch.tv")) return "twitch";
+  return null;
+};
 
 export type ReactEmbedKitProps = IDispatchedEventCallbacks & {
   url: string;
@@ -84,6 +92,25 @@ export function ReactEmbedKit({
     };
   }, [onReady, onPlay, onPause, onBuffering, onEnded, onProgress, onVolumeChange, onMuteChange]);
 
+  const source = getUrlSource(url);
+
+  if (source === "twitch") {
+    return (
+      <twitch-video
+        ref={mergeRefs([elementRef, playerRef])}
+        muted={muted}
+        playing={playing?.toString()}
+        src={url}
+        width={width}
+        height={height}
+        controls={controls.toString()}
+        captions={captions?.toString()}
+        annotations={annotations?.toString()}
+        volume={volume}
+      />
+    );
+  }
+
   return (
     <youtube-video
       ref={mergeRefs([elementRef, playerRef])}
@@ -99,3 +126,4 @@ export function ReactEmbedKit({
     />
   );
 }
+)

@@ -1,6 +1,7 @@
 import type React from "react";
 
 /* eslint-disable @typescript-eslint/no-namespace */
+
 declare module "react" {
   namespace JSX {
     interface IntrinsicElements {
@@ -23,7 +24,17 @@ declare module "react" {
         HTMLElement
       >;
       "twitch-video": React.DetailedHTMLProps<
-        React.HTMLAttributes<HTMLElement> & { src?: string; muted?: boolean | undefined },
+        React.HTMLAttributes<HTMLElement> & {
+          src?: string;
+          muted?: boolean | undefined;
+          playing?: string | undefined;
+          width?: number | undefined;
+          height?: number | undefined;
+          controls?: string | undefined;
+          captions?: string | undefined;
+          annotations?: string | undefined;
+          volume?: number | undefined;
+        },
         HTMLElement
       >;
       "tiktok-video": React.DetailedHTMLProps<

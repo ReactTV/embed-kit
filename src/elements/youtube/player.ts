@@ -182,7 +182,7 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
   override destroy(): void {
     this.ytPlayerState.destroyed = true;
     if (this.ytPlayerState.progressIntervalId) clearInterval(this.ytPlayerState.progressIntervalId);
-    if (this.parentNode) this.remove();
+    // this.player?.destroy();
   }
 
   override get playing(): boolean {
