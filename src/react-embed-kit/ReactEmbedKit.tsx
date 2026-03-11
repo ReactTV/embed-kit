@@ -1,22 +1,9 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { mergeRefs } from "react-merge-refs";
 import "./embed-elements.js";
-import "../elements/youtube/player.js";
-import "../elements/twitch/player.js";
-import "../elements/vimeo/player.js";
-import "../elements/tiktok/player.js";
-import "../elements/dailymotion/player.js";
-import type { EmbedPlayerRef, TDispatchedEventPayloads } from "../elements/_base/player.types.js";
-import { IDispatchedEventCallbacks } from "../elements/_base/index.js";
-
-const getUrlSource = (url: string) => {
-  if (url.includes("youtube.com")) return "youtube";
-  if (url.includes("vimeo.com")) return "vimeo";
-  if (url.includes("twitch.tv")) return "twitch";
-  if (url.includes("tiktok.com")) return "tiktok";
-  if (url.includes("dailymotion.com") || url.includes("dai.ly")) return "dailymotion";
-  return null;
-};
+import { getProviderForUrl, loadPlayerModule, EMBED_TAG } from "./providers.js";
+import type { EmbedPlayerRef, TDispatchedEventPayloads, IDispatchedEventCallbacks } from "../elements/_base/player.types.js";
+import type { EmbedTagName } from "./providers.js";
 
 export type ReactEmbedKitProps = IDispatchedEventCallbacks & {
   url: string;
@@ -63,6 +50,24 @@ export function ReactEmbedKit({
   volume,
 }: ReactEmbedKitProps): React.ReactElement {
   const elementRef = useRef<EmbedPlayerRef>(null);
+  const [isClient, setIsClient] = useState(false);
+  const [tagReady, setTagReady] = useState(false);
+
+  const resolved = getProviderForUrl(url) ?? {
+    tagName: EMBED_TAG.YOUTUBE as EmbedTagName,
+    url,
+  };
+
+  // Only run in browser so custom element code (HTMLElement) is never evaluated on the server
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isClient) return;
+    setTagReady(false);
+    loadPlayerModule(resolved.tagName).then(() => setTagReady(true));
+  }, [isClient, resolved.tagName]);
 
   // Wire ready + other events from the custom element
   useEffect(() => {
@@ -97,88 +102,22 @@ export function ReactEmbedKit({
     };
   }, [onReady, onPlay, onPause, onBuffering, onEnded, onProgress, onVolumeChange, onMuteChange]);
 
-  const source = getUrlSource(url);
-
-  if (source === "twitch") {
-    return (
-      <twitch-video
-        ref={mergeRefs([elementRef, playerRef])}
-        muted={muted}
-        playing={playing?.toString()}
-        src={url}
-        width={width}
-        height={height}
-        controls={controls.toString()}
-        captions={captions?.toString()}
-        annotations={annotations?.toString()}
-        volume={volume}
-      />
-    );
+  if (!isClient || !tagReady) {
+    return <div style={{ width: width ?? "100%", height: height ?? "100%", minHeight: 200 }} />;
   }
 
-  if (source === "vimeo") {
-    return (
-      <vimeo-video
-        ref={mergeRefs([elementRef, playerRef])}
-        muted={muted}
-        playing={playing?.toString()}
-        src={url}
-        width={width}
-        height={height}
-        controls={controls.toString()}
-        captions={captions?.toString()}
-        annotations={annotations?.toString()}
-        volume={volume}
-      />
-    );
-  }
+  const embedProps = {
+    ref: mergeRefs([elementRef, playerRef]),
+    muted,
+    playing: playing?.toString(),
+    src: resolved.url,
+    width,
+    height,
+    controls: controls.toString(),
+    captions: captions?.toString(),
+    annotations: annotations?.toString(),
+    volume,
+  };
 
-  if (source === "tiktok") {
-    return (
-      <tiktok-video
-        ref={mergeRefs([elementRef, playerRef])}
-        muted={muted}
-        playing={playing?.toString()}
-        src={url}
-        width={width}
-        height={height}
-        controls={controls.toString()}
-        captions={captions?.toString()}
-        annotations={annotations?.toString()}
-        volume={volume}
-      />
-    );
-  }
-
-  if (source === "dailymotion") {
-    return (
-      <dailymotion-video
-        ref={mergeRefs([elementRef, playerRef])}
-        muted={muted}
-        playing={playing?.toString()}
-        src={url}
-        width={width}
-        height={height}
-        controls={controls.toString()}
-        captions={captions?.toString()}
-        annotations={annotations?.toString()}
-        volume={volume}
-      />
-    );
-  }
-
-  return (
-    <youtube-video
-      ref={mergeRefs([elementRef, playerRef])}
-      muted={muted}
-      playing={playing?.toString()}
-      src={url}
-      width={width}
-      height={height}
-      controls={controls.toString()}
-      captions={captions?.toString()}
-      annotations={annotations?.toString()}
-      volume={volume}
-    />
-  );
+  return React.createElement(resolved.tagName, embedProps);
 }
