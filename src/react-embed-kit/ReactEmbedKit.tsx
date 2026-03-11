@@ -1,8 +1,12 @@
 import React, { useRef, useEffect, useState } from "react";
 import { mergeRefs } from "react-merge-refs";
 import "./embed-elements.js";
-import { getProviderForUrl, loadPlayerModule, EMBED_TAG } from "./providers.js";
-import type { EmbedPlayerRef, TDispatchedEventPayloads, IDispatchedEventCallbacks } from "../elements/_base/player.types.js";
+import { getProviderForUrl, EMBED_TAG } from "./providers.js";
+import type {
+  EmbedPlayerRef,
+  TDispatchedEventPayloads,
+  IDispatchedEventCallbacks,
+} from "../elements/_base/player.types.js";
 import type { EmbedTagName } from "./providers.js";
 
 export type ReactEmbedKitProps = IDispatchedEventCallbacks & {
@@ -58,7 +62,6 @@ export function ReactEmbedKit({
     url,
   };
 
-  // Only run in browser so custom element code (HTMLElement) is never evaluated on the server
   useEffect(() => {
     setIsClient(true);
   }, []);
@@ -66,8 +69,13 @@ export function ReactEmbedKit({
   useEffect(() => {
     if (!isClient) return;
     setTagReady(false);
-    loadPlayerModule(resolved.tagName).then(() => setTagReady(true));
-  }, [isClient, resolved.tagName]);
+    import("./registerEmbedElements.js")
+      .then(() => setTagReady(true))
+      .catch((err) => {
+        // eslint-disable-next-line no-console -- surface load failure for debugging
+        console.error("[ReactEmbedKit] Failed to load embed player modules:", err);
+      });
+  }, [isClient]);
 
   // Wire ready + other events from the custom element
   useEffect(() => {
@@ -103,14 +111,22 @@ export function ReactEmbedKit({
   }, [onReady, onPlay, onPause, onBuffering, onEnded, onProgress, onVolumeChange, onMuteChange]);
 
   if (!isClient || !tagReady) {
-    return <div style={{ width: width ?? "100%", height: height ?? "100%", minHeight: 200 }} />;
+    return (
+      <div
+        style={{
+          width: width ?? "100%",
+          height: height ?? "100%",
+          minHeight: 200,
+        }}
+      />
+    );
   }
 
-  const embedProps = {
+  const common = {
     ref: mergeRefs([elementRef, playerRef]),
+    src: resolved.url,
     muted,
     playing: playing?.toString(),
-    src: resolved.url,
     width,
     height,
     controls: controls.toString(),
@@ -119,5 +135,5 @@ export function ReactEmbedKit({
     volume,
   };
 
-  return React.createElement(resolved.tagName, embedProps);
+  return React.createElement(resolved.tagName, common);
 }
