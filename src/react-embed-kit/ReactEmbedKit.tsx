@@ -10,7 +10,7 @@ import type {
 import type { EmbedTagName } from "./providers.js";
 
 export type ReactEmbedKitProps = IDispatchedEventCallbacks & {
-  url: string;
+  src: string;
   width?: number;
   height?: number;
   className?: string;
@@ -35,7 +35,7 @@ export type ReactEmbedKitProps = IDispatchedEventCallbacks & {
 
 export function ReactEmbedKit({
   muted,
-  url,
+  src,
   width,
   height,
   controls = true,
@@ -57,9 +57,9 @@ export function ReactEmbedKit({
   const [isClient, setIsClient] = useState(false);
   const [tagReady, setTagReady] = useState(false);
 
-  const resolved = getProviderForUrl(url) ?? {
+  const resolved = getProviderForUrl(src) ?? {
     tagName: EMBED_TAG.YOUTUBE as EmbedTagName,
-    url,
+    url: src,
   };
 
   useEffect(() => {
@@ -134,6 +134,8 @@ export function ReactEmbedKit({
     annotations: annotations?.toString(),
     volume,
   };
+
+  console.log("COMMON", common, resolved.url);
 
   return React.createElement(resolved.tagName, common);
 }

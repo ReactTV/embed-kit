@@ -185,7 +185,7 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
           muted={muted}
           playing={playing}
           volume={volume}
-          url={url}
+          src={url}
           width={560}
           height={315}
           controls={controls}
