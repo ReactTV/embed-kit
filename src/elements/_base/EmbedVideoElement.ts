@@ -41,9 +41,15 @@ export class EmbedVideoElement extends HTMLElement {
   constructor() {
     super();
     const root = this.attachShadow({ mode: "open" });
+    const wrapper = document.createElement("div");
+    wrapper.style.cssText = "width:100%;height:100%;display:block;position:relative;";
     const container = document.createElement("div");
-    container.style.cssText = "width:100%;height:100%;display:block;";
-    root.appendChild(container);
+    container.style.cssText = "width:100%;height:100%;display:block;position:absolute;inset:0;";
+    wrapper.appendChild(container);
+    const slot = document.createElement("slot");
+    slot.style.cssText = "position:absolute;inset:0;display:block;";
+    wrapper.appendChild(slot);
+    root.appendChild(wrapper);
     this.embedContainer = container;
   }
 

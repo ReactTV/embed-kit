@@ -16,11 +16,7 @@ function loadDailymotionScript(): Promise<void> {
 }
 
 function parseDailymotionId(src: string): string | undefined {
-  return (
-    src.match(REGEX_VIDEO)?.[1] ??
-    src.match(REGEX_SHORT)?.[1] ??
-    src.match(REGEX_EMBED)?.[1]
-  );
+  return src.match(REGEX_VIDEO)?.[1] ?? src.match(REGEX_SHORT)?.[1] ?? src.match(REGEX_EMBED)?.[1];
 }
 
 /**
@@ -29,13 +25,23 @@ function parseDailymotionId(src: string): string | undefined {
 class DailymotionEmbedPlayer extends EmbedVideoElement {
   protected player: DailymotionPlayer | null = null;
   protected dmPlayerState: { destroyed: boolean } = { destroyed: false };
+  /** Mount element lives in light DOM so Dailymotion SDK (document.querySelector) can find it. */
+  private dmMountEl: HTMLDivElement | null = null;
+  /** Scoped style so .dailymotion-player-root has correct dimensions before first paint (avoids flash). */
+  private dmRootStyleEl: HTMLStyleElement | null = null;
 
   override load(): void {
     this.player?.destroy();
     this.player = null;
 
-    const container = this.getEmbedContainer();
-    container.innerHTML = "";
+    if (this.dmRootStyleEl?.parentNode) {
+      this.dmRootStyleEl.remove();
+      this.dmRootStyleEl = null;
+    }
+    if (this.dmMountEl?.parentNode) {
+      this.dmMountEl.remove();
+      this.dmMountEl = null;
+    }
 
     const attributes = this.getAttributes();
     const videoId = parseDailymotionId(attributes.src ?? "");
@@ -46,7 +52,14 @@ class DailymotionEmbedPlayer extends EmbedVideoElement {
     const mountEl = document.createElement("div");
     mountEl.id = mountId;
     mountEl.style.cssText = "width:100%;height:100%;display:block;";
-    container.appendChild(mountEl);
+    this.dmMountEl = mountEl;
+    this.appendChild(mountEl);
+
+    const styleEl = document.createElement("style");
+    const rootSelector = `#${mountId}.dailymotion-player-root`;
+    styleEl.textContent = `${rootSelector}{padding-bottom:0!important;height:100%!important;width:100%!important}`;
+    this.dmRootStyleEl = styleEl;
+    this.appendChild(styleEl);
 
     const params: Record<string, unknown> = {};
     if (this.options.autoplay) params.autoplay = true;
@@ -54,8 +67,7 @@ class DailymotionEmbedPlayer extends EmbedVideoElement {
 
     void loadDailymotionScript()
       .then(() => {
-        if (this.dmPlayerState.destroyed) return undefined;
-        if (!mountEl.isConnected) return undefined;
+        if (this.dmPlayerState.destroyed || !this.isConnected) return undefined;
         if (!window.dailymotion?.createPlayer) {
           return Promise.reject(new Error("Dailymotion player API not available"));
         }
@@ -65,10 +77,10 @@ class DailymotionEmbedPlayer extends EmbedVideoElement {
         });
       })
       .then((dmPlayer) => {
-        if (!dmPlayer || this.dmPlayerState.destroyed) return;
-        if (!mountEl.isConnected) return;
+        if (!dmPlayer || this.dmPlayerState.destroyed || !this.isConnected) return;
 
         this.player = dmPlayer;
+
         const { events } = window.dailymotion!;
         this.createListeners(dmPlayer, events);
         this.setInitialPlayerState();
@@ -151,10 +163,7 @@ class DailymotionEmbedPlayer extends EmbedVideoElement {
         this.playerState.muted = muted;
         this.dispatchMuteChangeEvent(muted);
       }
-      if (
-        typeof data.playerVolume === "number" &&
-        !Number.isNaN(data.playerVolume)
-      ) {
+      if (typeof data.playerVolume === "number" && !Number.isNaN(data.playerVolume)) {
         if (data.playerVolume !== this.playerState.volume) {
           this.playerState.volume = data.playerVolume;
           this.dispatchVolumeChangeEvent(data.playerVolume * 100);
@@ -194,6 +203,14 @@ class DailymotionEmbedPlayer extends EmbedVideoElement {
     this.dmPlayerState.destroyed = true;
     this.player?.destroy();
     this.player = null;
+    if (this.dmRootStyleEl?.parentNode) {
+      this.dmRootStyleEl.remove();
+      this.dmRootStyleEl = null;
+    }
+    if (this.dmMountEl?.parentNode) {
+      this.dmMountEl.remove();
+      this.dmMountEl = null;
+    }
   }
 
   override get playing(): boolean {
@@ -259,14 +276,11 @@ class DailymotionEmbedPlayer extends EmbedVideoElement {
   }
 
   override get volume(): number {
-    return ((this.playerState.volume ?? 1) * 100);
+    return (this.playerState.volume ?? 1) * 100;
   }
 
   override set volume(vol: number) {
-    const v =
-      vol <= 1
-        ? Math.max(0, Math.min(1, vol))
-        : Math.max(0, Math.min(1, vol / 100));
+    const v = vol <= 1 ? Math.max(0, Math.min(1, vol)) : Math.max(0, Math.min(1, vol / 100));
     this.playerState.volume = v;
     this.player?.setVolume?.(v);
   }
@@ -276,9 +290,6 @@ class DailymotionEmbedPlayer extends EmbedVideoElement {
   }
 }
 
-if (
-  globalThis.customElements &&
-  !globalThis.customElements.get("dailymotion-video")
-) {
+if (globalThis.customElements && !globalThis.customElements.get("dailymotion-video")) {
   globalThis.customElements.define("dailymotion-video", DailymotionEmbedPlayer);
 }
