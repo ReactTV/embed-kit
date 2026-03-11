@@ -62,7 +62,17 @@ declare module "react" {
         HTMLElement
       >;
       "dailymotion-video": React.DetailedHTMLProps<
-        React.HTMLAttributes<HTMLElement> & { src?: string; muted?: boolean | undefined },
+        React.HTMLAttributes<HTMLElement> & {
+          src?: string;
+          muted?: boolean | undefined;
+          playing?: string | undefined;
+          width?: number | undefined;
+          height?: number | undefined;
+          controls?: string | undefined;
+          captions?: string | undefined;
+          annotations?: string | undefined;
+          volume?: number | undefined;
+        },
         HTMLElement
       >;
     }
