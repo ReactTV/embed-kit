@@ -44,6 +44,8 @@ export function ReactEmbedKit({
   onBuffering,
   onEnded,
   onProgress,
+  onVolumeChange,
+  onMuteChange,
   playerRef,
   volume,
 }: ReactEmbedKitProps): React.ReactElement {
@@ -63,6 +65,12 @@ export function ReactEmbedKit({
       onProgress: (event: CustomEvent<TDispatchedEventPayloads["onProgress"]>) => {
         onProgress?.(event.detail);
       },
+      onVolumeChange: (event: CustomEvent<TDispatchedEventPayloads["onVolumeChange"]>) => {
+        onVolumeChange?.(event.detail);
+      },
+      onMuteChange: (event: CustomEvent<TDispatchedEventPayloads["onMuteChange"]>) => {
+        onMuteChange?.(event.detail);
+      },
     };
 
     Object.entries(handlers).forEach(([event, handler]) => {
@@ -74,7 +82,7 @@ export function ReactEmbedKit({
         el.removeEventListener(event, handler as EventListener);
       });
     };
-  }, [onReady, onPlay, onPause, onBuffering, onEnded, onProgress]);
+  }, [onReady, onPlay, onPause, onBuffering, onEnded, onProgress, onVolumeChange, onMuteChange]);
 
   return (
     <youtube-video

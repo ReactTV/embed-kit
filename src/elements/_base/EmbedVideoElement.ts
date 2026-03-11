@@ -6,6 +6,7 @@ export type TEmbedVideoElementOptions = {
   controls: boolean;
   captions: boolean;
   annotations: boolean;
+  relatedVideos: boolean;
   config: {
     youtube: Record<string, number | string | undefined>;
     vimeo: Record<string, number | string | undefined>;
@@ -18,6 +19,7 @@ const generateDefaultOptions = (): TEmbedVideoElementOptions => ({
   controls: true,
   captions: false,
   annotations: false,
+  relatedVideos: false,
   config: {
     youtube: {},
     vimeo: {},
@@ -41,6 +43,7 @@ export class EmbedVideoElement extends HTMLElement {
     "controls",
     "captions",
     "annotations",
+    "relatedVideos",
     "volume",
   ];
 
@@ -67,6 +70,7 @@ export class EmbedVideoElement extends HTMLElement {
       controls: attributes.controls === "true",
       captions: attributes.captions === "true",
       annotations: attributes.annotations === "true",
+      relatedVideos: attributes.relatedVideos === "true",
       config: {
         youtube: attributes.youtube ? JSON.parse(attributes.youtube) : {},
         vimeo: attributes.vimeo ? JSON.parse(attributes.vimeo) : {},
@@ -98,6 +102,38 @@ export class EmbedVideoElement extends HTMLElement {
 
   unmute(): void | Promise<void> {
     return Promise.resolve();
+  }
+
+  get annotations(): boolean {
+    return this.options.annotations;
+  }
+
+  set annotations(_value: boolean) {
+    this.options.annotations = _value;
+  }
+
+  get autoplay(): boolean {
+    return this.options.autoplay;
+  }
+
+  set autoplay(_value: boolean) {
+    this.options.autoplay = _value;
+  }
+
+  get captions(): boolean {
+    return this.options.captions;
+  }
+
+  set captions(_value: boolean) {
+    this.options.captions = _value;
+  }
+
+  get controls(): boolean {
+    return this.options.controls;
+  }
+
+  set controls(_value: boolean) {
+    this.options.controls = _value;
   }
 
   get currentTime(): number {
@@ -138,6 +174,14 @@ export class EmbedVideoElement extends HTMLElement {
 
   set playing(_value: boolean) {
     //
+  }
+
+  get relatedVideos(): boolean {
+    return this.options.relatedVideos;
+  }
+
+  set relatedVideos(_value: boolean) {
+    this.options.relatedVideos = _value;
   }
 
   get volume(): number {
@@ -260,6 +304,26 @@ export class EmbedVideoElement extends HTMLElement {
 
     if (name === "volume") {
       this.volume = parseFloat(newValue);
+    }
+
+    if (name === "autoplay") {
+      this.autoplay = newValue === "true";
+    }
+
+    if (name === "controls") {
+      this.controls = newValue === "true";
+    }
+
+    if (name === "captions") {
+      this.captions = newValue === "true";
+    }
+
+    if (name === "annotations") {
+      this.annotations = newValue === "true";
+    }
+
+    if (name === "relatedVideos") {
+      this.relatedVideos = newValue === "true";
     }
   }
 

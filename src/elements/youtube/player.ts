@@ -39,6 +39,11 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
   player: YTPlayer | null = null;
 
   override load(): void {
+    if (this.api) {
+      this.player?.destroy();
+      this.player = null;
+    }
+
     void loadYTScript().then(() => {
       if (this.ytPlayerState.destroyed) return;
       const YT = window.YT!;
@@ -51,15 +56,18 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
       this.api = new YT.Player(this, {
         videoId,
         playerVars: {
-          autoplay: attributes.autoplay === "true" ? 1 : 0,
-          controls: attributes.controls === "false" ? 0 : 1,
-          captions: attributes.captions === "true" ? 1 : 0,
-          annotations: attributes.annotations === "true" ? 1 : 0,
+          autoplay: this.options.autoplay ? 1 : 0,
+          controls: this.options.controls ? 1 : 0,
+          cc_load_policy: this.options.captions ? 1 : 0,
+          iv_load_policy: this.options.annotations ? 1 : 3,
+          rel: this.options.relatedVideos ? 1 : 0,
+          origin: window.location.origin,
         },
         events: {
           onReady: ({ target }) => {
             this.player = target;
             this.dispatchReadyEvent();
+            this.setInitialPlayerState();
           },
           onError: (error) => {
             this.playerState.error = {
@@ -68,11 +76,30 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
             } as MediaError;
             this.dispatchErrorEvent(this.playerState.error);
           },
+          onApiChange: () => {
+            console.log("onApiChange");
+          },
         },
       });
 
       this.createListeners();
     });
+  }
+
+  setInitialPlayerState(): void {
+    const attributes = this.getAttributes();
+
+    if (attributes.volume) {
+      this.volume = parseFloat(attributes.volume);
+    }
+
+    if (attributes.muted) {
+      this.muted = attributes.muted === "true";
+    }
+
+    if (attributes.playing) {
+      this.playing = attributes.playing === "true";
+    }
   }
 
   createListeners(): void {
@@ -168,6 +195,21 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
     } else {
       this.pause();
     }
+  }
+
+  override set captions(value: boolean) {
+    this.options.captions = value;
+
+    if (value) {
+      this.player?.loadModule("captions");
+    } else {
+      this.player?.unloadModule("captions");
+    }
+  }
+
+  override set controls(value: boolean) {
+    this.options.controls = value;
+    this.load();
   }
 
   override get currentTime(): number {
