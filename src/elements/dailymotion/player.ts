@@ -21,6 +21,7 @@ function parseDailymotionId(src: string): string | undefined {
 
 /**
  * Dailymotion embed player as a subclass of EmbedVideoElement.
+ * Uses a slot in the shadow root so the mount div (light DOM) is visible; the SDK finds it by ID.
  */
 class DailymotionEmbedPlayer extends EmbedVideoElement {
   protected player: DailymotionPlayer | null = null;
@@ -29,6 +30,24 @@ class DailymotionEmbedPlayer extends EmbedVideoElement {
   private dmMountEl: HTMLDivElement | null = null;
   /** Scoped style so .dailymotion-player-root has correct dimensions before first paint (avoids flash). */
   private dmRootStyleEl: HTMLStyleElement | null = null;
+
+  constructor() {
+    super();
+    const root = this.shadowRoot!;
+    const container = this.embedContainer!;
+    root.removeChild(container);
+    const style = document.createElement("style");
+    style.textContent = "slot { pointer-events: none; } slot::slotted(*) { pointer-events: auto; }";
+    root.appendChild(style);
+    const wrapper = document.createElement("div");
+    wrapper.style.cssText = "width:100%;height:100%;display:block;position:relative;";
+    container.style.cssText = "width:100%;height:100%;display:block;position:absolute;inset:0;";
+    wrapper.appendChild(container);
+    const slot = document.createElement("slot");
+    slot.style.cssText = "position:absolute;inset:0;display:block;";
+    wrapper.appendChild(slot);
+    root.appendChild(wrapper);
+  }
 
   override load(): void {
     this.player?.destroy();
