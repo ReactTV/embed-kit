@@ -1,4 +1,4 @@
-import { createEmbedIframeElement, EmbedPlayerVideoElement } from "../_base/index.js";
+import { createIframe, EmbedVideoElement } from "../_base/index.js";
 import {
   EMBED_ORIGIN,
   NS_EMBED,
@@ -41,38 +41,37 @@ type TGenerateIframeSrcProps = {
 };
 
 const generateIframeSrc = ({ url, controls, autoplay }: TGenerateIframeSrcProps) =>
-  // eslint-disable-next-line
   `${getTwitchEmbedSrc(url)}&parent=${encodeURIComponent(window.location.hostname)}&controls=${controls}&autoplay=${autoplay}`;
 
 /**
- * Twitch embed player as a subclass of EmbedPlayerVideoElement.
+ * Twitch embed player as a subclass of EmbedVideoElement.
  */
-class TwitchEmbedPlayer extends EmbedPlayerVideoElement {
-  connectedCallback(): void {
-    const src = this.getAttribute("src");
+class TwitchEmbedPlayer extends EmbedVideoElement {
+  protected twitchPlayerState: { destroyed: boolean } = { destroyed: false };
 
-    if (!src) return;
+  override load(): void {
+    if (this.iframe?.parentNode) {
+      this.iframe.remove();
+      this.iframe = null;
+    }
+    window.removeEventListener("message", this.handleMessage);
+    this.handleMessage = () => {};
 
-    const controls = Boolean(this.getAttribute("controls") ?? true);
-    const autoplay = Boolean(this.getAttribute("autoplay") ?? false);
-    const optionsMuted = this.options.muted;
+    const attributes = this.getAttributes();
+    const embedSrc = getTwitchEmbedSrc(attributes.src ?? "");
 
-    const iframeSrc = generateIframeSrc({ url: src, controls, autoplay });
+    if (!embedSrc) return;
 
-    const width = this.getAttribute("width") ?? 560;
-    const height = this.getAttribute("height") ?? 315;
-    const iframe = createEmbedIframeElement({
-      src: iframeSrc,
-      width: Number(width),
-      height: Number(height),
-      allow: "accelerometer; fullscreen; autoplay; encrypted-media; picture-in-picture",
-      allowFullScreen: true,
+    const iframeSrc = generateIframeSrc({
+      url: attributes.src!,
+      controls: this.options.controls,
+      autoplay: this.options.autoplay,
     });
 
-    this.appendChild(iframe);
+    const iframe = createIframe(iframeSrc);
 
     const send = (command: number, params?: number | boolean): void => {
-      if (!iframe.contentWindow) return;
+      if (this.twitchPlayerState.destroyed || !iframe.contentWindow) return;
       iframe.contentWindow.postMessage(
         { eventName: command, params, namespace: NS_PLAYER_PROXY },
         EMBED_ORIGIN
@@ -80,144 +79,230 @@ class TwitchEmbedPlayer extends EmbedPlayerVideoElement {
     };
 
     const handleMessage = (event: MessageEvent): void => {
-      const enableCaptions = this.getAttribute("captions") === "true";
+      if (this.twitchPlayerState.destroyed) return;
       if (event.source !== iframe.contentWindow || event.origin !== EMBED_ORIGIN) return;
+
       const message = event.data as TTwitchMessage;
 
       if (message.namespace === NS_EMBED) {
         if (message.eventName === "ready") {
-          if (enableCaptions !== undefined) {
-            send(enableCaptions ? PlayerCommands.ENABLE_CAPTIONS : PlayerCommands.DISABLE_CAPTIONS);
+          if (this.options.captions) {
+            send(PlayerCommands.ENABLE_CAPTIONS);
+          } else {
+            send(PlayerCommands.DISABLE_CAPTIONS);
           }
-          if (optionsMuted === true) {
-            send(PlayerCommands.SET_MUTED, true);
-            this.playerState.muted = true;
-            this.dispatchEvent(new CustomEvent("mute", { detail: true }));
-          }
-          this.dispatchEvent(new Event("ready"));
+          this.setInitialPlayerState();
+          this.dispatchReadyEvent();
         }
         if (message.eventName === "error") {
           const msg = message.params?.message ?? "Twitch embed error";
-          const customError = { code: 0, message: msg } as MediaError;
-          this.playerState.error = customError;
-          this.dispatchEvent(new CustomEvent("error", { detail: this.playerState.error }));
+          this.playerState.error = { code: 0, message: msg } as MediaError;
+          this.dispatchErrorEvent(this.playerState.error);
         }
         if (message.eventName === "seek") {
           this.playerState.currentTime = message.params.position;
-          this.dispatchEvent(new CustomEvent("seek", { detail: message.params.position }));
+          this.dispatchProgressEvent(message.params.position);
         }
         if (
           message.eventName === "play" ||
           message.eventName === "playing" ||
           message.eventName === "video.play"
         ) {
-          this.dispatchEvent(new Event("play"));
+          this.playerState.isPaused = false;
+          this.dispatchPlayEvent();
         }
       }
+
       if (message.namespace === NS_PLAYER_PROXY && message.eventName === "UPDATE_STATE") {
         const p = message.params;
-        const isPlaying = p.playback === PlaybackState.PLAYING;
-        if (isPlaying && !this.playerState.isPlaying) this.dispatchEvent(new Event("play"));
-        if (!isPlaying && this.playerState.isPlaying) this.dispatchEvent(new Event("pause"));
-        if (p.playback === PlaybackState.BUFFERING) this.dispatchEvent(new Event("buffering"));
-        if (p.playback === PlaybackState.ENDED) this.dispatchEvent(new Event("ended"));
-        this.playerState.isPlaying = isPlaying;
-        this.playerState.isPaused = !isPlaying;
+        const isPaused = p.playback === PlaybackState.PAUSED;
+
+        if (isPaused && !this.playerState.isPaused) {
+          this.playerState.isPaused = true;
+          this.dispatchPauseEvent();
+        } else if (!isPaused && this.playerState.isPaused) {
+          this.playerState.isPaused = false;
+          this.dispatchPlayEvent();
+        }
+
+        if (p.playback === PlaybackState.BUFFERING) {
+          this.dispatchBufferingEvent();
+        }
+        if (p.playback === PlaybackState.ENDED) {
+          this.dispatchEndedEvent();
+        }
+
         this.playerState.currentTime = p.currentTime;
+
         if (p.duration !== this.playerState.duration) {
           this.playerState.duration = p.duration;
-          this.dispatchEvent(new CustomEvent("durationchange", { detail: p.duration }));
+          this.dispatchDurationChangeEvent(p.duration);
         }
+
         if (typeof p.muted === "boolean") {
-          const wasMuted = this.playerState.muted;
-          this.playerState.muted = p.muted;
-          if (wasMuted !== p.muted) {
-            this.dispatchEvent(new CustomEvent("mute", { detail: p.muted }));
+          if (p.muted !== this.playerState.muted) {
+            this.playerState.muted = p.muted;
+            this.dispatchMuteChangeEvent(p.muted);
           }
         }
-        if (typeof p.volume === "number" && !Number.isNaN(p.volume))
-          this.playerState.volume = p.volume;
-        this.emitProgress(p.currentTime);
+        if (typeof p.volume === "number" && !Number.isNaN(p.volume)) {
+          if (p.volume !== this.playerState.volume) {
+            this.playerState.volume = p.volume;
+            this.dispatchVolumeChangeEvent(p.volume);
+          }
+        }
+
+        this.dispatchProgressEvent(p.currentTime);
       }
     };
 
     this.iframe = iframe;
     this.handleMessage = handleMessage;
-
+    this.getEmbedContainer().appendChild(iframe);
     window.addEventListener("message", handleMessage);
   }
 
+  setInitialPlayerState(): void {
+    const attributes = this.getAttributes();
+
+    if (attributes.volume) {
+      this.volume = parseFloat(attributes.volume);
+    }
+
+    if (attributes.muted) {
+      this.muted = attributes.muted === "true";
+    }
+
+    if (attributes.playing) {
+      this.playing = attributes.playing === "true";
+    }
+  }
+
+  connectedCallback(): void {
+    this.loadInitialOptions();
+
+    const src = this.getAttribute("src");
+    if (!src) return;
+
+    if (!getTwitchEmbedSrc(src)) return;
+
+    this.load();
+  }
+
   override play(): Promise<void> {
-    this.playerState.isPaused = false;
     if (this.iframe?.contentWindow) {
       this.iframe.contentWindow.postMessage(
-        { eventName: PlayerCommands.PLAY, params: undefined, namespace: NS_PLAYER_PROXY },
+        {
+          eventName: PlayerCommands.PLAY,
+          params: undefined,
+          namespace: NS_PLAYER_PROXY,
+        },
         EMBED_ORIGIN
       );
     }
-    this.dispatchEvent(new Event("play"));
     return Promise.resolve();
   }
+
   override pause(): Promise<void> {
-    this.playerState.isPaused = true;
     if (this.iframe?.contentWindow) {
       this.iframe.contentWindow.postMessage(
-        { eventName: PlayerCommands.PAUSE, params: undefined, namespace: NS_PLAYER_PROXY },
+        {
+          eventName: PlayerCommands.PAUSE,
+          params: undefined,
+          namespace: NS_PLAYER_PROXY,
+        },
         EMBED_ORIGIN
       );
     }
-    this.dispatchEvent(new Event("pause"));
     return Promise.resolve();
   }
+
+  override destroy(): void {
+    this.twitchPlayerState.destroyed = true;
+    window.removeEventListener("message", this.handleMessage);
+    if (this.iframe?.parentNode) this.iframe.remove();
+    this.iframe = null;
+  }
+
+  override get playing(): boolean {
+    return !this.paused;
+  }
+
+  override set playing(value: boolean) {
+    if (value) {
+      this.play();
+    } else {
+      this.pause();
+    }
+  }
+
+  override set controls(value: boolean) {
+    this.options.controls = value;
+    this.load();
+  }
+
   override seek(seconds: number): void {
     if (this.iframe?.contentWindow) {
       this.iframe.contentWindow.postMessage(
-        { eventName: PlayerCommands.SEEK, params: seconds, namespace: NS_PLAYER_PROXY },
+        {
+          eventName: PlayerCommands.SEEK,
+          params: seconds,
+          namespace: NS_PLAYER_PROXY,
+        },
         EMBED_ORIGIN
       );
     }
     this.playerState.currentTime = seconds;
-    this.dispatchEvent(new CustomEvent("seek", { detail: seconds }));
   }
+
   override mute(): void {
     this.playerState.muted = true;
     if (this.iframe?.contentWindow) {
       this.iframe.contentWindow.postMessage(
-        { eventName: PlayerCommands.SET_MUTED, params: true, namespace: NS_PLAYER_PROXY },
+        {
+          eventName: PlayerCommands.SET_MUTED,
+          params: true,
+          namespace: NS_PLAYER_PROXY,
+        },
         EMBED_ORIGIN
       );
     }
-    this.dispatchEvent(new CustomEvent("mute", { detail: true }));
   }
+
   override unmute(): void {
     this.playerState.muted = false;
     if (this.iframe?.contentWindow) {
       this.iframe.contentWindow.postMessage(
-        { eventName: PlayerCommands.SET_MUTED, params: false, namespace: NS_PLAYER_PROXY },
+        {
+          eventName: PlayerCommands.SET_MUTED,
+          params: false,
+          namespace: NS_PLAYER_PROXY,
+        },
         EMBED_ORIGIN
       );
     }
-    this.dispatchEvent(new CustomEvent("unmute", { detail: false }));
   }
-  override destroy(): void {
-    window.removeEventListener("message", this.handleMessage);
-    if (this.iframe?.parentNode) this.iframe.remove();
-  }
+
   override get paused(): boolean {
     return this.playerState.isPaused;
   }
+
   override get currentTime(): number {
     return this.playerState.currentTime;
   }
+
   override set currentTime(seconds: number) {
     this.seek(seconds);
   }
+
   override get duration(): number {
     return this.playerState.duration;
   }
+
   override get muted(): boolean {
     return this.playerState.muted;
   }
+
   override set muted(value: boolean) {
     if (value) {
       this.mute();
@@ -225,19 +310,26 @@ class TwitchEmbedPlayer extends EmbedPlayerVideoElement {
       this.unmute();
     }
   }
+
   override get volume(): number {
     return this.playerState.volume ?? 1;
   }
+
   override set volume(vol: number) {
     const v = Math.max(0, Math.min(1, vol));
     this.playerState.volume = v;
     if (this.iframe?.contentWindow) {
       this.iframe.contentWindow.postMessage(
-        { eventName: PlayerCommands.SET_VOLUME, params: v, namespace: NS_PLAYER_PROXY },
+        {
+          eventName: PlayerCommands.SET_VOLUME,
+          params: v,
+          namespace: NS_PLAYER_PROXY,
+        },
         EMBED_ORIGIN
       );
     }
   }
+
   override get error() {
     return this.playerState.error;
   }

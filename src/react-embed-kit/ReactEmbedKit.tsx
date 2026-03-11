@@ -1,14 +1,24 @@
-import { useRef, useEffect, useState } from "react";
-import type {
-  EmbedPlayerRef,
-  ICreatePlayerOptions,
-  IEmbedProgressEvent,
-  IErrorData,
-  IMuteData,
-} from "../elements/_base/player.js";
-import { getProviderForUrl, loadPlayerModule } from "./providers.js";
+import React, { useRef, useEffect } from "react";
+import { mergeRefs } from "react-merge-refs";
+import "./embed-elements.js";
+import "../elements/youtube/player.js";
+import "../elements/twitch/player.js";
+import "../elements/vimeo/player.js";
+import "../elements/tiktok/player.js";
+import "../elements/dailymotion/player.js";
+import type { EmbedPlayerRef, TDispatchedEventPayloads } from "../elements/_base/player.types.js";
+import { IDispatchedEventCallbacks } from "../elements/_base/index.js";
 
-export interface ReactEmbedKitProps {
+const getUrlSource = (url: string) => {
+  if (url.includes("youtube.com")) return "youtube";
+  if (url.includes("vimeo.com")) return "vimeo";
+  if (url.includes("twitch.tv")) return "twitch";
+  if (url.includes("tiktok.com")) return "tiktok";
+  if (url.includes("dailymotion.com") || url.includes("dai.ly")) return "dailymotion";
+  return null;
+};
+
+export type ReactEmbedKitProps = IDispatchedEventCallbacks & {
   url: string;
   width?: number;
   height?: number;
@@ -18,251 +28,157 @@ export interface ReactEmbedKitProps {
   playing?: boolean;
   pip?: boolean;
   muted?: boolean;
-  volume?: number;
+  volume?: number; // 0-100
+  seekTo?: number | null;
   progressInterval?: number;
   controls?: boolean;
-  enableCaptions?: boolean;
-  showAnnotations?: boolean;
+  captions?: boolean;
+  annotations?: boolean;
   config?: {
     youtube?: Record<string, number | string | undefined>;
     vimeo?: Record<string, number | string | undefined>;
   };
   playerRef?: React.Ref<EmbedPlayerRef>;
   onUnsupportedUrl?: (url: string) => void;
-  onError?: (data: IErrorData) => void;
-  onReady?: (player: NonNullable<EmbedPlayerRef>) => void;
-  onPlay?: () => void;
-  onPause?: () => void;
-  onBuffering?: () => void;
-  onEnded?: () => void;
-  onProgress?: (event: IEmbedProgressEvent) => void;
-  onDurationChange?: (duration: number) => void;
-  onSeeking?: () => void;
-  onSeek?: (currentTime: number) => void;
-  onMute?: (data: IMuteData) => void;
-  onPlaybackQualityChange?: (quality: string) => void;
-  onPlaybackRateChange?: (rate: number) => void;
-  onAutoplayBlocked?: () => void;
-  onApiChange?: () => void;
-}
+};
 
 export function ReactEmbedKit({
+  muted,
   url,
-  playerRef: playerRefProp,
-  onUnsupportedUrl,
-  onError = () => {},
-  onReady = () => {},
-  className,
-  style,
   width,
   height,
+  controls = true,
+  captions,
+  annotations,
   playing,
-  pip,
-  autoplay,
-  muted,
-  volume,
-  progressInterval,
-  controls,
-  enableCaptions,
-  showAnnotations,
-  config,
+  onReady,
   onPlay,
   onPause,
   onBuffering,
   onEnded,
   onProgress,
-  onDurationChange,
-  onSeeking,
-  onSeek,
-  onMute,
-  onPlaybackQualityChange,
-  onPlaybackRateChange,
-  onAutoplayBlocked,
-  onApiChange,
+  onVolumeChange,
+  onMuteChange,
+  playerRef,
+  volume,
 }: ReactEmbedKitProps): React.ReactElement {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const playerRef = useRef<NonNullable<EmbedPlayerRef> | null>(null);
-  const playerRefPropRef = useRef(playerRefProp);
-  playerRefPropRef.current = playerRefProp;
-  const [playerReady, setPlayerReady] = useState<NonNullable<EmbedPlayerRef> | null>(null);
+  const elementRef = useRef<EmbedPlayerRef>(null);
 
-  const optionsRef = useRef({
-    onReady,
-    onError,
-    onPlay,
-    onPause,
-    onBuffering,
-    onEnded,
-    onProgress,
-    onDurationChange,
-    onSeeking,
-    onSeek,
-    onMute,
-    onPlaybackQualityChange,
-    onPlaybackRateChange,
-    onAutoplayBlocked,
-    onApiChange,
-  });
-  optionsRef.current = {
-    onReady,
-    onError,
-    onPlay,
-    onPause,
-    onBuffering,
-    onEnded,
-    onProgress,
-    onDurationChange,
-    onSeeking,
-    onSeek,
-    onMute,
-    onPlaybackQualityChange,
-    onPlaybackRateChange,
-    onAutoplayBlocked,
-    onApiChange,
-  };
-
+  // Wire ready + other events from the custom element
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+    const el = elementRef.current;
+    if (!el) return;
 
-    const resolved = getProviderForUrl(url);
-    if (!resolved) {
-      onUnsupportedUrl?.(url);
-      return;
-    }
-
-    const { tagName, url: embedUrl } = resolved;
-    let cancelled = false;
-    let element: NonNullable<EmbedPlayerRef> | null = null;
-
-    const opts: ICreatePlayerOptions = {
-      width,
-      height,
-      ...(autoplay !== undefined && { autoplay }),
-      ...(muted !== undefined && { muted }),
-      ...(volume !== undefined && { volume }),
-      ...(progressInterval !== undefined && { progressInterval }),
-      ...(controls !== undefined && { controls }),
-      ...(enableCaptions !== undefined && { enableCaptions }),
-      ...(showAnnotations !== undefined && { showAnnotations }),
-      ...(config !== undefined && { config }),
+    const handlers = {
+      onReady: () => onReady?.(),
+      onPlay: () => onPlay?.(),
+      onPause: () => onPause?.(),
+      onBuffering: () => onBuffering?.(),
+      onEnded: () => onEnded?.(),
+      onProgress: (event: CustomEvent<TDispatchedEventPayloads["onProgress"]>) => {
+        onProgress?.(event.detail);
+      },
+      onVolumeChange: (event: CustomEvent<TDispatchedEventPayloads["onVolumeChange"]>) => {
+        onVolumeChange?.(event.detail);
+      },
+      onMuteChange: (event: CustomEvent<TDispatchedEventPayloads["onMuteChange"]>) => {
+        onMuteChange?.(event.detail);
+      },
     };
 
-    loadPlayerModule(tagName)
-      .then(() => {
-        if (cancelled) return;
-        container.innerHTML = "";
-        const el = document.createElement(tagName) as unknown as NonNullable<EmbedPlayerRef>;
-        element = el;
-
-        (el as unknown as { options: ICreatePlayerOptions }).options = opts;
-        (el as unknown as { optionsRef: typeof optionsRef }).optionsRef = optionsRef;
-        el.setAttribute("src", embedUrl);
-        el.setAttribute("width", String(width));
-        el.setAttribute("height", String(height));
-        el.setAttribute("title", "Embed");
-
-        el.addEventListener("error", (e: Event) => {
-          const detail = (e as CustomEvent).detail as IErrorData | undefined;
-          optionsRef.current.onError?.(detail ?? { message: "Unknown error" });
-        });
-        el.addEventListener("ready", () => {
-          if (cancelled) return;
-          const elAsVideo = el as unknown as NonNullable<EmbedPlayerRef>;
-          playerRef.current = elAsVideo;
-          setPlayerReady(el);
-          const ref = playerRefPropRef.current;
-          if (ref != null) {
-            if (typeof ref === "function") ref(elAsVideo);
-            else (ref as { current: EmbedPlayerRef }).current = elAsVideo;
-          }
-          optionsRef.current.onReady?.(elAsVideo);
-          // Report initial muted state so the parent app can sync its UI
-          optionsRef.current.onMute?.({ muted: elAsVideo.muted });
-        });
-        el.addEventListener("play", () => optionsRef.current.onPlay?.());
-        el.addEventListener("pause", () => optionsRef.current.onPause?.());
-        el.addEventListener("buffering", () => optionsRef.current.onBuffering?.());
-        el.addEventListener("ended", () => optionsRef.current.onEnded?.());
-        el.addEventListener("durationchange", (e: Event) => {
-          const d = (e as CustomEvent).detail as number | undefined;
-          if (typeof d === "number") optionsRef.current.onDurationChange?.(d);
-        });
-        el.addEventListener("seeking", () => optionsRef.current.onSeeking?.());
-        el.addEventListener("seek", (e: Event) => {
-          const t = (e as CustomEvent).detail as number | undefined;
-          if (typeof t === "number") optionsRef.current.onSeek?.(t);
-        });
-        el.addEventListener("mute", (e: Event) => {
-          const detail = (e as CustomEvent).detail;
-          const isMuted =
-            typeof detail === "boolean" ? detail : ((detail as IMuteData)?.muted ?? false);
-          optionsRef.current.onMute?.({ muted: isMuted });
-        });
-        el.addEventListener("playbackqualitychange", (e: Event) => {
-          const q = (e as CustomEvent).detail as string | undefined;
-          if (q != null) optionsRef.current.onPlaybackQualityChange?.(q);
-        });
-        el.addEventListener("playbackratechange", (e: Event) => {
-          const r = (e as CustomEvent).detail as number | undefined;
-          if (typeof r === "number") optionsRef.current.onPlaybackRateChange?.(r);
-        });
-        el.addEventListener("autoplayblocked", () => optionsRef.current.onAutoplayBlocked?.());
-        el.addEventListener("apichange", () => optionsRef.current.onApiChange?.());
-
-        container.appendChild(el);
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          optionsRef.current.onError?.({ message: err?.message ?? String(err) });
-        }
-      });
+    Object.entries(handlers).forEach(([event, handler]) => {
+      el.addEventListener(event, handler as EventListener);
+    });
 
     return () => {
-      cancelled = true;
-      setPlayerReady(null);
-      playerRef.current = null;
-      const ref = playerRefPropRef.current;
-      if (ref != null) {
-        if (typeof ref === "function") ref(null);
-        else (ref as { current: EmbedPlayerRef }).current = null;
-      }
-      try {
-        (element as { destroy?: () => void })?.destroy?.();
-      } finally {
-        container.innerHTML = "";
-      }
+      Object.entries(handlers).forEach(([event, handler]) => {
+        el.removeEventListener(event, handler as EventListener);
+      });
     };
-  }, [url, width, height, autoplay, controls, enableCaptions, showAnnotations, progressInterval]);
+  }, [onReady, onPlay, onPause, onBuffering, onEnded, onProgress, onVolumeChange, onMuteChange]);
 
-  // Sync controlled playing state to the player when it or the player changes.
-  useEffect(() => {
-    if (!playerReady) return;
-    if (playing) {
-      void playerReady.play();
-    } else {
-      playerReady.pause();
-    }
-  }, [playing, playerReady]);
+  const source = getUrlSource(url);
 
-  // Sync volume prop to the player when it or the player changes.
-  useEffect(() => {
-    if (!playerReady || volume === undefined) return;
-    const v = Math.max(0, Math.min(1, volume));
-    playerReady.volume = v;
-  }, [volume, playerReady]);
+  if (source === "twitch") {
+    return (
+      <twitch-video
+        ref={mergeRefs([elementRef, playerRef])}
+        muted={muted}
+        playing={playing?.toString()}
+        src={url}
+        width={width}
+        height={height}
+        controls={controls.toString()}
+        captions={captions?.toString()}
+        annotations={annotations?.toString()}
+        volume={volume}
+      />
+    );
+  }
 
-  // Sync muted prop to the player when it or the player changes (avoids remounting when parent updates muted/volume).
-  useEffect(() => {
-    if (!playerReady || muted === undefined) return;
-    playerReady.muted = muted;
-  }, [muted, playerReady]);
+  if (source === "vimeo") {
+    return (
+      <vimeo-video
+        ref={mergeRefs([elementRef, playerRef])}
+        muted={muted}
+        playing={playing?.toString()}
+        src={url}
+        width={width}
+        height={height}
+        controls={controls.toString()}
+        captions={captions?.toString()}
+        annotations={annotations?.toString()}
+        volume={volume}
+      />
+    );
+  }
 
-  // Request pip when player is ready, if pip prop is true.
-  useEffect(() => {
-    if (!pip || !playerReady) return;
-    playerReady.requestPictureInPicture?.();
-  }, [pip, playerReady]);
+  if (source === "tiktok") {
+    return (
+      <tiktok-video
+        ref={mergeRefs([elementRef, playerRef])}
+        muted={muted}
+        playing={playing?.toString()}
+        src={url}
+        width={width}
+        height={height}
+        controls={controls.toString()}
+        captions={captions?.toString()}
+        annotations={annotations?.toString()}
+        volume={volume}
+      />
+    );
+  }
 
-  return <div ref={containerRef} className={className} style={style} />;
+  if (source === "dailymotion") {
+    return (
+      <dailymotion-video
+        ref={mergeRefs([elementRef, playerRef])}
+        muted={muted}
+        playing={playing?.toString()}
+        src={url}
+        width={width}
+        height={height}
+        controls={controls.toString()}
+        captions={captions?.toString()}
+        annotations={annotations?.toString()}
+        volume={volume}
+      />
+    );
+  }
+
+  return (
+    <youtube-video
+      ref={mergeRefs([elementRef, playerRef])}
+      muted={muted}
+      playing={playing?.toString()}
+      src={url}
+      width={width}
+      height={height}
+      controls={controls.toString()}
+      captions={captions?.toString()}
+      annotations={annotations?.toString()}
+      volume={volume}
+    />
+  );
 }

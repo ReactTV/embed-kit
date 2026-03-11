@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import type { EmbedPlayerRef } from "../../elements/_base/player.js";
+import type { EmbedPlayerRef } from "../../elements/_base/player.types.js";
 import { ReactEmbedKit } from "../ReactEmbedKit.js";
 import {
   SOURCE_URL as YOUTUBE_SOURCE_URL,
@@ -40,13 +40,15 @@ interface PollData {
  * isBuffering, isSeeking.
  */
 export function ReactEmbedKitTestPage(): React.ReactElement {
+  const [muted, setMuted] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const [volume, setVolume] = useState(50);
   const [url, setUrl] = useState<string>(PRESETS[0]?.url ?? "");
   const [player, setPlayer] = useState<NonNullable<EmbedPlayerRef> | null>(null);
   const [buffering, setBuffering] = useState(false);
-  const [seeking, setSeeking] = useState(false);
   const [controls, setControls] = useState(true);
-  const [enableCaptions, setEnableCaptions] = useState(false);
-  const [showAnnotations, setShowAnnotations] = useState(true);
+  const [captions, setCaptions] = useState(false);
+  const [annotations, setAnnotations] = useState(false);
   const [data, setData] = useState<PollData>({
     currentTime: null,
     duration: null,
@@ -58,7 +60,6 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
   useEffect(() => {
     setPlayer(null);
     setBuffering(false);
-    setSeeking(false);
   }, [url]);
 
   useEffect(() => {
@@ -73,15 +74,15 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
         const currentTime = player.currentTime;
         const duration = player.duration;
         const paused = player.paused;
-        const muted = player.muted;
-        const volume = player.volume;
+        const mutedVal = player.muted;
+        const volumeVal = player.volume;
         if (!cancelled) {
           setData({
             currentTime: typeof currentTime === "number" ? currentTime : null,
             duration: typeof duration === "number" ? duration : null,
             paused: typeof paused === "boolean" ? paused : null,
-            muted: typeof muted === "boolean" ? muted : null,
-            volume: typeof volume === "number" ? volume : null,
+            muted: typeof mutedVal === "boolean" ? mutedVal : null,
+            volume: typeof volumeVal === "number" ? volumeVal : null,
           });
         }
       } catch {
@@ -102,9 +103,8 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
         ["duration", formatTime(data.duration)],
         ["paused", String(data.paused)],
         ["muted", String(data.muted)],
-        ["volume", data.volume != null ? `${Math.round(data.volume * 100)}%` : "—"],
+        ["volume", data.volume != null ? `${Math.round(data.volume)}%` : "—"],
         ["isBuffering", String(buffering)],
-        ["isSeeking", String(seeking)],
       ]
     : [];
 
@@ -116,7 +116,7 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
         origin: typeof window !== "undefined" ? window.location.origin : undefined,
       },
     }),
-    [],
+    []
   );
 
   return (
@@ -165,35 +165,44 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
         >
           <input
             type="checkbox"
-            checked={enableCaptions}
-            onChange={(e) => setEnableCaptions(e.target.checked)}
+            checked={captions}
+            onChange={(e) => setCaptions(e.target.checked)}
           />
           Enable captions
         </label>
         <label style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
           <input
             type="checkbox"
-            checked={showAnnotations}
-            onChange={(e) => setShowAnnotations(e.target.checked)}
+            checked={annotations}
+            onChange={(e) => setAnnotations(e.target.checked)}
           />
           Show annotations
         </label>
       </div>
       <div className="player-wrap">
         <ReactEmbedKit
+          playerRef={setPlayer}
+          muted={muted}
+          playing={playing}
+          volume={volume}
           url={url}
           width={560}
           height={315}
           controls={controls}
-          enableCaptions={enableCaptions}
-          showAnnotations={showAnnotations}
+          captions={captions}
+          annotations={annotations}
           config={embedConfig}
-          onReady={(p) => setPlayer(p)}
+          onReady={() => {}}
           onBuffering={() => setBuffering(true)}
-          onPlay={() => setBuffering(false)}
-          onSeeking={() => setSeeking(true)}
-          onSeek={() => setSeeking(false)}
+          onPlay={() => {
+            setBuffering(false);
+            setPlaying(true);
+          }}
+          onPause={() => setPlaying(false)}
           onError={(d) => console.warn("Embed error:", d)}
+          onProgress={() => {}}
+          onVolumeChange={(v) => setVolume(v)}
+          onMuteChange={(m) => setMuted(m)}
           onUnsupportedUrl={(u) => {
             setPlayer(null);
             console.warn("Unsupported URL:", u);
@@ -201,17 +210,13 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
         />
       </div>
       <div className="controls">
-        <button type="button" disabled={!player} onClick={() => player?.play()}>
-          Play
-        </button>
-        <button type="button" disabled={!player} onClick={() => player?.pause()}>
-          Pause
+        <button type="button" disabled={!player} onClick={() => setPlaying(!playing)}>
+          {playing ? "Pause" : "Play"}
         </button>
         <button
           type="button"
           disabled={!player}
           onClick={() => {
-            setSeeking(true);
             if (player) player.currentTime = 0;
           }}
         >
@@ -221,29 +226,13 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
           type="button"
           disabled={!player}
           onClick={() => {
-            setSeeking(true);
             if (player) player.currentTime = 30;
           }}
         >
           Seek to 0:30
         </button>
-        <button
-          type="button"
-          disabled={!player}
-          onClick={() => {
-            if (player) player.muted = true;
-          }}
-        >
-          Mute
-        </button>
-        <button
-          type="button"
-          disabled={!player}
-          onClick={() => {
-            if (player) player.muted = false;
-          }}
-        >
-          Unmute
+        <button type="button" onClick={() => setMuted(!muted)}>
+          [{muted ? "Muted" : "Unmuted"}]
         </button>
         <label
           style={{
@@ -259,12 +248,10 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
             type="range"
             min={0}
             max={100}
-            value={player && data.volume != null ? Math.round(data.volume * 100) : 100}
+            step={1}
+            value={volume}
             disabled={!player}
-            onChange={(e) => {
-              const pct = Number(e.target.value) / 100;
-              if (player) player.volume = pct;
-            }}
+            onChange={(e) => setVolume(Number(e.target.value))}
             style={{ flex: 1, minWidth: 0 }}
             aria-label="Volume"
           />
