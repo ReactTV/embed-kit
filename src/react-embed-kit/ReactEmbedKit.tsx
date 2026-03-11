@@ -1,25 +1,16 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useLayoutEffect, useState, useCallback } from "react";
 import { mergeRefs } from "react-merge-refs";
 import "./embed-elements.js";
-import "../elements/youtube/player.js";
-import "../elements/twitch/player.js";
-import "../elements/vimeo/player.js";
-import "../elements/tiktok/player.js";
-import "../elements/dailymotion/player.js";
-import type { EmbedPlayerRef, TDispatchedEventPayloads } from "../elements/_base/player.types.js";
-import { IDispatchedEventCallbacks } from "../elements/_base/index.js";
-
-const getUrlSource = (url: string) => {
-  if (url.includes("youtube.com")) return "youtube";
-  if (url.includes("vimeo.com")) return "vimeo";
-  if (url.includes("twitch.tv")) return "twitch";
-  if (url.includes("tiktok.com")) return "tiktok";
-  if (url.includes("dailymotion.com") || url.includes("dai.ly")) return "dailymotion";
-  return null;
-};
+import { getProviderForUrl, EMBED_TAG } from "./providers.js";
+import type {
+  EmbedPlayerRef,
+  TDispatchedEventPayloads,
+  IDispatchedEventCallbacks,
+} from "../elements/_base/player.types.js";
+import type { EmbedTagName } from "./providers.js";
 
 export type ReactEmbedKitProps = IDispatchedEventCallbacks & {
-  url: string;
+  src: string;
   width?: number;
   height?: number;
   className?: string;
@@ -44,7 +35,7 @@ export type ReactEmbedKitProps = IDispatchedEventCallbacks & {
 
 export function ReactEmbedKit({
   muted,
-  url,
+  src,
   width,
   height,
   controls = true,
@@ -63,6 +54,28 @@ export function ReactEmbedKit({
   volume,
 }: ReactEmbedKitProps): React.ReactElement {
   const elementRef = useRef<EmbedPlayerRef>(null);
+  const [isClient, setIsClient] = useState(false);
+  const [tagReady, setTagReady] = useState(false);
+
+  const resolved = getProviderForUrl(src) ?? {
+    tagName: EMBED_TAG.YOUTUBE as EmbedTagName,
+    url: src,
+  };
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isClient) return;
+    setTagReady(false);
+    import("./registerEmbedElements.js")
+      .then(() => setTagReady(true))
+      .catch((err) => {
+        // eslint-disable-next-line no-console -- surface load failure for debugging
+        console.error("[ReactEmbedKit] Failed to load embed player modules:", err);
+      });
+  }, [isClient]);
 
   // Wire ready + other events from the custom element
   useEffect(() => {
@@ -97,88 +110,42 @@ export function ReactEmbedKit({
     };
   }, [onReady, onPlay, onPause, onBuffering, onEnded, onProgress, onVolumeChange, onMuteChange]);
 
-  const source = getUrlSource(url);
-
-  if (source === "twitch") {
-    return (
-      <twitch-video
-        ref={mergeRefs([elementRef, playerRef])}
-        muted={muted}
-        playing={playing?.toString()}
-        src={url}
-        width={width}
-        height={height}
-        controls={controls.toString()}
-        captions={captions?.toString()}
-        annotations={annotations?.toString()}
-        volume={volume}
-      />
-    );
-  }
-
-  if (source === "vimeo") {
-    return (
-      <vimeo-video
-        ref={mergeRefs([elementRef, playerRef])}
-        muted={muted}
-        playing={playing?.toString()}
-        src={url}
-        width={width}
-        height={height}
-        controls={controls.toString()}
-        captions={captions?.toString()}
-        annotations={annotations?.toString()}
-        volume={volume}
-      />
-    );
-  }
-
-  if (source === "tiktok") {
-    return (
-      <tiktok-video
-        ref={mergeRefs([elementRef, playerRef])}
-        muted={muted}
-        playing={playing?.toString()}
-        src={url}
-        width={width}
-        height={height}
-        controls={controls.toString()}
-        captions={captions?.toString()}
-        annotations={annotations?.toString()}
-        volume={volume}
-      />
-    );
-  }
-
-  if (source === "dailymotion") {
-    return (
-      <dailymotion-video
-        ref={mergeRefs([elementRef, playerRef])}
-        muted={muted}
-        playing={playing?.toString()}
-        src={url}
-        width={width}
-        height={height}
-        controls={controls.toString()}
-        captions={captions?.toString()}
-        annotations={annotations?.toString()}
-        volume={volume}
-      />
-    );
-  }
-
-  return (
-    <youtube-video
-      ref={mergeRefs([elementRef, playerRef])}
-      muted={muted}
-      playing={playing?.toString()}
-      src={url}
-      width={width}
-      height={height}
-      controls={controls.toString()}
-      captions={captions?.toString()}
-      annotations={annotations?.toString()}
-      volume={volume}
-    />
+  const applyAttributesAndLoad = useCallback(
+    (el: EmbedPlayerRef) => {
+      if (!el || !(el instanceof HTMLElement)) return;
+      el.setAttribute("src", resolved.url);
+      el.setAttribute("muted", String(!!muted));
+      el.setAttribute("playing", String(!!playing));
+      el.setAttribute("controls", String(controls));
+      el.setAttribute("captions", String(!!captions));
+      el.setAttribute("annotations", String(!!annotations));
+      if (volume != null) el.setAttribute("volume", String(volume));
+      if (width != null) el.setAttribute("width", String(width));
+      if (height != null) el.setAttribute("height", String(height));
+    },
+    [resolved.url, muted, playing, controls, captions, annotations, volume, width, height]
   );
+
+  // React doesn't reliably forward ref to custom elements from createElement; use a callback ref
+  // so we get the element when it's attached, then set attributes and load.
+  const setEmbedRef = useCallback(
+    (el: EmbedPlayerRef) => {
+      (elementRef as React.MutableRefObject<EmbedPlayerRef | null>).current = el;
+      applyAttributesAndLoad(el);
+    },
+    [applyAttributesAndLoad]
+  );
+
+  // When props change, update the element (elementRef is set by the callback ref above).
+  useLayoutEffect(() => {
+    applyAttributesAndLoad(elementRef.current);
+  }, [applyAttributesAndLoad]);
+
+  if (!isClient || !tagReady) {
+    return <div />;
+  }
+
+  return React.createElement(resolved.tagName, {
+    ref: mergeRefs([setEmbedRef, playerRef]),
+  });
 }

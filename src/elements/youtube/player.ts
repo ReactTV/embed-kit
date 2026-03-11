@@ -77,7 +77,7 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
             this.dispatchErrorEvent(this.playerState.error);
           },
           onApiChange: () => {
-            console.log("onApiChange");
+            // console.log("onApiChange");
           },
         },
       });
@@ -141,7 +141,7 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
     });
 
     this.api?.addEventListener("onVideoProgress", (event: IVideoProgressEvent) => {
-      this.dispatchProgressEvent(event.data / 1000);
+      this.dispatchProgressEvent(event.data);
     });
 
     this.api?.addEventListener(
