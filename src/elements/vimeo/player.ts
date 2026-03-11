@@ -78,7 +78,7 @@ class VimeoEmbedPlayer extends EmbedVideoElement {
     }
 
     const iframe = createIframe(`${EMBED_BASE}${videoId}?${query.toString()}`);
-    this.appendChild(iframe);
+    this.getEmbedContainer().appendChild(iframe);
     this.iframe = iframe;
     this.vimeoPlayerState = { destroyed: false };
 

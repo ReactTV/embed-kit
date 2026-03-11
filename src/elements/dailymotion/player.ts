@@ -43,7 +43,8 @@ class DailymotionEmbedPlayer extends EmbedVideoElement {
     if (autoplay) params.autoplay = true;
     if (!controls) params.controls = false;
 
-    this.id = `${Math.random().toString(36).slice(2, 11)}`;
+    const mountId = `${Math.random().toString(36).slice(2, 11)}`;
+    this.getEmbedContainer().id = mountId;
     this.dmPlayerState = { destroyed: false };
 
     void loadDailymotionScript()
@@ -52,7 +53,7 @@ class DailymotionEmbedPlayer extends EmbedVideoElement {
         if (!window.dailymotion?.createPlayer) {
           return Promise.reject(new Error("Dailymotion player API not available"));
         }
-        return window.dailymotion.createPlayer(this.id, {
+        return window.dailymotion.createPlayer(mountId, {
           video: videoId,
           ...(Object.keys(params).length > 0 ? { params } : {}),
         });

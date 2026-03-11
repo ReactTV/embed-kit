@@ -53,7 +53,7 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
 
       if (!videoId) return;
 
-      this.api = new YT.Player(this, {
+      this.api = new YT.Player(this.getEmbedContainer(), {
         videoId,
         playerVars: {
           autoplay: this.options.autoplay ? 1 : 0,

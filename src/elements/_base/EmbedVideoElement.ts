@@ -35,6 +35,23 @@ export class EmbedVideoElement extends HTMLElement {
   readonly src: string = "";
   iframe: HTMLIFrameElement | null = null;
   handleMessage: (event: MessageEvent) => void = () => {};
+
+  protected embedContainer: HTMLDivElement | null = null;
+
+  constructor() {
+    super();
+    const root = this.attachShadow({ mode: "open" });
+    const container = document.createElement("div");
+    container.style.cssText = "width:100%;height:100%;display:block;";
+    root.appendChild(container);
+    this.embedContainer = container;
+  }
+
+  protected getEmbedContainer(): HTMLDivElement {
+    if (!this.embedContainer) throw new Error("EmbedVideoElement: embedContainer not initialized");
+    return this.embedContainer;
+  }
+
   static observedAttributes: string[] = [
     "src",
     "muted",

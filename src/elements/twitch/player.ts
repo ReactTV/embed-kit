@@ -158,7 +158,7 @@ class TwitchEmbedPlayer extends EmbedVideoElement {
 
     this.iframe = iframe;
     this.handleMessage = handleMessage;
-    this.appendChild(iframe);
+    this.getEmbedContainer().appendChild(iframe);
     window.addEventListener("message", handleMessage);
   }
 

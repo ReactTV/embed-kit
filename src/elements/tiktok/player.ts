@@ -55,7 +55,7 @@ class TikTokEmbedPlayer extends EmbedVideoElement {
     if (autoplay) params.set("autoplay", "1");
 
     const iframe = createIframe(`${EMBED_BASE}${videoId}?${params.toString()}`);
-    this.appendChild(iframe);
+    this.getEmbedContainer().appendChild(iframe);
     this.iframe = iframe;
 
     const handleMessage = (event: MessageEvent): void => {
