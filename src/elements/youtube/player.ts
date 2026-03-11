@@ -141,7 +141,7 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
     });
 
     this.api?.addEventListener("onVideoProgress", (event: IVideoProgressEvent) => {
-      this.dispatchProgressEvent(event.data / 1000);
+      this.dispatchProgressEvent(event.data);
     });
 
     this.api?.addEventListener(

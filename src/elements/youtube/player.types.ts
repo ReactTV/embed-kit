@@ -67,5 +67,5 @@ export interface IYTPlaybackQualityChangeEvent {
 
 export interface IVideoProgressEvent {
   target: YTPlayer;
-  data: number; // milliseconds
+  data: number; // seconds
 }
