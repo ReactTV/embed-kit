@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useLayoutEffect, useState, useCallback } from "react";
 import { mergeRefs } from "react-merge-refs";
 import "./embed-elements.js";
 import { getProviderForUrl, EMBED_TAG } from "./providers.js";
@@ -110,32 +110,42 @@ export function ReactEmbedKit({
     };
   }, [onReady, onPlay, onPause, onBuffering, onEnded, onProgress, onVolumeChange, onMuteChange]);
 
+  const applyAttributesAndLoad = useCallback(
+    (el: EmbedPlayerRef) => {
+      if (!el || !(el instanceof HTMLElement)) return;
+      el.setAttribute("src", resolved.url);
+      el.setAttribute("muted", String(!!muted));
+      el.setAttribute("playing", String(!!playing));
+      el.setAttribute("controls", String(controls));
+      el.setAttribute("captions", String(!!captions));
+      el.setAttribute("annotations", String(!!annotations));
+      if (volume != null) el.setAttribute("volume", String(volume));
+      if (width != null) el.setAttribute("width", String(width));
+      if (height != null) el.setAttribute("height", String(height));
+    },
+    [resolved.url, muted, playing, controls, captions, annotations, volume, width, height]
+  );
+
+  // React doesn't reliably forward ref to custom elements from createElement; use a callback ref
+  // so we get the element when it's attached, then set attributes and load.
+  const setEmbedRef = useCallback(
+    (el: EmbedPlayerRef) => {
+      (elementRef as React.MutableRefObject<EmbedPlayerRef | null>).current = el;
+      applyAttributesAndLoad(el);
+    },
+    [applyAttributesAndLoad]
+  );
+
+  // When props change, update the element (elementRef is set by the callback ref above).
+  useLayoutEffect(() => {
+    applyAttributesAndLoad(elementRef.current);
+  }, [applyAttributesAndLoad]);
+
   if (!isClient || !tagReady) {
-    return (
-      <div
-        style={{
-          width: width ?? "100%",
-          height: height ?? "100%",
-          minHeight: 200,
-        }}
-      />
-    );
+    return <div />;
   }
 
-  const common = {
-    ref: mergeRefs([elementRef, playerRef]),
-    src: resolved.url,
-    muted,
-    playing: playing?.toString(),
-    width,
-    height,
-    controls: controls.toString(),
-    captions: captions?.toString(),
-    annotations: annotations?.toString(),
-    volume,
-  };
-
-  console.log("COMMON", common, resolved.url);
-
-  return React.createElement(resolved.tagName, common);
+  return React.createElement(resolved.tagName, {
+    ref: mergeRefs([setEmbedRef, playerRef]),
+  });
 }
