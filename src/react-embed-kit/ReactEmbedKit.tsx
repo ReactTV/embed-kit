@@ -3,6 +3,7 @@ import { mergeRefs } from "react-merge-refs";
 import "./embed-elements.js";
 import "../elements/youtube/player.js";
 import "../elements/twitch/player.js";
+import "../elements/vimeo/player.js";
 import type { EmbedPlayerRef, TDispatchedEventPayloads } from "../elements/_base/player.types.js";
 import { IDispatchedEventCallbacks } from "../elements/_base/index.js";
 
@@ -97,6 +98,23 @@ export function ReactEmbedKit({
   if (source === "twitch") {
     return (
       <twitch-video
+        ref={mergeRefs([elementRef, playerRef])}
+        muted={muted}
+        playing={playing?.toString()}
+        src={url}
+        width={width}
+        height={height}
+        controls={controls.toString()}
+        captions={captions?.toString()}
+        annotations={annotations?.toString()}
+        volume={volume}
+      />
+    );
+  }
+
+  if (source === "vimeo") {
+    return (
+      <vimeo-video
         ref={mergeRefs([elementRef, playerRef])}
         muted={muted}
         playing={playing?.toString()}
