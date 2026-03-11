@@ -12,11 +12,12 @@ const STATE_BUFFERING = 3;
 
 function post(iframe: HTMLIFrameElement, type: string, value?: unknown): void {
   if (!iframe.contentWindow) return;
-  const message: { "x-tiktok-player": boolean; type: string; value?: unknown } = {
-    "x-tiktok-player": true,
-    type,
-    ...(value !== undefined ? { value } : {}),
-  };
+  const message: { "x-tiktok-player": boolean; type: string; value?: unknown } =
+    {
+      "x-tiktok-player": true,
+      type,
+      ...(value !== undefined ? { value } : {}),
+    };
   iframe.contentWindow.postMessage(message, "*");
 }
 
@@ -34,56 +35,71 @@ function parseTiktokId(src: string): string | undefined {
  * Implements the subset directly via postMessage to the TikTok iframe.
  */
 class TikTokEmbedPlayer extends EmbedVideoElement {
-  connectedCallback(): void {
-    const src = this.getAttribute("src");
+  protected tiktokPlayerState: { destroyed: boolean } = { destroyed: false };
 
-    if (!src) return;
+  override load(): void {
+    if (this.iframe?.parentNode) {
+      this.iframe.remove();
+      this.iframe = null;
+    }
+    window.removeEventListener("message", this.handleMessage);
+    this.handleMessage = () => {};
 
-    const videoId = parseTiktokId(src);
+    const attributes = this.getAttributes();
+    const videoId = parseTiktokId(attributes.src ?? "");
+
     if (!videoId) return;
 
-    const autoplay =
-      this.getAttribute("autoplay") != null
-        ? this.getAttribute("autoplay") !== "false"
-        : (this.options.autoplay ?? false);
-    const controls =
-      this.getAttribute("controls") != null
-        ? this.getAttribute("controls") !== "false"
-        : (this.options.controls ?? true);
-
-    const params = new URLSearchParams({ controls: controls ? "1" : "0" });
-    if (autoplay) params.set("autoplay", "1");
+    const params = new URLSearchParams({
+      controls: this.options.controls ? "1" : "0",
+    });
+    if (this.options.autoplay) params.set("autoplay", "1");
 
     const iframe = createIframe(`${EMBED_BASE}${videoId}?${params.toString()}`);
     this.getEmbedContainer().appendChild(iframe);
     this.iframe = iframe;
 
     const handleMessage = (event: MessageEvent): void => {
-      if (event.origin !== EMBED_ORIGIN || event.source !== iframe.contentWindow) return;
+      if (this.tiktokPlayerState.destroyed) return;
+      if (
+        event.origin !== EMBED_ORIGIN ||
+        event.source !== iframe.contentWindow
+      )
+        return;
       const data = event.data;
       if (!data || typeof data !== "object" || !("type" in data)) return;
 
       switch (data.type) {
         case "onPlayerReady":
-          this.dispatchEvent(new Event("ready"));
+          this.setInitialPlayerState();
+          this.dispatchReadyEvent();
           break;
         case "onStateChange":
           if (typeof data.value === "number") {
-            this.playerState.isPaused = data.value === STATE_PAUSED;
-            if (data.value === STATE_PLAYING) this.dispatchEvent(new Event("play"));
-            if (data.value === STATE_PAUSED) this.dispatchEvent(new Event("pause"));
-            if (data.value === STATE_BUFFERING) this.dispatchEvent(new Event("buffering"));
-            if (data.value === STATE_ENDED) this.dispatchEvent(new Event("ended"));
+            if (data.value === STATE_PAUSED) {
+              this.playerState.isPaused = true;
+              this.dispatchPauseEvent();
+            } else if (data.value === STATE_PLAYING) {
+              this.playerState.isPaused = false;
+              this.dispatchPlayEvent();
+            } else if (data.value === STATE_BUFFERING) {
+              this.dispatchBufferingEvent();
+            } else if (data.value === STATE_ENDED) {
+              this.dispatchEndedEvent();
+            }
           }
           break;
         case "onCurrentTime": {
-          const t = data.value as { currentTime?: number; duration?: number } | undefined;
+          const t = data.value as
+            | { currentTime?: number; duration?: number }
+            | undefined;
           if (t) {
-            if (typeof t.currentTime === "number") this.playerState.currentTime = t.currentTime;
+            if (typeof t.currentTime === "number")
+              this.playerState.currentTime = t.currentTime;
             if (typeof t.duration === "number") {
               if (t.duration !== this.playerState.duration) {
                 this.playerState.duration = t.duration;
-                this.dispatchEvent(new CustomEvent("durationchange", { detail: t.duration }));
+                this.dispatchDurationChangeEvent(t.duration);
               }
             }
             this.dispatchProgressEvent(this.playerState.currentTime);
@@ -92,9 +108,11 @@ class TikTokEmbedPlayer extends EmbedVideoElement {
         }
         case "onError":
         case "error": {
-          const customError = { code: 0, message: "TikTok embed error" } as MediaError;
-          this.playerState.error = customError;
-          this.dispatchEvent(new CustomEvent("error", { detail: customError }));
+          this.playerState.error = {
+            code: 0,
+            message: "TikTok embed error",
+          } as MediaError;
+          this.dispatchErrorEvent(this.playerState.error);
           break;
         }
       }
@@ -104,48 +122,105 @@ class TikTokEmbedPlayer extends EmbedVideoElement {
     window.addEventListener("message", handleMessage);
   }
 
+  setInitialPlayerState(): void {
+    const attributes = this.getAttributes();
+
+    if (attributes.volume) {
+      const vol = parseFloat(attributes.volume);
+      this.volume = vol;
+    }
+
+    if (attributes.muted) {
+      this.muted = attributes.muted === "true";
+    }
+
+    if (attributes.playing) {
+      this.playing = attributes.playing === "true";
+    }
+  }
+
+  connectedCallback(): void {
+    this.loadInitialOptions();
+
+    const src = this.getAttribute("src");
+    if (!src) return;
+
+    if (!parseTiktokId(src)) return;
+
+    this.load();
+  }
+
   override play(): Promise<void> {
     if (this.iframe) post(this.iframe, "play");
     return Promise.resolve();
   }
+
   override pause(): Promise<void> {
     if (this.iframe) post(this.iframe, "pause");
     return Promise.resolve();
   }
+
+  override destroy(): void {
+    this.tiktokPlayerState.destroyed = true;
+    window.removeEventListener("message", this.handleMessage);
+    if (this.iframe?.parentNode) this.iframe.remove();
+    this.iframe = null;
+  }
+
+  override get playing(): boolean {
+    return !this.paused;
+  }
+
+  override set playing(value: boolean) {
+    if (value) {
+      this.play();
+    } else {
+      this.pause();
+    }
+  }
+
+  override set controls(value: boolean) {
+    this.options.controls = value;
+    this.load();
+  }
+
   override seek(seconds: number): void {
     if (this.iframe) post(this.iframe, "seekTo", seconds);
     this.playerState.currentTime = seconds;
-    this.dispatchEvent(new CustomEvent("seek", { detail: seconds }));
   }
+
   override mute(): void {
     this.playerState.muted = true;
-    if (this.iframe) post(this.iframe, "mute", true);
-    this.dispatchEvent(new CustomEvent("mute", { detail: true }));
+    if (this.iframe) post(this.iframe, "mute");
+    this.dispatchMuteChangeEvent(true);
   }
+
   override unmute(): void {
     this.playerState.muted = false;
-    if (this.iframe) post(this.iframe, "mute", false);
-    this.dispatchEvent(new CustomEvent("unmute", { detail: false }));
+    if (this.iframe) post(this.iframe, "unMute");
+    this.dispatchMuteChangeEvent(false);
   }
-  override destroy(): void {
-    window.removeEventListener("message", this.handleMessage);
-    if (this.iframe?.parentNode) this.iframe.remove();
-  }
+
   override get paused(): boolean {
     return this.playerState.isPaused;
   }
+
   override get currentTime(): number {
     return this.playerState.currentTime;
   }
+
   override set currentTime(seconds: number) {
     this.seek(seconds);
   }
+
   override get duration(): number {
     return this.playerState.duration;
   }
+
   override get muted(): boolean {
     return this.playerState.muted;
   }
+
   override set muted(value: boolean) {
     if (value) {
       this.mute();
@@ -153,17 +228,27 @@ class TikTokEmbedPlayer extends EmbedVideoElement {
       this.unmute();
     }
   }
+
   override get volume(): number {
-    return this.playerState.volume ?? 1;
+    return ((this.playerState.volume ?? 1) * 100);
   }
+
   override set volume(vol: number) {
-    this.playerState.volume = Math.max(0, Math.min(1, vol));
+    const v =
+      vol <= 1
+        ? Math.max(0, Math.min(1, vol))
+        : Math.max(0, Math.min(1, vol / 100));
+    this.playerState.volume = v;
   }
+
   override get error() {
     return this.playerState.error;
   }
 }
 
-if (globalThis.customElements && !globalThis.customElements.get("tiktok-video")) {
+if (
+  globalThis.customElements &&
+  !globalThis.customElements.get("tiktok-video")
+) {
   globalThis.customElements.define("tiktok-video", TikTokEmbedPlayer);
 }

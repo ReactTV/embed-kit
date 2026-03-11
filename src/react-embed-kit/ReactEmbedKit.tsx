@@ -4,6 +4,7 @@ import "./embed-elements.js";
 import "../elements/youtube/player.js";
 import "../elements/twitch/player.js";
 import "../elements/vimeo/player.js";
+import "../elements/tiktok/player.js";
 import type { EmbedPlayerRef, TDispatchedEventPayloads } from "../elements/_base/player.types.js";
 import { IDispatchedEventCallbacks } from "../elements/_base/index.js";
 
@@ -11,6 +12,7 @@ const getUrlSource = (url: string) => {
   if (url.includes("youtube.com")) return "youtube";
   if (url.includes("vimeo.com")) return "vimeo";
   if (url.includes("twitch.tv")) return "twitch";
+  if (url.includes("tiktok.com")) return "tiktok";
   return null;
 };
 
@@ -115,6 +117,23 @@ export function ReactEmbedKit({
   if (source === "vimeo") {
     return (
       <vimeo-video
+        ref={mergeRefs([elementRef, playerRef])}
+        muted={muted}
+        playing={playing?.toString()}
+        src={url}
+        width={width}
+        height={height}
+        controls={controls.toString()}
+        captions={captions?.toString()}
+        annotations={annotations?.toString()}
+        volume={volume}
+      />
+    );
+  }
+
+  if (source === "tiktok") {
+    return (
+      <tiktok-video
         ref={mergeRefs([elementRef, playerRef])}
         muted={muted}
         playing={playing?.toString()}
