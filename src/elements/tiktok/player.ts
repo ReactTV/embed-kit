@@ -1,5 +1,5 @@
 import { createIframe, EmbedVideoElement } from "../_base/index.js";
-import { REGEX_PLAYER, REGEX_VM, REGEX_VIDEO, REGEX_EMBED } from "./constants.js";
+import { REGEX_PLAYER, REGEX_VM, REGEX_VIDEO, REGEX_EMBED, REGEX_SHARE } from "./constants.js";
 
 const EMBED_ORIGIN = "https://www.tiktok.com";
 const EMBED_BASE = "https://www.tiktok.com/player/v1/";
@@ -26,6 +26,7 @@ function parseTiktokId(src: string): string | undefined {
     src.match(REGEX_PLAYER)?.[1] ??
     src.match(REGEX_VIDEO)?.[1] ??
     src.match(REGEX_EMBED)?.[1] ??
+    src.match(REGEX_SHARE)?.[1] ??
     src.match(REGEX_VM)?.[1]
   );
 }

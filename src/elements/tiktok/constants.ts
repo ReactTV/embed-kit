@@ -15,6 +15,9 @@ export const REGEX_VIDEO = /tiktok\.com\/@[\w.-]+\/video\/(\d+)/;
 /** Regex to match tiktok.com/embed/v2/{id} URLs. */
 export const REGEX_EMBED = /tiktok\.com\/embed\/v2\/(\d+)/;
 
+/** Regex to match tiktok.com/share/video/{id} URLs. */
+export const REGEX_SHARE = /tiktok\.com\/share\/video\/(\d+)/;
+
 /** Video ID for video-id attribute. */
 export const VIDEO_ID = "7531511760524692750";
 

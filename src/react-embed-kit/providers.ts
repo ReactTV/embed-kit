@@ -1,6 +1,6 @@
 import { REGEX_WATCH, REGEX_SHORT, REGEX_EMBED } from "../elements/youtube/constants.js";
 import { REGEX_VIDEO as TWITCH_VIDEO, REGEX_CLIPS_HOST, REGEX_CLIP, REGEX_CHANNEL } from "../elements/twitch/constants.js";
-import { REGEX_PLAYER as TIKTOK_PLAYER, REGEX_VM, REGEX_VIDEO as TIKTOK_VIDEO, REGEX_EMBED as TIKTOK_EMBED } from "../elements/tiktok/constants.js";
+import { REGEX_PLAYER as TIKTOK_PLAYER, REGEX_VM, REGEX_VIDEO as TIKTOK_VIDEO, REGEX_EMBED as TIKTOK_EMBED, REGEX_SHARE as TIKTOK_SHARE } from "../elements/tiktok/constants.js";
 import { REGEX_VIDEO as DM_VIDEO, REGEX_SHORT as DM_SHORT, REGEX_EMBED as DM_EMBED } from "../elements/dailymotion/constants.js";
 import {
   REGEX_PLAYER as VIMEO_PLAYER,
@@ -51,7 +51,8 @@ export function getProviderForUrl(url: string): ResolvedEmbed | null {
     match(trimmed, TIKTOK_PLAYER) ||
     match(trimmed, REGEX_VM) ||
     match(trimmed, TIKTOK_VIDEO) ||
-    match(trimmed, TIKTOK_EMBED)
+    match(trimmed, TIKTOK_EMBED) ||
+    match(trimmed, TIKTOK_SHARE)
   ) {
     return { tagName: EMBED_TAG.TIKTOK, url: trimmed };
   }
