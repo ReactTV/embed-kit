@@ -77,7 +77,7 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
             this.dispatchErrorEvent(this.playerState.error);
           },
           onApiChange: () => {
-            console.log("onApiChange");
+            // console.log("onApiChange");
           },
         },
       });
