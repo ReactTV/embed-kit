@@ -8,6 +8,8 @@ import type {
   IDispatchedEventCallbacks,
 } from "../elements/_base/player.types.js";
 import type { EmbedTagName } from "./providers.js";
+import { AUDIO_EXTENSIONS, VIDEO_EXTENSIONS } from "./constants.js";
+import HtmlPlayer from "./HtmlPlayer.js";
 
 export type ReactEmbedKitProps = IDispatchedEventCallbacks & {
   src: string;
@@ -33,26 +35,27 @@ export type ReactEmbedKitProps = IDispatchedEventCallbacks & {
   onUnsupportedUrl?: (url: string) => void;
 };
 
-export function ReactEmbedKit({
-  muted,
-  src,
-  width,
-  height,
-  controls = true,
-  captions,
-  annotations,
-  playing,
-  onReady,
-  onPlay,
-  onPause,
-  onBuffering,
-  onEnded,
-  onProgress,
-  onVolumeChange,
-  onMuteChange,
-  playerRef,
-  volume,
-}: ReactEmbedKitProps): React.ReactElement {
+export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
+  const {
+    muted,
+    src,
+    width,
+    height,
+    controls = true,
+    captions,
+    annotations,
+    playing,
+    onReady,
+    onPlay,
+    onPause,
+    onBuffering,
+    onEnded,
+    onProgress,
+    onVolumeChange,
+    onMuteChange,
+    playerRef,
+    volume,
+  } = props;
   const elementRef = useRef<EmbedPlayerRef>(null);
   const [isClient, setIsClient] = useState(false);
   const [tagReady, setTagReady] = useState(false);
@@ -113,15 +116,18 @@ export function ReactEmbedKit({
   const applyAttributesAndLoad = useCallback(
     (el: EmbedPlayerRef) => {
       if (!el || !(el instanceof HTMLElement)) return;
-      el.setAttribute("src", resolved.url);
-      el.setAttribute("muted", String(!!muted));
-      el.setAttribute("playing", String(!!playing));
-      el.setAttribute("controls", String(controls));
-      el.setAttribute("captions", String(!!captions));
-      el.setAttribute("annotations", String(!!annotations));
-      if (volume != null) el.setAttribute("volume", String(volume));
-      if (width != null) el.setAttribute("width", String(width));
-      if (height != null) el.setAttribute("height", String(height));
+      const setIfChanged = (name: string, value: string) => {
+        if (el.getAttribute(name) !== value) el.setAttribute(name, value);
+      };
+      setIfChanged("src", resolved.url);
+      setIfChanged("muted", String(!!muted));
+      setIfChanged("playing", String(!!playing));
+      setIfChanged("controls", String(controls));
+      setIfChanged("captions", String(!!captions));
+      setIfChanged("annotations", String(!!annotations));
+      if (volume != null) setIfChanged("volume", String(volume));
+      if (width != null) setIfChanged("width", String(width));
+      if (height != null) setIfChanged("height", String(height));
     },
     [resolved.url, muted, playing, controls, captions, annotations, volume, width, height]
   );
@@ -143,6 +149,10 @@ export function ReactEmbedKit({
 
   if (!isClient || !tagReady) {
     return <div />;
+  }
+
+  if (resolved.url.match(AUDIO_EXTENSIONS) || resolved.url.match(VIDEO_EXTENSIONS)) {
+    return <HtmlPlayer {...props} ref={mergeRefs([setEmbedRef, playerRef])} />;
   }
 
   return React.createElement(resolved.tagName, {
