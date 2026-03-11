@@ -51,6 +51,7 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
     onBuffering,
     onEnded,
     onProgress,
+    onDurationChange,
     onVolumeChange,
     onMuteChange,
     playerRef,
@@ -94,6 +95,9 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
       onProgress: (event: CustomEvent<TDispatchedEventPayloads["onProgress"]>) => {
         onProgress?.(event.detail);
       },
+      onDurationChange: (event: CustomEvent<TDispatchedEventPayloads["onDurationChange"]>) => {
+        onDurationChange?.(event.detail);
+      },
       onVolumeChange: (event: CustomEvent<TDispatchedEventPayloads["onVolumeChange"]>) => {
         onVolumeChange?.(event.detail);
       },
@@ -111,7 +115,17 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
         el.removeEventListener(event, handler as EventListener);
       });
     };
-  }, [onReady, onPlay, onPause, onBuffering, onEnded, onProgress, onVolumeChange, onMuteChange]);
+  }, [
+    onReady,
+    onPlay,
+    onPause,
+    onBuffering,
+    onEnded,
+    onProgress,
+    onDurationChange,
+    onVolumeChange,
+    onMuteChange,
+  ]);
 
   const applyAttributesAndLoad = useCallback(
     (el: EmbedPlayerRef) => {
