@@ -10,6 +10,9 @@ import { VIDEO_SOURCE_URL as TWITCH_VIDEO_SOURCE_URL } from "../../elements/twit
 import { SOURCE_URL as TIKTOK_SOURCE_URL } from "../../elements/tiktok/constants.js";
 import { SOURCE_URL as DAILYMOTION_SOURCE_URL } from "../../elements/dailymotion/constants.js";
 
+const MP4_SAMPLE_URL =
+  "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+
 const PRESETS: { label: string; url: string }[] = [
   { label: "YouTube", url: YOUTUBE_SOURCE_URL },
   { label: "youtu.be", url: `https://youtu.be/${YOUTUBE_VIDEO_ID}` },
@@ -17,6 +20,7 @@ const PRESETS: { label: string; url: string }[] = [
   { label: "Twitch (video)", url: TWITCH_VIDEO_SOURCE_URL },
   { label: "TikTok", url: TIKTOK_SOURCE_URL },
   { label: "Dailymotion", url: DAILYMOTION_SOURCE_URL },
+  { label: "MP4 (sample)", url: MP4_SAMPLE_URL },
 ];
 
 function formatTime(seconds: number | null | undefined): string {
@@ -46,7 +50,7 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
   const [url, setUrl] = useState<string>(PRESETS[0]?.url ?? "");
   const [player, setPlayer] = useState<NonNullable<EmbedPlayerRef> | null>(null);
   const [buffering, setBuffering] = useState(false);
-  const [controls, setControls] = useState(true);
+  const [controls, setControls] = useState(false);
   const [captions, setCaptions] = useState(false);
   const [annotations, setAnnotations] = useState(false);
   const [data, setData] = useState<PollData>({
@@ -147,7 +151,7 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
         placeholder="https://www.youtube.com/watch?v=..."
       />
       <p className="hint">
-        Try: YouTube, youtu.be, Vimeo, Twitch videos/clips/channel, TikTok, Dailymotion
+        Try: YouTube, youtu.be, Vimeo, Twitch videos/clips/channel, TikTok, Dailymotion, or MP4 URL
       </p>
       <div className="player-options" style={{ marginBottom: "0.75rem" }}>
         <label
@@ -210,12 +214,11 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
         />
       </div>
       <div className="controls">
-        <button type="button" disabled={!player} onClick={() => setPlaying(!playing)}>
+        <button type="button" onClick={() => setPlaying(!playing)}>
           {playing ? "Pause" : "Play"}
         </button>
         <button
           type="button"
-          disabled={!player}
           onClick={() => {
             if (player) player.currentTime = 0;
           }}
@@ -224,7 +227,6 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
         </button>
         <button
           type="button"
-          disabled={!player}
           onClick={() => {
             if (player) player.currentTime = 30;
           }}
@@ -250,7 +252,6 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
             max={100}
             step={1}
             value={volume}
-            disabled={!player}
             onChange={(e) => setVolume(Number(e.target.value))}
             style={{ flex: 1, minWidth: 0 }}
             aria-label="Volume"
