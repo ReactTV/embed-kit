@@ -59,7 +59,7 @@ const HtmlPlayer = forwardRef<HTMLMediaElement, HtmlPlayerProps>(
       <Media
         {...props}
         ref={mergeRefs([internalRef, ref]) as React.Ref<HTMLVideoElement & HTMLAudioElement>}
-        controls={controls}
+        controls={controls || undefined}
         onVolumeChange={
           props.onVolumeChange
             ? (e: React.SyntheticEvent<HTMLMediaElement, Event>) => {

@@ -61,6 +61,8 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
   const [isClient, setIsClient] = useState(false);
   const [tagReady, setTagReady] = useState(false);
 
+  const isHtmlPlayer = src.match(AUDIO_EXTENSIONS) || src.match(VIDEO_EXTENSIONS);
+
   const resolved = getProviderForUrl(src) ?? {
     tagName: EMBED_TAG.YOUTUBE as EmbedTagName,
     url: src,
@@ -130,18 +132,29 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
   const applyAttributesAndLoad = useCallback(
     (el: EmbedPlayerRef) => {
       if (!el || !(el instanceof HTMLElement)) return;
+      const setOrRemove = (name: string, value: boolean) => {
+        if (el.getAttribute(name) !== String(value)) {
+          if (value) el.setAttribute(name, String(value));
+          else el.removeAttribute(name);
+        }
+      };
       const setIfChanged = (name: string, value: string) => {
         if (el.getAttribute(name) !== value) el.setAttribute(name, value);
       };
       setIfChanged("src", resolved.url);
       setIfChanged("muted", String(!!muted));
       setIfChanged("playing", String(!!playing));
-      setIfChanged("controls", String(controls));
       setIfChanged("captions", String(!!captions));
       setIfChanged("annotations", String(!!annotations));
       if (volume != null) setIfChanged("volume", String(volume));
       if (width != null) setIfChanged("width", String(width));
       if (height != null) setIfChanged("height", String(height));
+
+      if (isHtmlPlayer) {
+        setOrRemove("controls", controls);
+      } else {
+        setIfChanged("controls", String(controls));
+      }
     },
     [resolved.url, muted, playing, controls, captions, annotations, volume, width, height]
   );
@@ -165,7 +178,7 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
     return <div />;
   }
 
-  if (resolved.url.match(AUDIO_EXTENSIONS) || resolved.url.match(VIDEO_EXTENSIONS)) {
+  if (isHtmlPlayer) {
     return <HtmlPlayer {...props} ref={mergeRefs([setEmbedRef, playerRef])} />;
   }
 
