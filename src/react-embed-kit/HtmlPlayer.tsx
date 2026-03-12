@@ -31,16 +31,21 @@ const HtmlPlayer = forwardRef<HTMLMediaElement, HtmlPlayerProps>(
     const internalRef = useRef<HTMLMediaElement | null>(null);
 
     useEffect(() => {
+      const el = internalRef.current;
+      if (!el || !el.isConnected) return;
       if (playing) {
-        internalRef.current?.play();
+        const p = el.play();
+        if (p !== undefined) p.catch((err: unknown) => {
+          if ((err as { name?: string })?.name !== "AbortError") throw err;
+        });
       } else {
-        internalRef.current?.pause();
+        el.pause();
       }
     }, [playing]);
 
     useEffect(() => {
       const el = internalRef.current;
-      if (!el) return;
+      if (!el || !el.isConnected) return;
       if (volume != null) {
         const v = Math.max(0, Math.min(1, volume / 100));
         el.volume = v;
@@ -51,7 +56,7 @@ const HtmlPlayer = forwardRef<HTMLMediaElement, HtmlPlayerProps>(
     // Apply controls on mount so initial value is respected (spread alone can show controls when false on first paint)
     useEffect(() => {
       const el = internalRef.current;
-      if (!el) return;
+      if (!el || !el.isConnected) return;
       el.controls = !!controls;
     }, [controls]);
 

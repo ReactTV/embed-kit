@@ -131,7 +131,7 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
 
   const applyAttributesAndLoad = useCallback(
     (el: EmbedPlayerRef) => {
-      if (!el || !(el instanceof HTMLElement)) return;
+      if (!el || !(el instanceof HTMLElement) || !el.isConnected) return;
       const setOrRemove = (name: string, value: boolean) => {
         if (el.getAttribute(name) !== String(value)) {
           if (value) el.setAttribute(name, String(value));
@@ -164,7 +164,7 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
   const setEmbedRef = useCallback(
     (el: EmbedPlayerRef) => {
       (elementRef as React.MutableRefObject<EmbedPlayerRef | null>).current = el;
-      applyAttributesAndLoad(el);
+      if (el) applyAttributesAndLoad(el);
     },
     [applyAttributesAndLoad]
   );
