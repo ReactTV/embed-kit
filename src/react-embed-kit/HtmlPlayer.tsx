@@ -31,21 +31,18 @@ const HtmlPlayer = forwardRef<HTMLMediaElement, HtmlPlayerProps>(
     const internalRef = useRef<HTMLMediaElement | null>(null);
 
     useEffect(() => {
-      const el = internalRef.current;
-      if (!el || !el.isConnected) return;
+      if (!internalRef.current) return;
+
       if (playing) {
-        const p = el.play();
-        if (p !== undefined) p.catch((err: unknown) => {
-          if ((err as { name?: string })?.name !== "AbortError") throw err;
-        });
+        internalRef.current.play();
       } else {
-        el.pause();
+        internalRef.current.pause();
       }
     }, [playing]);
 
     useEffect(() => {
       const el = internalRef.current;
-      if (!el || !el.isConnected) return;
+      if (!el) return;
       if (volume != null) {
         const v = Math.max(0, Math.min(1, volume / 100));
         el.volume = v;
@@ -56,13 +53,14 @@ const HtmlPlayer = forwardRef<HTMLMediaElement, HtmlPlayerProps>(
     // Apply controls on mount so initial value is respected (spread alone can show controls when false on first paint)
     useEffect(() => {
       const el = internalRef.current;
-      if (!el || !el.isConnected) return;
+      if (!el) return;
       el.controls = !!controls;
     }, [controls]);
 
     return (
       <Media
         {...props}
+        autoPlay
         ref={mergeRefs([internalRef, ref]) as React.Ref<HTMLVideoElement & HTMLAudioElement>}
         controls={controls || undefined}
         onVolumeChange={
