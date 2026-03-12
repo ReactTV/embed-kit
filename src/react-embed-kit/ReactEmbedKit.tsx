@@ -37,6 +37,7 @@ export type ReactEmbedKitProps = IDispatchedEventCallbacks & {
 
 export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
   const {
+    autoplay,
     muted,
     src,
     width,
@@ -142,6 +143,7 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
         if (el.getAttribute(name) !== value) el.setAttribute(name, value);
       };
       setIfChanged("src", resolved.url);
+      setIfChanged("autoplay", String(!!autoplay));
       setIfChanged("muted", String(!!muted));
       setIfChanged("playing", String(!!playing));
       setIfChanged("captions", String(!!captions));
@@ -156,7 +158,7 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
         setIfChanged("controls", String(controls));
       }
     },
-    [resolved.url, muted, playing, controls, captions, annotations, volume, width, height]
+    [resolved.url, autoplay, muted, playing, controls, captions, annotations, volume, width, height]
   );
 
   // React doesn't reliably forward ref to custom elements from createElement; use a callback ref

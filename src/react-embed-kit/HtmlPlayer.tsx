@@ -26,9 +26,11 @@ export interface VideoElementProps extends React.DetailedHTMLProps<
 export type HtmlPlayerProps = Omit<ReactEmbedKitProps, "ref">;
 
 const HtmlPlayer = forwardRef<HTMLMediaElement, HtmlPlayerProps>(
-  ({ playing, volume, muted, controls = false, ...props }, ref) => {
+  ({ playing, volume, muted, controls = false, autoplay, ...props }, ref) => {
     const Media = AUDIO_EXTENSIONS.test(`${props.src}`) ? "audio" : "video";
     const internalRef = useRef<HTMLMediaElement | null>(null);
+    // Omit autoplay from spread so only camelCase autoPlay is passed to the DOM element
+    const { autoplay: _omit, ...mediaProps } = props as HtmlPlayerProps & { autoplay?: boolean };
 
     useEffect(() => {
       if (!internalRef.current) return;
@@ -59,45 +61,45 @@ const HtmlPlayer = forwardRef<HTMLMediaElement, HtmlPlayerProps>(
 
     return (
       <Media
-        {...props}
-        autoPlay
+        {...mediaProps}
+        autoPlay={!!autoplay}
         ref={mergeRefs([internalRef, ref]) as React.Ref<HTMLVideoElement & HTMLAudioElement>}
         controls={controls || undefined}
         onVolumeChange={
-          props.onVolumeChange
+          mediaProps.onVolumeChange
             ? (e: React.SyntheticEvent<HTMLMediaElement, Event>) => {
                 const currentVolume = e.currentTarget?.volume;
-                if (currentVolume !== undefined) props.onVolumeChange?.(currentVolume * 100);
+                if (currentVolume !== undefined) mediaProps.onVolumeChange?.(currentVolume * 100);
               }
             : undefined
         }
         onProgress={
-          props.onProgress
+          mediaProps.onProgress
             ? (e: React.SyntheticEvent<HTMLMediaElement, Event>) => {
                 const progress = e.currentTarget?.currentTime;
-                if (progress) props.onProgress?.(progress);
+                if (progress) mediaProps.onProgress?.(progress);
               }
             : undefined
         }
         onDurationChange={
-          props.onDurationChange
+          mediaProps.onDurationChange
             ? (e: React.SyntheticEvent<HTMLMediaElement, Event>) => {
                 const duration = e.currentTarget?.duration;
-                if (duration) props.onDurationChange?.(duration);
+                if (duration) mediaProps.onDurationChange?.(duration);
               }
             : undefined
         }
         onError={
-          props.onError
+          mediaProps.onError
             ? (e: React.SyntheticEvent<HTMLMediaElement, Event>) => {
                 const err = e.currentTarget?.error;
-                if (err) props.onError?.(err);
+                if (err) mediaProps.onError?.(err);
               }
             : undefined
         }
       />
     );
-  }
+  },
 );
 
 HtmlPlayer.displayName = "HtmlPlayer";

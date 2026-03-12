@@ -79,8 +79,9 @@ export class EmbedVideoElement extends HTMLElement {
 
   loadInitialOptions(): void {
     const attributes = this.getAttributes();
+
     this.options = {
-      autoplay: attributes.autoplay === "true",
+      autoplay: attributes.autoplay === "" || attributes.autoplay === "true",
       progressInterval: attributes.progressInterval
         ? parseInt(attributes.progressInterval, 10)
         : 50,
