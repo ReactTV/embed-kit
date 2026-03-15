@@ -53,6 +53,7 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
   const [controls, setControls] = useState(false);
   const [captions, setCaptions] = useState(false);
   const [annotations, setAnnotations] = useState(false);
+  const [progress, setProgress] = useState<number | null>(null);
   const [data, setData] = useState<PollData>({
     currentTime: null,
     duration: null,
@@ -202,9 +203,9 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
             setBuffering(false);
             setPlaying(true);
           }}
+          onProgress={(p) => setProgress(p)}
           onPause={() => setPlaying(false)}
           onError={(d) => console.warn("Embed error:", d)}
-          onProgress={() => {}}
           onVolumeChange={(v) => setVolume(v)}
           onMuteChange={(m) => setMuted(m)}
           onUnsupportedUrl={(u) => {
@@ -257,6 +258,9 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
             aria-label="Volume"
           />
         </label>
+      </div>
+      <div className="progress-panel">
+        <p>Progress: {progress != null ? formatTime(progress) : "—"}</p>
       </div>
       <div className="data-panel">
         {dataRows.length > 0 ? (

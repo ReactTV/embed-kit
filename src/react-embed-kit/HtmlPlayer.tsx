@@ -30,7 +30,8 @@ const HtmlPlayer = forwardRef<HTMLMediaElement, HtmlPlayerProps>(
     const Media = AUDIO_EXTENSIONS.test(`${props.src}`) ? "audio" : "video";
     const internalRef = useRef<HTMLMediaElement | null>(null);
     // Omit autoplay from spread so only camelCase autoPlay is passed to the DOM element
-    const { autoplay: _omit, ...mediaProps } = props as HtmlPlayerProps & { autoplay?: boolean };
+    const { onVolumeChange, onProgress, onDurationChange, onError, ...mediaProps } =
+      props as HtmlPlayerProps & { autoplay?: boolean };
 
     useEffect(() => {
       if (!internalRef.current) return;
@@ -65,41 +66,25 @@ const HtmlPlayer = forwardRef<HTMLMediaElement, HtmlPlayerProps>(
         autoPlay={!!autoplay}
         ref={mergeRefs([internalRef, ref]) as React.Ref<HTMLVideoElement & HTMLAudioElement>}
         controls={controls || undefined}
-        onVolumeChange={
-          mediaProps.onVolumeChange
-            ? (e: React.SyntheticEvent<HTMLMediaElement, Event>) => {
-                const currentVolume = e.currentTarget?.volume;
-                if (currentVolume !== undefined) mediaProps.onVolumeChange?.(currentVolume * 100);
-              }
-            : undefined
-        }
-        onProgress={
-          mediaProps.onProgress
-            ? (e: React.SyntheticEvent<HTMLMediaElement, Event>) => {
-                const progress = e.currentTarget?.currentTime;
-                if (progress) mediaProps.onProgress?.(progress);
-              }
-            : undefined
-        }
-        onDurationChange={
-          mediaProps.onDurationChange
-            ? (e: React.SyntheticEvent<HTMLMediaElement, Event>) => {
-                const duration = e.currentTarget?.duration;
-                if (duration) mediaProps.onDurationChange?.(duration);
-              }
-            : undefined
-        }
-        onError={
-          mediaProps.onError
-            ? (e: React.SyntheticEvent<HTMLMediaElement, Event>) => {
-                const err = e.currentTarget?.error;
-                if (err) mediaProps.onError?.(err);
-              }
-            : undefined
-        }
+        onVolumeChange={(e: React.SyntheticEvent<HTMLMediaElement, Event>) => {
+          const currentVolume = e.currentTarget?.volume;
+          if (currentVolume !== undefined) onVolumeChange?.(currentVolume * 100);
+        }}
+        onTimeUpdate={(e: React.SyntheticEvent<HTMLMediaElement, Event>) => {
+          const progress = e.currentTarget?.currentTime;
+          if (progress) onProgress?.(progress);
+        }}
+        onDurationChange={(e: React.SyntheticEvent<HTMLMediaElement, Event>) => {
+          const duration = e.currentTarget?.duration;
+          if (duration) onDurationChange?.(duration);
+        }}
+        onError={(e: React.SyntheticEvent<HTMLMediaElement, Event>) => {
+          const err = e.currentTarget?.error;
+          if (err) onError?.(err);
+        }}
       />
     );
-  },
+  }
 );
 
 HtmlPlayer.displayName = "HtmlPlayer";
