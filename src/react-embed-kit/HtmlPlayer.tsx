@@ -29,19 +29,30 @@ const HtmlPlayer = forwardRef<HTMLMediaElement, HtmlPlayerProps>(
   ({ playing, volume, muted, controls = false, autoplay, ...props }, ref) => {
     const Media = AUDIO_EXTENSIONS.test(`${props.src}`) ? "audio" : "video";
     const internalRef = useRef<HTMLMediaElement | null>(null);
+    /** After src changes, skip one pause() so autoPlay is not undone while playing is still false. */
+    const skipInitialPauseRef = useRef(false);
     // Omit autoplay from spread so only camelCase autoPlay is passed to the DOM element
     const { onVolumeChange, onProgress, onDurationChange, onError, ...mediaProps } =
       props as HtmlPlayerProps & { autoplay?: boolean };
+
+    useEffect(() => {
+      skipInitialPauseRef.current = !!(autoplay && playing === false);
+    }, [props.src]);
 
     useEffect(() => {
       if (!internalRef.current) return;
 
       if (playing) {
         internalRef.current.play();
+        skipInitialPauseRef.current = false;
       } else {
+        if (skipInitialPauseRef.current) {
+          skipInitialPauseRef.current = false;
+          return;
+        }
         internalRef.current.pause();
       }
-    }, [playing]);
+    }, [playing, autoplay, props.src]);
 
     useEffect(() => {
       const el = internalRef.current;
@@ -84,7 +95,7 @@ const HtmlPlayer = forwardRef<HTMLMediaElement, HtmlPlayerProps>(
         }}
       />
     );
-  }
+  },
 );
 
 HtmlPlayer.displayName = "HtmlPlayer";

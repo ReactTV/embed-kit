@@ -145,7 +145,11 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
       setIfChanged("src", resolved.url);
       setIfChanged("autoplay", String(!!autoplay));
       setIfChanged("muted", String(!!muted));
-      setIfChanged("playing", String(!!playing));
+      if (playing !== undefined) {
+        setIfChanged("playing", String(!!playing));
+      } else if (el.hasAttribute("playing")) {
+        el.removeAttribute("playing");
+      }
       setIfChanged("captions", String(!!captions));
       setIfChanged("annotations", String(!!annotations));
       if (volume != null) setIfChanged("volume", String(volume));
@@ -158,7 +162,7 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
         setIfChanged("controls", String(controls));
       }
     },
-    [resolved.url, autoplay, muted, playing, controls, captions, annotations, volume, width, height]
+    [resolved.url, autoplay, muted, playing, controls, captions, annotations, volume, width, height],
   );
 
   // React doesn't reliably forward ref to custom elements from createElement; use a callback ref
@@ -168,7 +172,7 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
       (elementRef as React.MutableRefObject<EmbedPlayerRef | null>).current = el;
       if (el) applyAttributesAndLoad(el);
     },
-    [applyAttributesAndLoad]
+    [applyAttributesAndLoad],
   );
 
   // When props change, update the element (elementRef is set by the callback ref above).

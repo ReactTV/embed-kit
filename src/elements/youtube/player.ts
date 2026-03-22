@@ -97,8 +97,14 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
       this.muted = attributes.muted === "true";
     }
 
-    if (attributes.playing) {
-      this.playing = attributes.playing === "true";
+    if (this.hasAttribute("playing")) {
+      const wantPlay = this.getAttribute("playing") === "true";
+      // Autoplay in the iframe starts playback; do not call pause() on ready when the author
+      // also left playing="false" (e.g. React default state). Same idea as honoring autoplay over
+      // an initial paused controlled prop until playing is toggled.
+      if (!(wantPlay === false && this.options.autoplay)) {
+        this.playing = wantPlay;
+      }
     }
   }
 
@@ -167,6 +173,30 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
     if (!videoId) return;
 
     this.load();
+  }
+
+  /**
+   * Ignore the first `playing="false"` attribute when autoplay is on so `EmbedVideoElement`'s
+   * `this.playing = false` does not call `pauseVideo()` after the iframe has started autoplay.
+   * (React often sets `playing="false"` alongside `autoplay` for initial state.)
+   */
+  override attributeChangedCallback(name: string, oldValue: string, newValue: string): void {
+    if (oldValue === newValue) return;
+
+    const autoplayOn =
+      this.hasAttribute("autoplay") &&
+      (this.getAttribute("autoplay") === "" || this.getAttribute("autoplay") === "true");
+
+    if (
+      name === "playing" &&
+      newValue === "false" &&
+      autoplayOn &&
+      (oldValue === null || oldValue === "")
+    ) {
+      return;
+    }
+
+    super.attributeChangedCallback(name, oldValue, newValue);
   }
 
   override play(): Promise<void> {
