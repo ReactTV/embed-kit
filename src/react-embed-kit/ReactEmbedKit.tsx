@@ -47,6 +47,7 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
     annotations,
     playing,
     onReady,
+    onError,
     onPlay,
     onPause,
     onBuffering,
@@ -95,6 +96,9 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
       onPause: () => onPause?.(),
       onBuffering: () => onBuffering?.(),
       onEnded: () => onEnded?.(),
+      onError: (event: CustomEvent<TDispatchedEventPayloads["onError"]>) => {
+        onError?.(event.detail);
+      },
       onProgress: (event: CustomEvent<TDispatchedEventPayloads["onProgress"]>) => {
         onProgress?.(event.detail);
       },
@@ -124,6 +128,7 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
     onPause,
     onBuffering,
     onEnded,
+    onError,
     onProgress,
     onDurationChange,
     onVolumeChange,
@@ -162,7 +167,7 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
         setIfChanged("controls", String(controls));
       }
     },
-    [resolved.url, autoplay, muted, playing, controls, captions, annotations, volume, width, height],
+    [resolved.url, autoplay, muted, playing, controls, captions, annotations, volume, width, height]
   );
 
   // React doesn't reliably forward ref to custom elements from createElement; use a callback ref
@@ -172,7 +177,7 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
       (elementRef as React.MutableRefObject<EmbedPlayerRef | null>).current = el;
       if (el) applyAttributesAndLoad(el);
     },
-    [applyAttributesAndLoad],
+    [applyAttributesAndLoad]
   );
 
   // When props change, update the element (elementRef is set by the callback ref above).
