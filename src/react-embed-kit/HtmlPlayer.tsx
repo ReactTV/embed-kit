@@ -32,8 +32,15 @@ const HtmlPlayer = forwardRef<HTMLMediaElement, HtmlPlayerProps>(
     /** After src changes, skip one pause() so autoPlay is not undone while playing is still false. */
     const skipInitialPauseRef = useRef(false);
     // Omit autoplay from spread so only camelCase autoPlay is passed to the DOM element
-    const { onVolumeChange, onProgress, onDurationChange, onError, ...mediaProps } =
-      props as HtmlPlayerProps & { autoplay?: boolean };
+    const {
+      onVolumeChange,
+      onProgress,
+      onDurationChange,
+      onError,
+      onPlaybackRateChange,
+      onCued,
+      ...mediaProps
+    } = props as HtmlPlayerProps & { autoplay?: boolean };
 
     useEffect(() => {
       skipInitialPauseRef.current = !!(autoplay && playing === false);
@@ -93,9 +100,15 @@ const HtmlPlayer = forwardRef<HTMLMediaElement, HtmlPlayerProps>(
           const err = e.currentTarget?.error;
           if (err) onError?.(err);
         }}
+        onRateChange={(e: React.SyntheticEvent<HTMLMediaElement, Event>) => {
+          onPlaybackRateChange?.(e.currentTarget.playbackRate);
+        }}
+        onLoadedMetadata={() => {
+          onCued?.();
+        }}
       />
     );
-  },
+  }
 );
 
 HtmlPlayer.displayName = "HtmlPlayer";

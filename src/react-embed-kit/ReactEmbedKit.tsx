@@ -56,6 +56,9 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
     onDurationChange,
     onVolumeChange,
     onMuteChange,
+    onPlaybackRateChange,
+    onPlaybackQualityChange,
+    onCued,
     playerRef,
     volume,
   } = props;
@@ -111,6 +114,17 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
       onMuteChange: (event: CustomEvent<TDispatchedEventPayloads["onMuteChange"]>) => {
         onMuteChange?.(event.detail);
       },
+      onPlaybackRateChange: (
+        event: CustomEvent<TDispatchedEventPayloads["onPlaybackRateChange"]>
+      ) => {
+        onPlaybackRateChange?.(event.detail);
+      },
+      onPlaybackQualityChange: (
+        event: CustomEvent<TDispatchedEventPayloads["onPlaybackQualityChange"]>
+      ) => {
+        onPlaybackQualityChange?.(event.detail);
+      },
+      onCued: () => onCued?.(),
     };
 
     Object.entries(handlers).forEach(([event, handler]) => {
@@ -133,6 +147,9 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
     onDurationChange,
     onVolumeChange,
     onMuteChange,
+    onPlaybackRateChange,
+    onPlaybackQualityChange,
+    onCued,
   ]);
 
   const applyAttributesAndLoad = useCallback(
