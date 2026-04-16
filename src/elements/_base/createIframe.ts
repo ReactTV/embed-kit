@@ -9,5 +9,6 @@ export function createIframe(src: string): HTMLIFrameElement {
   iframe.style.width = "100%";
   iframe.style.height = "100%";
   iframe.style.overflow = "hidden";
+  iframe.style.border = "none";
   return iframe;
 }
