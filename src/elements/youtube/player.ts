@@ -2,12 +2,7 @@ import { loadScript, EmbedVideoElement } from "../_base/index.js";
 import type { IYTVolumeChangeEvent, YTPlayer } from "./player.types.js";
 import { REGEX_WATCH, REGEX_SHORT, REGEX_EMBED } from "./constants.js";
 import { parseYouTubeUrl } from "./helpers/parseYouTubeUrl.js";
-import {
-  IYTPlaybackQualityChangeEvent,
-  IYTPlaybackRateChangeEvent,
-  YT_PLAYER_STATE,
-  IVideoProgressEvent,
-} from "./player.types.js";
+import { YT_PLAYER_STATE, IVideoProgressEvent } from "./player.types.js";
 
 const YT_SCRIPT = "https://www.youtube.com/iframe_api";
 
