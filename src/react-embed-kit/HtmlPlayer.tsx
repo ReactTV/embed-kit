@@ -37,6 +37,7 @@ const HtmlPlayer = forwardRef<HTMLMediaElement, HtmlPlayerProps>(
       onProgress,
       onDurationChange,
       onError,
+      onReady,
       onPlaybackRateChange,
       onCued,
       ...mediaProps
@@ -84,6 +85,9 @@ const HtmlPlayer = forwardRef<HTMLMediaElement, HtmlPlayerProps>(
         autoPlay={!!autoplay}
         ref={mergeRefs([internalRef, ref]) as React.Ref<HTMLVideoElement & HTMLAudioElement>}
         controls={controls || undefined}
+        onLoadedData={() => {
+          onReady?.();
+        }}
         onVolumeChange={(e: React.SyntheticEvent<HTMLMediaElement, Event>) => {
           const currentVolume = e.currentTarget?.volume;
           if (currentVolume !== undefined) onVolumeChange?.(currentVolume * 100);

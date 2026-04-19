@@ -69,6 +69,26 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
             this.dispatchReadyEvent();
             this.setInitialPlayerState();
           },
+          onStateChange: (event) => {
+            this.playerState.isBuffering = false;
+
+            if (event.data === YT_PLAYER_STATE.UNSTARTED) {
+              this.dispatchReadyEvent();
+            } else if (event.data === YT_PLAYER_STATE.PAUSED) {
+              this.playerState.isPaused = true;
+              this.dispatchPauseEvent();
+            } else if (event.data === YT_PLAYER_STATE.PLAYING) {
+              this.playerState.isPaused = false;
+              this.dispatchPlayEvent();
+            } else if (event.data === YT_PLAYER_STATE.BUFFERING) {
+              this.playerState.isBuffering = true;
+              this.dispatchBufferingEvent();
+            } else if (event.data === YT_PLAYER_STATE.ENDED) {
+              this.dispatchEndedEvent();
+            } else if (event.data === YT_PLAYER_STATE.CUED) {
+              this.dispatchCuedEvent();
+            }
+          },
           onError: (error) => {
             this.playerState.error = {
               code: error.data,
@@ -78,6 +98,18 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
           },
           onApiChange: () => {
             // console.log("onApiChange");
+          },
+          onPlaybackRateChange: (event) => {
+            if (event.data !== this.playerState.playbackRate) {
+              this.playerState.playbackRate = event.data;
+              this.dispatchPlaybackRateChangeEvent(event.data);
+            }
+          },
+          onPlaybackQualityChange: (event) => {
+            if (event.data !== this.playerState.playbackQuality) {
+              this.playerState.playbackQuality = event.data;
+              this.dispatchPlaybackQualityChangeEvent(event.data);
+            }
           },
         },
       });
@@ -109,22 +141,6 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
   }
 
   createListeners(): void {
-    this.api?.addEventListener("onStateChange", ({ data }: { data: number }) => {
-      if (data === YT_PLAYER_STATE.PAUSED) {
-        this.playerState.isPaused = true;
-        this.dispatchPauseEvent();
-      } else if (data === YT_PLAYER_STATE.PLAYING) {
-        this.playerState.isPaused = false;
-        this.dispatchPlayEvent();
-      } else if (data === YT_PLAYER_STATE.BUFFERING) {
-        this.dispatchBufferingEvent();
-      } else if (data === YT_PLAYER_STATE.ENDED) {
-        this.dispatchEndedEvent();
-      } else if (data === YT_PLAYER_STATE.CUED) {
-        this.dispatchCuedEvent();
-      }
-    });
-
     this.api?.addEventListener(
       "onVolumeChange",
       ({ data: { volume, muted } }: IYTVolumeChangeEvent) => {
@@ -139,26 +155,9 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
       }
     );
 
-    this.api?.addEventListener("onPlaybackRateChange", (event: IYTPlaybackRateChangeEvent) => {
-      if (event.data !== this.playerState.playbackRate) {
-        this.playerState.playbackRate = event.data;
-        this.dispatchPlaybackRateChangeEvent(event.data);
-      }
-    });
-
     this.api?.addEventListener("onVideoProgress", (event: IVideoProgressEvent) => {
       this.dispatchProgressEvent(event.data);
     });
-
-    this.api?.addEventListener(
-      "onPlaybackQualityChange",
-      (event: IYTPlaybackQualityChangeEvent) => {
-        if (event.data !== this.playerState.playbackQuality) {
-          this.playerState.playbackQuality = event.data;
-          this.dispatchPlaybackQualityChangeEvent(event.data);
-        }
-      }
-    );
   }
 
   connectedCallback(): void {

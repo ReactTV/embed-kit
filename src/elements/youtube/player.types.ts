@@ -1,4 +1,5 @@
 export const YT_PLAYER_STATE = {
+  UNSTARTED: -1,
   ENDED: 0,
   PLAYING: 1,
   PAUSED: 2,

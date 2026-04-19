@@ -67,6 +67,7 @@ export class EmbedVideoElement extends HTMLElement {
   protected options: TEmbedVideoElementOptions = generateDefaultOptions();
 
   protected playerState = {
+    isBuffering: false,
     currentTime: 0,
     duration: 0,
     isPaused: true,
