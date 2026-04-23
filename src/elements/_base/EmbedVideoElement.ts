@@ -7,6 +7,7 @@ export type TEmbedVideoElementOptions = {
   captions: boolean;
   annotations: boolean;
   relatedVideos: boolean;
+  muted: boolean;
   config: {
     youtube: Record<string, number | string | undefined>;
     vimeo: Record<string, number | string | undefined>;
@@ -20,6 +21,7 @@ const generateDefaultOptions = (): TEmbedVideoElementOptions => ({
   captions: false,
   annotations: false,
   relatedVideos: false,
+  muted: false,
   config: {
     youtube: {},
     vimeo: {},
@@ -90,6 +92,7 @@ export class EmbedVideoElement extends HTMLElement {
       captions: attributes.captions === "true",
       annotations: attributes.annotations === "true",
       relatedVideos: attributes.relatedVideos === "true",
+      muted: attributes.muted === "true",
       config: {
         youtube: attributes.youtube ? JSON.parse(attributes.youtube) : {},
         vimeo: attributes.vimeo ? JSON.parse(attributes.vimeo) : {},

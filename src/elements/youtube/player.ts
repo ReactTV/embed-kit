@@ -56,13 +56,14 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
           cc_load_policy: this.options.captions ? 1 : 0,
           iv_load_policy: this.options.annotations ? 1 : 3,
           rel: this.options.relatedVideos ? 1 : 0,
+          mute: this.options.muted ? 1 : 0,
           origin: window.location.origin,
         },
         events: {
           onReady: ({ target }) => {
             this.player = target;
-            this.dispatchReadyEvent();
             this.setInitialPlayerState();
+            this.dispatchReadyEvent();
           },
           onStateChange: (event) => {
             this.playerState.isBuffering = false;
