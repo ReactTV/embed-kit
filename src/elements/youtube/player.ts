@@ -80,6 +80,7 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
               this.playerState.isBuffering = true;
               this.dispatchBufferingEvent();
             } else if (event.data === YT_PLAYER_STATE.ENDED) {
+              this.playerState.isPaused = true;
               this.dispatchEndedEvent();
             } else if (event.data === YT_PLAYER_STATE.CUED) {
               this.dispatchCuedEvent();
