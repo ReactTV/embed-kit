@@ -267,7 +267,8 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
   }
 
   override get paused(): boolean {
-    return this.player?.getPlayerState() === YT_PLAYER_STATE.PAUSED;
+    const pauseStates = [YT_PLAYER_STATE.PAUSED, YT_PLAYER_STATE.ENDED];
+    return pauseStates.includes(this.player?.getPlayerState() as 0 | 2);
   }
 
   override get volume(): number {
