@@ -25,11 +25,11 @@ const getTwitchEmbedSrc = (url: string) => {
   if (videoId) {
     return `https://player.twitch.tv/?video=${encodeURIComponent(videoId)}`;
   }
-  if (channelName) {
-    return `https://player.twitch.tv/?channel=${encodeURIComponent(channelName)}`;
-  }
   if (clipSlug) {
     return `https://clips.twitch.tv/embed?clip=${encodeURIComponent(clipSlug)}`;
+  }
+  if (channelName) {
+    return `https://player.twitch.tv/?channel=${encodeURIComponent(channelName)}`;
   }
   return "";
 };
