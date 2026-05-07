@@ -6,6 +6,15 @@ import { YT_PLAYER_STATE, IVideoProgressEvent } from "./player.types.js";
 
 const YT_SCRIPT = "https://www.youtube.com/iframe_api";
 
+const removeUndefinedPlayerVars = (
+  playerVars: Record<string, number | string | undefined>,
+): Record<string, number | string> =>
+  Object.fromEntries(
+    Object.entries(playerVars).filter(
+      (entry): entry is [string, number | string] => entry[1] !== undefined,
+    ),
+  );
+
 function loadYTScript(): Promise<void> {
   return loadScript(YT_SCRIPT, {
     isLoaded: () => !!window.YT?.Player,
@@ -34,6 +43,8 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
   player: YTPlayer | null = null;
 
   override load(): void {
+    this.loadInitialOptions();
+
     if (this.api) {
       this.player?.destroy();
       this.player = null;
@@ -50,7 +61,7 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
 
       this.api = new YT.Player(this.getEmbedContainer(), {
         videoId,
-        playerVars: {
+        playerVars: removeUndefinedPlayerVars({
           autoplay: this.options.autoplay ? 1 : 0,
           controls: this.options.controls ? 1 : 0,
           cc_load_policy: this.options.captions ? 1 : 0,
@@ -58,7 +69,8 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
           rel: this.options.relatedVideos ? 1 : 0,
           mute: this.options.muted ? 1 : 0,
           origin: window.location.origin,
-        },
+          ...this.options.config.youtube,
+        }),
         events: {
           onReady: ({ target }) => {
             this.player = target;
@@ -149,7 +161,7 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
           this.playerState.muted = muted;
           this.dispatchMuteChangeEvent(muted);
         }
-      }
+      },
     );
 
     this.api?.addEventListener("onVideoProgress", (event: IVideoProgressEvent) => {

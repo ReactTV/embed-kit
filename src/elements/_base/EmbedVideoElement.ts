@@ -64,6 +64,8 @@ export class EmbedVideoElement extends HTMLElement {
     "annotations",
     "relatedVideos",
     "volume",
+    "youtube",
+    "vimeo",
   ];
 
   protected options: TEmbedVideoElementOptions = generateDefaultOptions();
@@ -314,6 +316,13 @@ export class EmbedVideoElement extends HTMLElement {
 
     if (name === "src") {
       this.load();
+    }
+
+    if (name === "youtube" || name === "vimeo") {
+      this.loadInitialOptions();
+      if (this.hasAttribute("src")) {
+        this.load();
+      }
     }
 
     if (name === "muted") {

@@ -22,6 +22,7 @@ export type ReactEmbedKitProps = IDispatchedEventCallbacks & {
   pip?: boolean;
   muted?: boolean;
   volume?: number; // 0-100
+  startSeconds?: number;
   seekTo?: number | null;
   progressInterval?: number;
   controls?: boolean;
@@ -33,6 +34,14 @@ export type ReactEmbedKitProps = IDispatchedEventCallbacks & {
   };
   playerRef?: React.Ref<EmbedPlayerRef>;
   onUnsupportedUrl?: (url: string) => void;
+};
+
+const normalizeStartSeconds = (startSeconds: number | undefined): number | undefined => {
+  if (startSeconds == null || !Number.isFinite(startSeconds) || startSeconds <= 0) {
+    return undefined;
+  }
+
+  return Math.floor(startSeconds);
 };
 
 export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
@@ -61,6 +70,8 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
     onCued,
     playerRef,
     volume,
+    config,
+    startSeconds,
   } = props;
   const elementRef = useRef<EmbedPlayerRef>(null);
   const [isClient, setIsClient] = useState(false);
@@ -164,7 +175,20 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
       const setIfChanged = (name: string, value: string) => {
         if (el.getAttribute(name) !== value) el.setAttribute(name, value);
       };
-      setIfChanged("src", resolved.url);
+      const setSerializedConfig = (
+        name: string,
+        value: Record<string, number | string | undefined> | undefined
+      ) => {
+        const serialized = JSON.stringify(value ?? {});
+
+        if (serialized === "{}") {
+          if (el.hasAttribute(name)) el.removeAttribute(name);
+          return;
+        }
+
+        setIfChanged(name, serialized);
+      };
+
       setIfChanged("autoplay", String(!!autoplay));
       setIfChanged("muted", String(!!muted));
       if (playing !== undefined) {
@@ -177,6 +201,15 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
       if (volume != null) setIfChanged("volume", String(volume));
       if (width != null) setIfChanged("width", String(width));
       if (height != null) setIfChanged("height", String(height));
+      const normalizedStartSeconds = normalizeStartSeconds(startSeconds);
+      const youtubeConfig = {
+        ...config?.youtube,
+        ...(normalizedStartSeconds !== undefined ? { start: normalizedStartSeconds } : {}),
+      };
+
+      setSerializedConfig("youtube", youtubeConfig);
+      setSerializedConfig("vimeo", config?.vimeo);
+      setIfChanged("src", resolved.url);
 
       if (isHtmlPlayer) {
         setOrRemove("controls", controls);
@@ -184,7 +217,20 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
         setIfChanged("controls", String(controls));
       }
     },
-    [resolved.url, autoplay, muted, playing, controls, captions, annotations, volume, width, height]
+    [
+      resolved.url,
+      autoplay,
+      muted,
+      playing,
+      controls,
+      captions,
+      annotations,
+      volume,
+      width,
+      height,
+      config,
+      startSeconds,
+    ]
   );
 
   // React doesn't reliably forward ref to custom elements from createElement; use a callback ref
