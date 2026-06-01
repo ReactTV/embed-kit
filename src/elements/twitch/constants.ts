@@ -68,6 +68,12 @@ export const CLIP_SLUG = "BrightResourcefulLeopardSeemsGood-CVvpRL5aVhKwP6_U";
 /** Full clip URL for src attribute. */
 export const CLIP_SOURCE_URL = `https://clips.twitch.tv/${CLIP_SLUG}`;
 
+/** Clip slug for channel-prefixed clip URLs (twitch.tv/{channel}/clip/{slug}). */
+export const CHANNEL_CLIP_SLUG = "AgileDaintyLocustFreakinStinkin-8wm__cpZtoYAQDH-";
+
+/** Full channel-prefixed clip URL for src attribute. */
+export const CHANNEL_CLIP_SOURCE_URL = `https://www.twitch.tv/ashesofowls/clip/${CHANNEL_CLIP_SLUG}`;
+
 /** Channel name for livestream embeds. */
 export const CHANNEL_NAME = "ashesofowls";
 

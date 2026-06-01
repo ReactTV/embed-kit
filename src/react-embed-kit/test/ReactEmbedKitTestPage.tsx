@@ -6,7 +6,10 @@ import {
   VIDEO_ID as YOUTUBE_VIDEO_ID,
 } from "../../elements/youtube/constants.js";
 import { SOURCE_URL as VIMEO_SOURCE_URL } from "../../elements/vimeo/constants.js";
-import { VIDEO_SOURCE_URL as TWITCH_VIDEO_SOURCE_URL } from "../../elements/twitch/constants.js";
+import {
+  VIDEO_SOURCE_URL as TWITCH_VIDEO_SOURCE_URL,
+  CHANNEL_CLIP_SOURCE_URL as TWITCH_CLIP_SOURCE_URL,
+} from "../../elements/twitch/constants.js";
 import { SOURCE_URL as TIKTOK_SOURCE_URL } from "../../elements/tiktok/constants.js";
 import { SOURCE_URL as DAILYMOTION_SOURCE_URL } from "../../elements/dailymotion/constants.js";
 
@@ -18,6 +21,7 @@ const PRESETS: { label: string; url: string }[] = [
   { label: "youtu.be", url: `https://youtu.be/${YOUTUBE_VIDEO_ID}` },
   { label: "Vimeo", url: VIMEO_SOURCE_URL },
   { label: "Twitch (video)", url: TWITCH_VIDEO_SOURCE_URL },
+  { label: "Twitch (clip)", url: TWITCH_CLIP_SOURCE_URL },
   { label: "TikTok", url: TIKTOK_SOURCE_URL },
   { label: "Dailymotion", url: DAILYMOTION_SOURCE_URL },
   { label: "MP4 (sample)", url: MP4_SAMPLE_URL },
