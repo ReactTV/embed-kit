@@ -38,10 +38,13 @@ type TGenerateIframeSrcProps = {
   url: string;
   controls: boolean;
   autoplay: boolean;
+  muted: boolean;
 };
 
-const generateIframeSrc = ({ url, controls, autoplay }: TGenerateIframeSrcProps) =>
-  `${getTwitchEmbedSrc(url)}&parent=${encodeURIComponent(window.location.hostname)}&controls=${controls}&autoplay=${autoplay}`;
+const generateIframeSrc = ({ url, controls, autoplay, muted }: TGenerateIframeSrcProps) => {
+  const parent = encodeURIComponent(window.location.hostname);
+  return `${getTwitchEmbedSrc(url)}&parent=${parent}&controls=${controls}&autoplay=${autoplay}&muted=${muted}`;
+};
 
 /**
  * Twitch embed player as a subclass of EmbedVideoElement.
@@ -66,6 +69,7 @@ class TwitchEmbedPlayer extends EmbedVideoElement {
       url: attributes.src!,
       controls: this.options.controls,
       autoplay: this.options.autoplay,
+      muted: this.options.muted,
     });
 
     const iframe = createIframe(iframeSrc);
