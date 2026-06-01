@@ -57,6 +57,7 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
   const [controls, setControls] = useState(false);
   const [captions, setCaptions] = useState(false);
   const [annotations, setAnnotations] = useState(false);
+  const [autoplay, setAutoplay] = useState(false);
   const [progress, setProgress] = useState<number | null>(null);
   const [data, setData] = useState<PollData>({
     currentTime: null,
@@ -179,13 +180,23 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
           />
           Enable captions
         </label>
-        <label style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+        <label
+          style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginRight: "1rem" }}
+        >
           <input
             type="checkbox"
             checked={annotations}
             onChange={(e) => setAnnotations(e.target.checked)}
           />
           Show annotations
+        </label>
+        <label style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <input
+            type="checkbox"
+            checked={autoplay}
+            onChange={(e) => setAutoplay(e.target.checked)}
+          />
+          Autoplay
         </label>
       </div>
       <div className="player-wrap">
@@ -200,6 +211,7 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
           controls={controls}
           captions={captions}
           annotations={annotations}
+          autoplay={autoplay}
           config={embedConfig}
           onReady={() => {}}
           onBuffering={() => setBuffering(true)}
