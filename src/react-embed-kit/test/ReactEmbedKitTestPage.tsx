@@ -190,13 +190,23 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
           />
           Show annotations
         </label>
-        <label style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+        <label
+          style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginRight: "1rem" }}
+        >
           <input
             type="checkbox"
             checked={autoplay}
             onChange={(e) => setAutoplay(e.target.checked)}
           />
           Autoplay
+        </label>
+        <label style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <input
+            type="checkbox"
+            checked={!muted}
+            onChange={(e) => setMuted(!e.target.checked)}
+          />
+          Unmute
         </label>
       </div>
       <div className="player-wrap">
