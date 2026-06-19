@@ -161,6 +161,7 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
     onPlaybackRateChange,
     onPlaybackQualityChange,
     onCued,
+    tagReady,
   ]);
 
   const applyAttributesAndLoad = useCallback(
