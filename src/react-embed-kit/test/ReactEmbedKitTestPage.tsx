@@ -58,6 +58,7 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
   const [captions, setCaptions] = useState(false);
   const [annotations, setAnnotations] = useState(false);
   const [autoplay, setAutoplay] = useState(false);
+  const [startSeconds, setStartSeconds] = useState<number>(60);
   const [progress, setProgress] = useState<number | null>(null);
   const [data, setData] = useState<PollData>({
     currentTime: null,
@@ -119,6 +120,7 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
     : [];
 
   const selectedPreset = PRESETS.find((p) => p.url === url)?.url ?? "";
+  const isYouTube = /youtube\.com|youtu\.be/.test(url);
 
   const embedConfig = useMemo(
     () => ({
@@ -208,6 +210,22 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
           />
           Unmute
         </label>
+        {isYouTube && (
+          <label
+            style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginLeft: "1rem" }}
+          >
+            <span style={{ whiteSpace: "nowrap", fontSize: "0.9rem" }}>Start (s)</span>
+            <input
+              type="number"
+              min={0}
+              step={1}
+              value={startSeconds}
+              onChange={(e) => setStartSeconds(Number(e.target.value))}
+              style={{ width: "70px" }}
+              aria-label="Start time in seconds"
+            />
+          </label>
+        )}
       </div>
       <div className="player-wrap">
         <ReactEmbedKit
@@ -222,6 +240,7 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
           captions={captions}
           annotations={annotations}
           autoplay={autoplay}
+          {...(isYouTube ? { startSeconds } : {})}
           config={embedConfig}
           onReady={() => {}}
           onBuffering={() => setBuffering(true)}
