@@ -11,6 +11,7 @@ export type TEmbedVideoElementOptions = {
   config: {
     youtube: Record<string, number | string | undefined>;
     vimeo: Record<string, number | string | undefined>;
+    dailymotion: Record<string, number | string | undefined>;
   };
 };
 
@@ -25,6 +26,7 @@ const generateDefaultOptions = (): TEmbedVideoElementOptions => ({
   config: {
     youtube: {},
     vimeo: {},
+    dailymotion: {},
   },
 });
 
@@ -66,6 +68,7 @@ export class EmbedVideoElement extends HTMLElement {
     "volume",
     "youtube",
     "vimeo",
+    "dailymotion",
   ];
 
   protected options: TEmbedVideoElementOptions = generateDefaultOptions();
@@ -98,6 +101,7 @@ export class EmbedVideoElement extends HTMLElement {
       config: {
         youtube: attributes.youtube ? JSON.parse(attributes.youtube) : {},
         vimeo: attributes.vimeo ? JSON.parse(attributes.vimeo) : {},
+        dailymotion: attributes.dailymotion ? JSON.parse(attributes.dailymotion) : {},
       },
     };
   }
@@ -318,7 +322,7 @@ export class EmbedVideoElement extends HTMLElement {
       this.load();
     }
 
-    if (name === "youtube" || name === "vimeo") {
+    if (name === "youtube" || name === "vimeo" || name === "dailymotion") {
       this.loadInitialOptions();
       if (this.hasAttribute("src")) {
         this.load();

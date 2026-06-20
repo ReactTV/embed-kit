@@ -207,9 +207,13 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
         ...config?.youtube,
         ...(normalizedStartSeconds !== undefined ? { start: normalizedStartSeconds } : {}),
       };
+      const dailymotionConfig = {
+        ...(normalizedStartSeconds !== undefined ? { startTime: normalizedStartSeconds } : {}),
+      };
 
       setSerializedConfig("youtube", youtubeConfig);
       setSerializedConfig("vimeo", config?.vimeo);
+      setSerializedConfig("dailymotion", dailymotionConfig);
       setIfChanged("src", resolved.url);
 
       if (isHtmlPlayer) {

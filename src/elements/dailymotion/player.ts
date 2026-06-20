@@ -83,6 +83,8 @@ class DailymotionEmbedPlayer extends EmbedVideoElement {
     const params: Record<string, unknown> = {};
     if (this.options.autoplay) params.autoplay = true;
     if (!this.options.controls) params.controls = false;
+    const startTime = this.options.config.dailymotion.startTime;
+    if (startTime != null) params.startTime = Number(startTime);
 
     void loadDailymotionScript()
       .then(() => {
