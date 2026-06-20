@@ -12,7 +12,7 @@ import { AUDIO_EXTENSIONS, VIDEO_EXTENSIONS } from "./constants.js";
 import HtmlPlayer from "./HtmlPlayer.js";
 
 export type ReactEmbedKitProps = IDispatchedEventCallbacks & {
-  src: string;
+  src?: string;
   width?: number;
   height?: number;
   className?: string;
@@ -77,12 +77,11 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
   const [isClient, setIsClient] = useState(false);
   const [tagReady, setTagReady] = useState(false);
 
-  const isHtmlPlayer = src.match(AUDIO_EXTENSIONS) || src.match(VIDEO_EXTENSIONS);
+  const isHtmlPlayer = !!(src && (src.match(AUDIO_EXTENSIONS) || src.match(VIDEO_EXTENSIONS)));
 
-  const resolved = getProviderForUrl(src) ?? {
-    tagName: EMBED_TAG.YOUTUBE as EmbedTagName,
-    url: src,
-  };
+  const resolved = src
+    ? (getProviderForUrl(src) ?? { tagName: EMBED_TAG.YOUTUBE as EmbedTagName, url: src })
+    : { tagName: EMBED_TAG.YOUTUBE as EmbedTagName, url: "" };
 
   useEffect(() => {
     setIsClient(true);
@@ -167,6 +166,7 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
   const applyAttributesAndLoad = useCallback(
     (el: EmbedPlayerRef) => {
       if (!el || !(el instanceof HTMLElement) || !el.isConnected) return;
+      if (!resolved.url) return;
       const setOrRemove = (name: string, value: boolean) => {
         if (el.getAttribute(name) !== String(value)) {
           if (value) el.setAttribute(name, String(value));
@@ -256,6 +256,8 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
   if (!isClient || !tagReady) {
     return <div />;
   }
+
+  if (!src) return <div />;
 
   if (isHtmlPlayer) {
     return <HtmlPlayer {...props} ref={mergeRefs([setEmbedRef, playerRef])} />;
