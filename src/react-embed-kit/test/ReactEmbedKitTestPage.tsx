@@ -24,6 +24,9 @@ const PRESETS: { label: string; urls: string[] }[] = [
       "https://www.youtube.com/watch?v=H_rlThh2ze8",
       "https://www.youtube.com/watch?v=HURVox6rE6g",
       "https://www.youtube.com/watch?v=8ob1Q7xJSYc",
+      "https://www.youtube.com/watch?v=2QrIr6hAfIs",
+      "https://www.youtube.com/watch?v=3sKExrv3FS0",
+      "https://www.youtube.com/watch?v=AVYH7fovpo4",
     ],
   },
   {
@@ -78,8 +81,9 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
   const [playing, setPlaying] = useState(false);
   const [volume, setVolume] = useState(50);
   const [selectedPresetIdx, setSelectedPresetIdx] = useState(0);
-  const [urlIdx, setUrlIdx] = useState(0);
-  const [url, setUrl] = useState<string>(PRESETS[0]?.urls[0] ?? "");
+  const [urlState, setUrlState] = useState({ idx: 0, url: PRESETS[0]?.urls[0] ?? "" });
+  const urlIdx = urlState.idx;
+  const url = urlState.url;
   const [player, setPlayer] = useState<NonNullable<EmbedPlayerRef> | null>(null);
   const [buffering, setBuffering] = useState(false);
   const [controls, setControls] = useState(false);
@@ -152,12 +156,28 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
   const currentPreset = selectedPresetIdx >= 0 ? PRESETS[selectedPresetIdx] : null;
   const canCycle = currentPreset != null && currentPreset.urls.length > 1;
 
-  const cycleUrl = () => {
+  const cycleUrl = (dir: 1 | -1 = 1) => {
     if (!currentPreset) return;
-    const nextIdx = (urlIdx + 1) % currentPreset.urls.length;
-    setUrlIdx(nextIdx);
-    setUrl(currentPreset.urls[nextIdx] ?? "");
+    setUrlState((prev) => {
+      const nextIdx = (prev.idx + dir + currentPreset.urls.length) % currentPreset.urls.length;
+      return { idx: nextIdx, url: currentPreset.urls[nextIdx] ?? "" };
+    });
   };
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+      e.preventDefault();
+      const dir = e.key === "ArrowDown" ? 1 : -1;
+      setUrlState((prev) => {
+        if (!currentPreset) return prev;
+        const nextIdx = (prev.idx + dir + currentPreset.urls.length) % currentPreset.urls.length;
+        return { idx: nextIdx, url: currentPreset.urls[nextIdx] ?? "" };
+      });
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [currentPreset]);
 
   const embedConfig = useMemo(
     () => ({
@@ -183,8 +203,7 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
           const preset = PRESETS[idx];
           if (!preset) return;
           setSelectedPresetIdx(idx);
-          setUrlIdx(0);
-          setUrl(preset.urls[0] ?? "");
+          setUrlState({ idx: 0, url: preset.urls[0] ?? "" });
         }}
         aria-label="Choose a provider to autofill URL"
       >
@@ -202,15 +221,14 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
           type="url"
           value={url}
           onChange={(e) => {
-            setUrl(e.target.value);
+            setUrlState({ idx: 0, url: e.target.value });
             setSelectedPresetIdx(-1);
-            setUrlIdx(0);
           }}
           placeholder="https://www.youtube.com/watch?v=..."
           style={{ flex: 1 }}
         />
         {canCycle && (
-          <button type="button" onClick={cycleUrl}>
+          <button type="button" onClick={() => cycleUrl(1)}>
             Next URL ({urlIdx + 1}/{currentPreset.urls.length})
           </button>
         )}

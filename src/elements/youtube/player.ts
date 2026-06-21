@@ -37,7 +37,8 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
   protected ytPlayerState: {
     progressIntervalId: ReturnType<typeof setInterval> | undefined;
     destroyed: boolean;
-  } = { progressIntervalId: undefined, destroyed: false };
+    loadId: number;
+  } = { progressIntervalId: undefined, destroyed: false, loadId: 0 };
 
   api: YTPlayer | null = null;
   player: YTPlayer | null = null;
@@ -45,17 +46,28 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
   override load(): void {
     this.loadInitialOptions();
 
+    // Capture src synchronously so the async callback uses the URL that was
+    // current when load() was called, not whatever src is by the time it fires.
+    const srcAtLoad = this.getAttribute("src");
+
+    // Tear down any existing player immediately so it stops interacting with
+    // the container before the new one is created.
     if (this.api) {
-      this.player?.destroy();
+      this.api.destroy();
+      this.api = null;
       this.player = null;
     }
 
+    // Increment so any in-flight callbacks from earlier load() calls bail out.
+    const loadId = ++this.ytPlayerState.loadId;
+
     void loadYTScript().then(() => {
       if (this.ytPlayerState.destroyed) return;
+      if (loadId !== this.ytPlayerState.loadId) return;
+
       const YT = window.YT!;
 
-      const attributes = this.getAttributes();
-      const { videoId } = parseYouTubeUrl(attributes.src!);
+      const { videoId } = parseYouTubeUrl(srcAtLoad ?? "");
 
       if (!videoId) return;
 
@@ -73,11 +85,13 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
         }),
         events: {
           onReady: ({ target }) => {
+            if (loadId !== this.ytPlayerState.loadId) return;
             this.player = target;
             this.setInitialPlayerState();
             this.dispatchReadyEvent();
           },
           onStateChange: (event) => {
+            if (loadId !== this.ytPlayerState.loadId) return;
             this.playerState.isBuffering = false;
 
             if (event.data === YT_PLAYER_STATE.UNSTARTED) {
@@ -99,6 +113,7 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
             }
           },
           onError: (error) => {
+            if (loadId !== this.ytPlayerState.loadId) return;
             this.playerState.error = {
               code: error.data,
               message: "YouTube playback error",
@@ -109,12 +124,14 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
             // console.log("onApiChange");
           },
           onPlaybackRateChange: (event) => {
+            if (loadId !== this.ytPlayerState.loadId) return;
             if (event.data !== this.playerState.playbackRate) {
               this.playerState.playbackRate = event.data;
               this.dispatchPlaybackRateChangeEvent(event.data);
             }
           },
           onPlaybackQualityChange: (event) => {
+            if (loadId !== this.ytPlayerState.loadId) return;
             if (event.data !== this.playerState.playbackQuality) {
               this.playerState.playbackQuality = event.data;
               this.dispatchPlaybackQualityChangeEvent(event.data);

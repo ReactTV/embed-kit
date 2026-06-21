@@ -81,11 +81,15 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
 
   const [isClient, setIsClient] = useState(false);
   const [tagReady, setTagReady] = useState(false);
-  const [embedUrl, setEmbedUrl] = useState("");
 
   const isHtmlPlayer = !!(src && (src.match(AUDIO_EXTENSIONS) || src.match(VIDEO_EXTENSIONS)));
 
   const embedRef = useRef<EmbedPlayerRef>(null);
+
+  // Derived synchronously — no extra render cycle when src changes.
+  const embedUrl = isClient && tagReady ? (src ?? "") : "";
+  const embedUrlRef = useRef(embedUrl);
+  embedUrlRef.current = embedUrl;
 
   useEffect(() => {
     setIsClient(true);
@@ -101,11 +105,6 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
         console.error("[ReactEmbedKit] Failed to load embed player modules:", err);
       });
   }, [isClient]);
-
-  useEffect(() => {
-    if (!isClient || !tagReady) return;
-    setEmbedUrl(src ?? "");
-  }, [src, isClient, tagReady]);
 
   // Wire consumer events to the embed element
   useEffect(() => {
@@ -262,10 +261,13 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
   const setEmbedRef = useCallback(
     (el: EmbedPlayerRef) => {
       (embedRef as { current: EmbedPlayerRef | null }).current = el;
-      if (el && embedUrl) applyAttributesAndLoad(el, embedUrl);
+      if (el && embedUrlRef.current) applyAttributesAndLoad(el, embedUrlRef.current);
       forwardPlayerRef(el);
     },
-    [applyAttributesAndLoad, embedUrl, forwardPlayerRef]
+    // embedUrl intentionally excluded: embedUrlRef.current is always current without
+    // causing the ref callback to cycle (null → el) on every URL change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [applyAttributesAndLoad, forwardPlayerRef]
   );
 
   useLayoutEffect(() => {
