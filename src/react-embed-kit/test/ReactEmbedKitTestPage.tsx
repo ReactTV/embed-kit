@@ -8,7 +8,9 @@ import {
 import { SOURCE_URL as VIMEO_SOURCE_URL } from "../../elements/vimeo/constants.js";
 import {
   VIDEO_SOURCE_URL as TWITCH_VIDEO_SOURCE_URL,
-  CHANNEL_CLIP_SOURCE_URL as TWITCH_CLIP_SOURCE_URL,
+  CLIP_SOURCE_URL as TWITCH_CLIP_SOURCE_URL,
+  CHANNEL_CLIP_SOURCE_URL as TWITCH_CHANNEL_CLIP_SOURCE_URL,
+  CHANNEL_SOURCE_URL as TWITCH_CHANNEL_SOURCE_URL,
 } from "../../elements/twitch/constants.js";
 import { SOURCE_URL as TIKTOK_SOURCE_URL } from "../../elements/tiktok/constants.js";
 import { SOURCE_URL as DAILYMOTION_SOURCE_URL } from "../../elements/dailymotion/constants.js";
@@ -16,15 +18,36 @@ import { SOURCE_URL as DAILYMOTION_SOURCE_URL } from "../../elements/dailymotion
 const MP4_SAMPLE_URL =
   "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
 
-const PRESETS: { label: string; url: string }[] = [
-  { label: "YouTube", url: YOUTUBE_SOURCE_URL },
-  { label: "youtu.be", url: `https://youtu.be/${YOUTUBE_VIDEO_ID}` },
-  { label: "Vimeo", url: VIMEO_SOURCE_URL },
-  { label: "Twitch (video)", url: TWITCH_VIDEO_SOURCE_URL },
-  { label: "Twitch (clip)", url: TWITCH_CLIP_SOURCE_URL },
-  { label: "TikTok", url: TIKTOK_SOURCE_URL },
-  { label: "Dailymotion", url: DAILYMOTION_SOURCE_URL },
-  { label: "MP4 (sample)", url: MP4_SAMPLE_URL },
+const PRESETS: { label: string; urls: string[] }[] = [
+  {
+    label: "YouTube",
+    urls: [YOUTUBE_SOURCE_URL, `https://youtu.be/${YOUTUBE_VIDEO_ID}`],
+  },
+  {
+    label: "Vimeo",
+    urls: [VIMEO_SOURCE_URL],
+  },
+  {
+    label: "Twitch",
+    urls: [
+      TWITCH_VIDEO_SOURCE_URL,
+      TWITCH_CLIP_SOURCE_URL,
+      TWITCH_CHANNEL_CLIP_SOURCE_URL,
+      TWITCH_CHANNEL_SOURCE_URL,
+    ],
+  },
+  {
+    label: "TikTok",
+    urls: [TIKTOK_SOURCE_URL],
+  },
+  {
+    label: "Dailymotion",
+    urls: [DAILYMOTION_SOURCE_URL],
+  },
+  {
+    label: "MP4",
+    urls: [MP4_SAMPLE_URL],
+  },
 ];
 
 function formatTime(seconds: number | null | undefined): string {
@@ -51,7 +74,9 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
   const [muted, setMuted] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [volume, setVolume] = useState(50);
-  const [url, setUrl] = useState<string>(PRESETS[0]?.url ?? "");
+  const [selectedPresetIdx, setSelectedPresetIdx] = useState(0);
+  const [urlIdx, setUrlIdx] = useState(0);
+  const [url, setUrl] = useState<string>(PRESETS[0]?.urls[0] ?? "");
   const [player, setPlayer] = useState<NonNullable<EmbedPlayerRef> | null>(null);
   const [buffering, setBuffering] = useState(false);
   const [controls, setControls] = useState(false);
@@ -119,8 +144,17 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
       ]
     : [];
 
-  const selectedPreset = PRESETS.find((p) => p.url === url)?.url ?? "";
   const isYouTube = /youtube\.com|youtu\.be/.test(url);
+
+  const currentPreset = selectedPresetIdx >= 0 ? PRESETS[selectedPresetIdx] : null;
+  const canCycle = currentPreset != null && currentPreset.urls.length > 1;
+
+  const cycleUrl = () => {
+    if (!currentPreset) return;
+    const nextIdx = (urlIdx + 1) % currentPreset.urls.length;
+    setUrlIdx(nextIdx);
+    setUrl(currentPreset.urls[nextIdx] ?? "");
+  };
 
   const embedConfig = useMemo(
     () => ({
@@ -136,28 +170,48 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
       <label htmlFor="provider">Provider</label>
       <select
         id="provider"
-        value={selectedPreset}
+        value={selectedPresetIdx >= 0 ? String(selectedPresetIdx) : ""}
         onChange={(e) => {
-          const value = e.target.value;
-          if (value) setUrl(value);
+          if (!e.target.value) {
+            setSelectedPresetIdx(-1);
+            return;
+          }
+          const idx = Number(e.target.value);
+          const preset = PRESETS[idx];
+          if (!preset) return;
+          setSelectedPresetIdx(idx);
+          setUrlIdx(0);
+          setUrl(preset.urls[0] ?? "");
         }}
         aria-label="Choose a provider to autofill URL"
       >
         <option value="">Custom / paste URL below</option>
-        {PRESETS.map((p) => (
-          <option key={p.url} value={p.url}>
+        {PRESETS.map((p, i) => (
+          <option key={p.label} value={i}>
             {p.label}
           </option>
         ))}
       </select>
       <label htmlFor="url">Video URL</label>
-      <input
-        id="url"
-        type="url"
-        value={url}
-        onChange={(e) => setUrl(e.target.value)}
-        placeholder="https://www.youtube.com/watch?v=..."
-      />
+      <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+        <input
+          id="url"
+          type="url"
+          value={url}
+          onChange={(e) => {
+            setUrl(e.target.value);
+            setSelectedPresetIdx(-1);
+            setUrlIdx(0);
+          }}
+          placeholder="https://www.youtube.com/watch?v=..."
+          style={{ flex: 1 }}
+        />
+        {canCycle && (
+          <button type="button" onClick={cycleUrl}>
+            Next URL ({urlIdx + 1}/{currentPreset.urls.length})
+          </button>
+        )}
+      </div>
       <p className="hint">
         Try: YouTube, youtu.be, Vimeo, Twitch videos/clips/channel, TikTok, Dailymotion, or MP4 URL
       </p>
@@ -250,11 +304,13 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
           }}
           onProgress={(p) => setProgress(p)}
           onPause={() => setPlaying(false)}
+          // eslint-disable-next-line no-console
           onError={(d) => console.warn("Embed error:", d)}
           onVolumeChange={(v) => setVolume(v)}
           onMuteChange={(m) => setMuted(m)}
           onUnsupportedUrl={(u) => {
             setPlayer(null);
+            // eslint-disable-next-line no-console
             console.warn("Unsupported URL:", u);
           }}
         />
