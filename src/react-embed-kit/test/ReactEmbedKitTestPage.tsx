@@ -1,10 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import type { EmbedPlayerRef } from "../../elements/_base/player.types.js";
 import { ReactEmbedKit } from "../ReactEmbedKit.js";
-import {
-  SOURCE_URL as YOUTUBE_SOURCE_URL,
-  VIDEO_ID as YOUTUBE_VIDEO_ID,
-} from "../../elements/youtube/constants.js";
+import { SOURCE_URL as YOUTUBE_SOURCE_URL } from "../../elements/youtube/constants.js";
 import { SOURCE_URL as VIMEO_SOURCE_URL } from "../../elements/vimeo/constants.js";
 import {
   VIDEO_SOURCE_URL as TWITCH_VIDEO_SOURCE_URL,
@@ -21,11 +18,17 @@ const MP4_SAMPLE_URL =
 const PRESETS: { label: string; urls: string[] }[] = [
   {
     label: "YouTube",
-    urls: [YOUTUBE_SOURCE_URL, `https://youtu.be/${YOUTUBE_VIDEO_ID}`],
+    urls: [
+      YOUTUBE_SOURCE_URL,
+      "https://www.youtube.com/watch?v=Q8ZjLYesvqo",
+      "https://www.youtube.com/watch?v=H_rlThh2ze8",
+      "https://www.youtube.com/watch?v=HURVox6rE6g",
+      "https://www.youtube.com/watch?v=8ob1Q7xJSYc",
+    ],
   },
   {
     label: "Vimeo",
-    urls: [VIMEO_SOURCE_URL],
+    urls: [VIMEO_SOURCE_URL, "https://vimeo.com/107433577"],
   },
   {
     label: "Twitch",
@@ -257,11 +260,7 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
           Autoplay
         </label>
         <label style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-          <input
-            type="checkbox"
-            checked={!muted}
-            onChange={(e) => setMuted(!e.target.checked)}
-          />
+          <input type="checkbox" checked={!muted} onChange={(e) => setMuted(!e.target.checked)} />
           Unmute
         </label>
         {isYouTube && (
