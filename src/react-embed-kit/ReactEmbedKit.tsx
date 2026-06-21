@@ -9,7 +9,6 @@ import type {
 import type { EmbedTagName } from "./providers.js";
 import { AUDIO_EXTENSIONS, VIDEO_EXTENSIONS } from "./constants.js";
 import HtmlPlayer from "./HtmlPlayer.js";
-import { useDoubleBuffer } from "./useDoubleBuffer.js";
 
 export type ReactEmbedKitProps = IDispatchedEventCallbacks & {
   src?: string;
@@ -48,21 +47,6 @@ function resolveUrl(url: string) {
   return getProviderForUrl(url) ?? { tagName: EMBED_TAG.YOUTUBE as EmbedTagName, url };
 }
 
-const ACTIVE_SLOT_STYLE: React.CSSProperties = {
-  display: "block",
-  width: "100%",
-  height: "100%",
-};
-
-const HIDDEN_SLOT_STYLE: React.CSSProperties = {
-  position: "absolute",
-  top: 0,
-  left: 0,
-  width: "100%",
-  height: "100%",
-  visibility: "hidden",
-};
-
 export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
   const {
     autoplay,
@@ -97,21 +81,11 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
 
   const [isClient, setIsClient] = useState(false);
   const [tagReady, setTagReady] = useState(false);
+  const [embedUrl, setEmbedUrl] = useState("");
 
   const isHtmlPlayer = !!(src && (src.match(AUDIO_EXTENSIONS) || src.match(VIDEO_EXTENSIONS)));
 
-  const { slot0Url, slot1Url, activeSlot, triggerSwap } = useDoubleBuffer({
-    src,
-    isClient,
-    tagReady,
-    isHtmlPlayer,
-  });
-
-  const slot0Ref = useRef<EmbedPlayerRef>(null);
-  const slot1Ref = useRef<EmbedPlayerRef>(null);
-
-  const inactiveSlot = activeSlot === 0 ? 1 : 0;
-  const inactiveUrl = inactiveSlot === 0 ? slot0Url : slot1Url;
+  const embedRef = useRef<EmbedPlayerRef>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -128,17 +102,14 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
       });
   }, [isClient]);
 
-  // Swap when the inactive (loading) slot reports ready
   useEffect(() => {
-    const el = inactiveSlot === 0 ? slot0Ref.current : slot1Ref.current;
-    if (!el || !inactiveUrl) return;
-    el.addEventListener("onReady", triggerSwap);
-    return () => el.removeEventListener("onReady", triggerSwap);
-  }, [inactiveSlot, inactiveUrl, triggerSwap]);
+    if (!isClient || !tagReady) return;
+    setEmbedUrl(src ?? "");
+  }, [src, isClient, tagReady]);
 
-  // Wire consumer events to the active element; re-wires after each swap
+  // Wire consumer events to the embed element
   useEffect(() => {
-    const el = activeSlot === 0 ? slot0Ref.current : slot1Ref.current;
+    const el = embedRef.current;
     if (!el) return;
 
     const handlers = {
@@ -185,7 +156,7 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
       });
     };
   }, [
-    activeSlot,
+    embedUrl,
     onReady,
     onPlay,
     onPause,
@@ -201,7 +172,6 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
     onCued,
   ]);
 
-  // Apply attributes to a given element for a given URL
   const applyAttributesAndLoad = useCallback(
     (el: EmbedPlayerRef, targetUrl: string) => {
       if (!el || !(el instanceof HTMLElement) || !el.isConnected) return;
@@ -279,7 +249,6 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
     ]
   );
 
-  // Forward playerRef to whichever slot is active
   const forwardPlayerRef = useCallback(
     (el: EmbedPlayerRef) => {
       if (typeof playerRef === "function") playerRef(el);
@@ -290,33 +259,18 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
     [playerRef]
   );
 
-  // Callback refs: set internal ref, apply attributes on mount, forward playerRef if active
-  const setSlot0Ref = useCallback(
+  const setEmbedRef = useCallback(
     (el: EmbedPlayerRef) => {
-      (slot0Ref as { current: EmbedPlayerRef | null }).current = el;
-      if (el && slot0Url) applyAttributesAndLoad(el, slot0Url);
-      if (activeSlot === 0) forwardPlayerRef(el);
+      (embedRef as { current: EmbedPlayerRef | null }).current = el;
+      if (el && embedUrl) applyAttributesAndLoad(el, embedUrl);
+      forwardPlayerRef(el);
     },
-    [applyAttributesAndLoad, slot0Url, activeSlot, forwardPlayerRef]
+    [applyAttributesAndLoad, embedUrl, forwardPlayerRef]
   );
 
-  const setSlot1Ref = useCallback(
-    (el: EmbedPlayerRef) => {
-      (slot1Ref as { current: EmbedPlayerRef | null }).current = el;
-      if (el && slot1Url) applyAttributesAndLoad(el, slot1Url);
-      if (activeSlot === 1) forwardPlayerRef(el);
-    },
-    [applyAttributesAndLoad, slot1Url, activeSlot, forwardPlayerRef]
-  );
-
-  // Sync prop changes to both mounted elements
   useLayoutEffect(() => {
-    if (slot0Url) applyAttributesAndLoad(slot0Ref.current, slot0Url);
-  }, [applyAttributesAndLoad, slot0Url]);
-
-  useLayoutEffect(() => {
-    if (slot1Url) applyAttributesAndLoad(slot1Ref.current, slot1Url);
-  }, [applyAttributesAndLoad, slot1Url]);
+    if (embedUrl) applyAttributesAndLoad(embedRef.current, embedUrl);
+  }, [applyAttributesAndLoad, embedUrl]);
 
   if (!isClient || !tagReady) {
     return <div />;
@@ -328,26 +282,17 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
     return <HtmlPlayer {...props} ref={playerRef as React.Ref<HTMLMediaElement>} />;
   }
 
-  const slot0Resolved = slot0Url ? resolveUrl(slot0Url) : null;
-  const slot1Resolved = slot1Url ? resolveUrl(slot1Url) : null;
+  const resolved = embedUrl ? resolveUrl(embedUrl) : null;
 
-  // width/height props are forwarded as CSS on the wrapper so it matches the footprint the
-  // original bare custom element would have had. The active slot fills it; the inactive
-  // slot overlays it hidden without affecting document flow.
   return (
     <div
       className={className}
       style={{ position: "relative", width: "100%", ...(height != null ? { height } : {}), ...style }}
     >
-      {slot0Resolved &&
-        React.createElement(slot0Resolved.tagName, {
-          ref: setSlot0Ref,
-          style: activeSlot !== 0 ? HIDDEN_SLOT_STYLE : ACTIVE_SLOT_STYLE,
-        })}
-      {slot1Resolved &&
-        React.createElement(slot1Resolved.tagName, {
-          ref: setSlot1Ref,
-          style: activeSlot !== 1 ? HIDDEN_SLOT_STYLE : ACTIVE_SLOT_STYLE,
+      {resolved &&
+        React.createElement(resolved.tagName, {
+          ref: setEmbedRef,
+          style: { display: "block", width: "100%", height: "100%" },
         })}
     </div>
   );
