@@ -97,8 +97,14 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
             if (event.data === YT_PLAYER_STATE.UNSTARTED) {
               this.dispatchReadyEvent();
             } else if (event.data === YT_PLAYER_STATE.PAUSED) {
-              this.playerState.isPaused = true;
-              this.dispatchPauseEvent();
+              // Ignore PAUSED when the element's playing attribute says we should be
+              // playing — this covers the transient PAUSED YouTube emits internally
+              // during a loadVideoById swap, which would otherwise round-trip back
+              // through React as pauseVideo() and stall the new video on a black frame.
+              if (this.getAttribute("playing") !== "true") {
+                this.playerState.isPaused = true;
+                this.dispatchPauseEvent();
+              }
             } else if (event.data === YT_PLAYER_STATE.PLAYING) {
               this.playerState.isPaused = false;
               this.dispatchPlayEvent();
@@ -227,7 +233,11 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
     if (name === "src" && oldValue !== null && this.player) {
       const { videoId } = parseYouTubeUrl(newValue ?? "");
       if (videoId) {
-        this.player.loadVideoById(videoId);
+        if (this.getAttribute("playing") === "true") {
+          this.player.loadVideoById(videoId);
+        } else {
+          this.player.cueVideoById(videoId);
+        }
         return;
       }
     }
