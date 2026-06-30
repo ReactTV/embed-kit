@@ -221,6 +221,17 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
       return;
     }
 
+    // Fast-path for YouTube-to-YouTube video swaps: reuse the existing iframe
+    // instead of destroying and recreating it, which avoids the control-overlay
+    // flash that occurs during a full player rebuild.
+    if (name === "src" && oldValue !== null && this.player) {
+      const { videoId } = parseYouTubeUrl(newValue ?? "");
+      if (videoId) {
+        this.player.loadVideoById(videoId);
+        return;
+      }
+    }
+
     super.attributeChangedCallback(name, oldValue, newValue);
   }
 

@@ -37,6 +37,8 @@ export interface YTPlayer {
   addEventListener: (event: string, callback: (data: any) => void) => void;
   playVideo: () => void;
   pauseVideo: () => void;
+  loadVideoById: (videoId: string, startSeconds?: number) => void;
+  cueVideoById: (videoId: string, startSeconds?: number) => void;
   getPlayerState: () => number;
   getCurrentTime: () => number;
   getDuration: () => number;
