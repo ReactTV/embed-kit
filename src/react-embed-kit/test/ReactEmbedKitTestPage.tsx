@@ -281,6 +281,24 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
           <input type="checkbox" checked={!muted} onChange={(e) => setMuted(!e.target.checked)} />
           Unmute
         </label>
+        <label
+          style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginLeft: "1rem" }}
+        >
+          <span style={{ whiteSpace: "nowrap", fontSize: "0.9rem" }}>Volume</span>
+          <input
+            type="number"
+            min={0}
+            max={100}
+            step={1}
+            value={volume}
+            onChange={(e) => {
+              const v = Number(e.target.value);
+              if (!Number.isNaN(v)) setVolume(Math.max(0, Math.min(100, v)));
+            }}
+            style={{ width: "70px" }}
+            aria-label="Volume 0-100"
+          />
+        </label>
         {isYouTube && (
           <label
             style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginLeft: "1rem" }}
@@ -355,27 +373,6 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
         <button type="button" onClick={() => setMuted(!muted)}>
           [{muted ? "Muted" : "Unmuted"}]
         </button>
-        <label
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "0.5rem",
-            marginLeft: "1rem",
-            minWidth: "140px",
-          }}
-        >
-          <span style={{ whiteSpace: "nowrap", fontSize: "0.9rem" }}>Volume</span>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            step={1}
-            value={volume}
-            onChange={(e) => setVolume(Number(e.target.value))}
-            style={{ flex: 1, minWidth: 0 }}
-            aria-label="Volume"
-          />
-        </label>
       </div>
       <div className="progress-panel">
         <p>Progress: {progress != null ? formatTime(progress) : "—"}</p>
