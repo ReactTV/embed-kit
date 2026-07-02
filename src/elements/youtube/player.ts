@@ -59,7 +59,8 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
     }
 
     // Increment so any in-flight callbacks from earlier load() calls bail out.
-    const loadId = this.ytPlayerState.loadId + 1;
+    this.ytPlayerState.loadId += 1;
+    const loadId = this.ytPlayerState.loadId;
 
     void loadYTScript().then(() => {
       if (this.ytPlayerState.destroyed) return;
