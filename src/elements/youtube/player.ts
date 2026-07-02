@@ -7,12 +7,12 @@ import { YT_PLAYER_STATE, IVideoProgressEvent } from "./player.types.js";
 const YT_SCRIPT = "https://www.youtube.com/iframe_api";
 
 const removeUndefinedPlayerVars = (
-  playerVars: Record<string, number | string | undefined>
+  playerVars: Record<string, number | string | undefined>,
 ): Record<string, number | string> =>
   Object.fromEntries(
     Object.entries(playerVars).filter(
-      (entry): entry is [string, number | string] => entry[1] !== undefined
-    )
+      (entry): entry is [string, number | string] => entry[1] !== undefined,
+    ),
   );
 
 function loadYTScript(): Promise<void> {
@@ -128,10 +128,7 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
             this.dispatchErrorEvent(this.playerState.error);
           },
           onApiChange: () => {
-            if (loadId !== this.ytPlayerState.loadId) return;
-            if (!this.options.captions) {
-              this.applyCaptionsToPlayer();
-            }
+            // console.log("onApiChange");
           },
           onPlaybackRateChange: (event) => {
             if (loadId !== this.ytPlayerState.loadId) return;
@@ -154,19 +151,6 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
     });
   }
 
-  applyCaptionsToPlayer(): void {
-    const player = this.player ?? this.api;
-    if (!player) return;
-
-    if (this.options.captions) {
-      player.loadModule("captions");
-      player.loadModule("cc");
-    } else {
-      player.unloadModule("captions");
-      player.unloadModule("cc");
-    }
-  }
-
   setInitialPlayerState(): void {
     const attributes = this.getAttributes();
 
@@ -187,8 +171,6 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
         this.playing = wantPlay;
       }
     }
-
-    this.applyCaptionsToPlayer();
   }
 
   createListeners(): void {
@@ -203,7 +185,7 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
           this.playerState.muted = muted;
           this.dispatchMuteChangeEvent(muted);
         }
-      }
+      },
     );
 
     this.api?.addEventListener("onVideoProgress", (event: IVideoProgressEvent) => {
@@ -257,7 +239,6 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
         } else {
           this.player.cueVideoById(videoId);
         }
-        this.applyCaptionsToPlayer();
         return;
       }
     }
@@ -297,13 +278,13 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
     if (this.options.captions === value) return;
     this.options.captions = value;
 
-    // cc_load_policy is fixed at iframe creation; loadModule cannot re-enable CC after cc_load_policy=3.
+    // cc_load_policy is fixed at iframe creation; reload to turn captions on after cc_load_policy=3.
     if (value && this.api) {
       this.load();
       return;
     }
 
-    this.applyCaptionsToPlayer();
+    this.player?.unloadModule("captions");
   }
 
   override set controls(value: boolean) {

@@ -42,8 +42,8 @@ export interface YTPlayer {
   getPlayerState: () => number;
   getCurrentTime: () => number;
   getDuration: () => number;
-  loadModule: (module: "captions" | "cc") => void;
-  unloadModule: (module: "captions" | "cc") => void;
+  loadModule: (module: "captions") => void;
+  unloadModule: (module: "captions") => void;
   seekTo: (seconds: number, allowSeekAhead: boolean) => void;
   mute: () => void;
   unMute: () => void;
