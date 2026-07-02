@@ -7,12 +7,12 @@ import { YT_PLAYER_STATE, IVideoProgressEvent } from "./player.types.js";
 const YT_SCRIPT = "https://www.youtube.com/iframe_api";
 
 const removeUndefinedPlayerVars = (
-  playerVars: Record<string, number | string | undefined>,
+  playerVars: Record<string, number | string | undefined>
 ): Record<string, number | string> =>
   Object.fromEntries(
     Object.entries(playerVars).filter(
-      (entry): entry is [string, number | string] => entry[1] !== undefined,
-    ),
+      (entry): entry is [string, number | string] => entry[1] !== undefined
+    )
   );
 
 function loadYTScript(): Promise<void> {
@@ -59,7 +59,7 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
     }
 
     // Increment so any in-flight callbacks from earlier load() calls bail out.
-    const loadId = ++this.ytPlayerState.loadId;
+    const loadId = this.ytPlayerState.loadId + 1;
 
     void loadYTScript().then(() => {
       if (this.ytPlayerState.destroyed) return;
@@ -76,7 +76,7 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
         playerVars: removeUndefinedPlayerVars({
           autoplay: this.options.autoplay ? 1 : 0,
           controls: this.options.controls ? 1 : 0,
-          cc_load_policy: this.options.captions ? 1 : 0,
+          cc_load_policy: this.options.captions ? 1 : 3,
           iv_load_policy: this.options.annotations ? 1 : 3,
           rel: this.options.relatedVideos ? 1 : 0,
           mute: this.options.muted ? 1 : 0,
@@ -127,7 +127,10 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
             this.dispatchErrorEvent(this.playerState.error);
           },
           onApiChange: () => {
-            // console.log("onApiChange");
+            if (loadId !== this.ytPlayerState.loadId) return;
+            if (!this.options.captions) {
+              this.applyCaptionsToPlayer();
+            }
           },
           onPlaybackRateChange: (event) => {
             if (loadId !== this.ytPlayerState.loadId) return;
@@ -150,6 +153,19 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
     });
   }
 
+  applyCaptionsToPlayer(): void {
+    const player = this.player ?? this.api;
+    if (!player) return;
+
+    if (this.options.captions) {
+      player.loadModule("captions");
+      player.loadModule("cc");
+    } else {
+      player.unloadModule("captions");
+      player.unloadModule("cc");
+    }
+  }
+
   setInitialPlayerState(): void {
     const attributes = this.getAttributes();
 
@@ -170,6 +186,8 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
         this.playing = wantPlay;
       }
     }
+
+    this.applyCaptionsToPlayer();
   }
 
   createListeners(): void {
@@ -184,7 +202,7 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
           this.playerState.muted = muted;
           this.dispatchMuteChangeEvent(muted);
         }
-      },
+      }
     );
 
     this.api?.addEventListener("onVideoProgress", (event: IVideoProgressEvent) => {
@@ -238,6 +256,7 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
         } else {
           this.player.cueVideoById(videoId);
         }
+        this.applyCaptionsToPlayer();
         return;
       }
     }
@@ -274,13 +293,16 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
   }
 
   override set captions(value: boolean) {
+    if (this.options.captions === value) return;
     this.options.captions = value;
 
-    if (value) {
-      this.player?.loadModule("captions");
-    } else {
-      this.player?.unloadModule("captions");
+    // cc_load_policy is fixed at iframe creation; loadModule cannot re-enable CC after cc_load_policy=3.
+    if (value && this.api) {
+      this.load();
+      return;
     }
+
+    this.applyCaptionsToPlayer();
   }
 
   override set controls(value: boolean) {
