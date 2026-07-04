@@ -79,7 +79,7 @@ interface PollData {
 export function ReactEmbedKitTestPage(): React.ReactElement {
   const [muted, setMuted] = useState(false);
   const [playing, setPlaying] = useState(false);
-  const [volume, setVolume] = useState(50);
+  const [volume, setVolume] = useState(1);
   const [selectedPresetIdx, setSelectedPresetIdx] = useState(0);
   const [urlState, setUrlState] = useState({ idx: 0, url: PRESETS[0]?.urls[0] ?? "" });
   const urlIdx = urlState.idx;
@@ -89,7 +89,7 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
   const [controls, setControls] = useState(false);
   const [captions, setCaptions] = useState(false);
   const [annotations, setAnnotations] = useState(false);
-  const [autoplay, setAutoplay] = useState(false);
+  const [autoplay, setAutoplay] = useState(true);
   const [startSeconds, setStartSeconds] = useState<number>(60);
   const [progress, setProgress] = useState<number | null>(null);
   const [data, setData] = useState<PollData>({
@@ -281,9 +281,7 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
           <input type="checkbox" checked={!muted} onChange={(e) => setMuted(!e.target.checked)} />
           Unmute
         </label>
-        <label
-          style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginLeft: "1rem" }}
-        >
+        <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginLeft: "1rem" }}>
           <span style={{ whiteSpace: "nowrap", fontSize: "0.9rem" }}>Volume</span>
           <input
             type="number"

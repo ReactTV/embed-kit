@@ -43,6 +43,13 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
   api: YTPlayer | null = null;
   player: YTPlayer | null = null;
 
+  disableCaptions(): void {
+    if (this.options.captions || !this.player) return;
+
+    this.player.unloadModule("captions");
+    this.player.unloadModule("cc");
+  }
+
   override load(): void {
     this.loadInitialOptions();
 
@@ -77,18 +84,19 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
         playerVars: removeUndefinedPlayerVars({
           autoplay: this.options.autoplay ? 1 : 0,
           controls: this.options.controls ? 1 : 0,
-          cc_load_policy: this.options.captions ? 1 : 3,
           iv_load_policy: this.options.annotations ? 1 : 3,
           rel: this.options.relatedVideos ? 1 : 0,
           mute: this.options.muted ? 1 : 0,
           origin: window.location.origin,
           ...this.options.config.youtube,
+          cc_load_policy: this.options.captions ? 1 : 3,
         }),
         events: {
           onReady: ({ target }) => {
             if (loadId !== this.ytPlayerState.loadId) return;
             this.player = target;
             this.setInitialPlayerState();
+            this.disableCaptions();
             this.dispatchReadyEvent();
           },
           onStateChange: (event) => {
@@ -107,6 +115,7 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
                 this.dispatchPauseEvent();
               }
             } else if (event.data === YT_PLAYER_STATE.PLAYING) {
+              this.disableCaptions();
               this.playerState.isPaused = false;
               this.dispatchPlayEvent();
             } else if (event.data === YT_PLAYER_STATE.BUFFERING) {
@@ -185,7 +194,7 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
           this.playerState.muted = muted;
           this.dispatchMuteChangeEvent(muted);
         }
-      },
+      }
     );
 
     this.api?.addEventListener("onVideoProgress", (event: IVideoProgressEvent) => {
@@ -278,13 +287,9 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
     if (this.options.captions === value) return;
     this.options.captions = value;
 
-    // cc_load_policy is fixed at iframe creation; reload to turn captions on after cc_load_policy=3.
-    if (value && this.api) {
+    if (this.api) {
       this.load();
-      return;
     }
-
-    this.player?.unloadModule("captions");
   }
 
   override set controls(value: boolean) {
