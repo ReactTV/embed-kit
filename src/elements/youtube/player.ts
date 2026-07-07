@@ -15,6 +15,18 @@ const removeUndefinedPlayerVars = (
     ),
   );
 
+const getStartSecondsFromConfig = (
+  youtubeConfig: Record<string, number | string | undefined>,
+): number | undefined => {
+  const startRaw = youtubeConfig.start;
+  if (startRaw == null || startRaw === "") return undefined;
+
+  const start = Math.floor(Number(startRaw));
+  if (!Number.isFinite(start) || start <= 0) return undefined;
+
+  return start;
+};
+
 function loadYTScript(): Promise<void> {
   return loadScript(YT_SCRIPT, {
     isLoaded: () => !!window.YT?.Player,
@@ -243,10 +255,13 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
     if (name === "src" && oldValue !== null && this.player) {
       const { videoId } = parseYouTubeUrl(newValue ?? "");
       if (videoId) {
+        this.loadInitialOptions();
+        const startSeconds = getStartSecondsFromConfig(this.options.config.youtube);
+
         if (this.getAttribute("playing") === "true") {
-          this.player.loadVideoById(videoId);
+          this.player.loadVideoById(videoId, startSeconds);
         } else {
-          this.player.cueVideoById(videoId);
+          this.player.cueVideoById(videoId, startSeconds);
         }
         return;
       }
