@@ -1,52 +1,147 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ReactEmbedKit — URL-based embed test</title>
-  <style>
-    body { font-family: system-ui, sans-serif; max-width: 48rem; margin: 2rem auto; padding: 0 1rem; }
-    h1 { font-size: 1.25rem; }
-    .section { margin: 1.5rem 0; }
-    .section h2 { font-size: 1rem; margin-bottom: 0.5rem; }
-    .player-wrap { margin: 0.5rem 0; border: 1px solid #ccc; height: 315px; }
-    .section select { width: 100%; padding: 0.5rem; font-size: 14px; box-sizing: border-box; margin-top: 0.25rem; }
-    input[type="url"] { width: 100%; padding: 0.5rem; font-size: 14px; box-sizing: border-box; }
-    label { display: block; margin-top: 0.5rem; font-weight: 500; }
-    .hint { font-size: 12px; color: #666; margin-top: 0.25rem; }
-    .controls { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; align-items: center; }
-    .controls button { padding: 0.4rem 0.75rem; cursor: pointer; font-size: 13px; }
-    .data-panel { margin-top: 0.75rem; padding: 0.75rem; background: #f8f8f8; border-radius: 6px; font-size: 13px; font-family: ui-monospace, monospace; }
-    .data-panel dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 0.25rem 1.5rem; }
-    .data-panel dt { margin: 0; color: #666; }
-    .data-panel dd { margin: 0; }
-    .data-panel .no-player { color: #999; }
-  </style>
-  <script type="importmap">
-  {
-    "imports": {
-      "react": "https://esm.sh/react@18.3.1",
-      "react/jsx-runtime": "https://esm.sh/react@18.3.1/jsx-runtime",
-      "react-dom": "https://esm.sh/react-dom@18.3.1",
-      "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
-      "react-merge-refs": "https://esm.sh/react-merge-refs@3.0.2"
-    }
-  }
-  </script>
-</head>
-<body>
-  <h1>ReactEmbedKit — URL-based embed</h1>
-  <p>Enter any supported video URL; the correct provider (YouTube, Twitch, TikTok, Dailymotion, Vimeo) is chosen automatically.</p>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ReactEmbedKit — URL-based embed test</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 48rem;
+        margin: 2rem auto;
+        padding: 0 1rem;
+        background-color: #0e0e0e;
+        color: #fefefe;
+      }
+      h1 {
+        font-size: 1.25rem;
+      }
 
-  <div id="root"></div>
+      input[type="number"],
+      input[type="url"] {
+        background-color: #1a1a1a;
+        color: #fefefe;
+        border: 1px solid #444;
+        padding: 0.5rem;
+        font-size: 14px;
+        box-sizing: border-box;
+      }
+      select {
+        background-color: #1a1a1a;
+        color: #fefefe;
+        border: 1px solid #444;
+        padding: 0.5rem;
+        font-size: 14px;
+        box-sizing: border-box;
+      }
+      button {
+        background-color: #1a1a1a;
+        color: #fefefe;
+        border: 1px solid #444;
+        padding: 0.5rem;
+        font-size: 14px;
+        box-sizing: border-box;
+      }
+      .section {
+        margin: 1.5rem 0;
+      }
+      .section h2 {
+        font-size: 1rem;
+        margin-bottom: 0.5rem;
+      }
+      .player-wrap {
+        margin: 0.5rem 0;
+        border: 1px solid #444;
+        height: 315px;
+      }
+      .section select {
+        width: 100%;
+        padding: 0.5rem;
+        font-size: 14px;
+        box-sizing: border-box;
+        margin-top: 0.25rem;
+      }
+      input[type="url"] {
+        width: 100%;
+        padding: 0.5rem;
+        font-size: 14px;
+        box-sizing: border-box;
+      }
+      label {
+        display: block;
+        margin-top: 0.5rem;
+        font-weight: 500;
+      }
+      .hint {
+        font-size: 12px;
+        color: #aaa;
+        margin-top: 0.25rem;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+        align-items: center;
+      }
+      .controls button {
+        padding: 0.4rem 0.75rem;
+        cursor: pointer;
+        font-size: 13px;
+      }
+      .data-panel {
+        margin-top: 0.75rem;
+        padding: 0.75rem;
+        background: #1a1a1a;
+        border-radius: 6px;
+        font-size: 13px;
+        font-family: ui-monospace, monospace;
+      }
+      .data-panel dl {
+        margin: 0;
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 0.25rem 1.5rem;
+      }
+      .data-panel dt {
+        margin: 0;
+        color: #666;
+      }
+      .data-panel dd {
+        margin: 0;
+      }
+      .data-panel .no-player {
+        color: #999;
+      }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "react": "https://esm.sh/react@18.3.1",
+          "react/jsx-runtime": "https://esm.sh/react@18.3.1/jsx-runtime",
+          "react-dom": "https://esm.sh/react-dom@18.3.1",
+          "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
+          "react-merge-refs": "https://esm.sh/react-merge-refs@3.0.2"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <h1>ReactEmbedKit — URL-based embed</h1>
+    <p>
+      Enter any supported video URL; the correct provider (YouTube, Twitch, TikTok, Dailymotion,
+      Vimeo) is chosen automatically.
+    </p>
 
-  <script type="module">
-    import { createRoot } from "react-dom/client";
-    import React from "react";
-    import { ReactEmbedKitTestPage } from "../dist/react-embed-kit/index.js";
+    <div id="root"></div>
 
-    const root = createRoot(document.getElementById("root"));
-    root.render(React.createElement(ReactEmbedKitTestPage));
-  </script>
-</body>
+    <script type="module">
+      import { createRoot } from "react-dom/client";
+      import React from "react";
+      import { ReactEmbedKitTestPage } from "../dist/react-embed-kit/index.js";
+
+      const root = createRoot(document.getElementById("root"));
+      root.render(React.createElement(ReactEmbedKitTestPage));
+    </script>
+  </body>
 </html>
