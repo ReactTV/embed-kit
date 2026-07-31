@@ -6,6 +6,7 @@ export interface IEmbedProgressEvent {
 export const DISPATCHED_EVENTS = {
   ready: "onReady",
   play: "onPlay",
+  playing: "onPlaying",
   pause: "onPause",
   buffering: "onBuffering",
   ended: "onEnded",
@@ -23,6 +24,7 @@ export const DISPATCHED_EVENTS = {
 export type TDispatchedEventPayloads = {
   onReady: void;
   onPlay: void;
+  onPlaying: void;
   onPause: void;
   onBuffering: void;
   onEnded: void;
@@ -41,6 +43,8 @@ export type TDispatchedEventPayloads = {
 export interface IDispatchedEventCallbacks {
   onReady?: () => void;
   onPlay?: () => void;
+  /** Fires when playback actually resumes after pause or buffering (HTML `playing` event). */
+  onPlaying?: () => void;
   onPause?: () => void;
   onBuffering?: () => void;
   onEnded?: () => void;

@@ -61,6 +61,7 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
     onReady,
     onError,
     onPlay,
+    onPlaying,
     onPause,
     onBuffering,
     onEnded,
@@ -115,6 +116,7 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
     const handlers = {
       onReady: () => onReady?.(),
       onPlay: () => onPlay?.(),
+      onPlaying: () => onPlaying?.(),
       onPause: () => onPause?.(),
       onBuffering: () => onBuffering?.(),
       onEnded: () => onEnded?.(),
@@ -160,6 +162,7 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
     embedUrl,
     onReady,
     onPlay,
+    onPlaying,
     onPause,
     onBuffering,
     onEnded,

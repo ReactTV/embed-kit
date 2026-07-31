@@ -123,6 +123,7 @@ class VimeoEmbedPlayer extends EmbedVideoElement {
     });
 
     vimeoPlayer.on("playing", () => {
+      this.dispatchPlayingEvent();
       this.dispatchVisibleFrameOnce();
     });
 

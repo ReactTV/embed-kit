@@ -153,6 +153,7 @@ class DailymotionEmbedPlayer extends EmbedVideoElement {
     });
 
     dmPlayer.on(events.VIDEO_PLAYING, () => {
+      this.dispatchPlayingEvent();
       this.dispatchVisibleFrameOnce();
     });
 

@@ -49,9 +49,16 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
   protected ytPlayerState: {
     progressIntervalId: ReturnType<typeof setInterval> | undefined;
     visibleFramePollId: ReturnType<typeof setInterval> | undefined;
+    playIntentPending: boolean;
     destroyed: boolean;
     loadId: number;
-  } = { progressIntervalId: undefined, visibleFramePollId: undefined, destroyed: false, loadId: 0 };
+  } = {
+    progressIntervalId: undefined,
+    visibleFramePollId: undefined,
+    playIntentPending: false,
+    destroyed: false,
+    loadId: 0,
+  };
 
   api: YTPlayer | null = null;
   player: YTPlayer | null = null;
@@ -169,18 +176,24 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
               // through React as pauseVideo() and stall the new video on a black frame.
               if (this.getAttribute("playing") !== "true") {
                 this.playerState.isPaused = true;
+                this.ytPlayerState.playIntentPending = false;
                 this.dispatchPauseEvent();
               }
             } else if (event.data === YT_PLAYER_STATE.PLAYING) {
               this.disableCaptions();
               this.playerState.isPaused = false;
-              this.dispatchPlayEvent();
+              if (!this.ytPlayerState.playIntentPending) {
+                this.dispatchPlayEvent();
+              }
+              this.ytPlayerState.playIntentPending = false;
+              this.dispatchPlayingEvent();
               this.scheduleYouTubeVisibleFrame(loadId);
             } else if (event.data === YT_PLAYER_STATE.BUFFERING) {
               this.playerState.isBuffering = true;
               this.dispatchBufferingEvent();
             } else if (event.data === YT_PLAYER_STATE.ENDED) {
               this.playerState.isPaused = true;
+              this.ytPlayerState.playIntentPending = false;
               this.dispatchEndedEvent();
             } else if (event.data === YT_PLAYER_STATE.CUED) {
               this.dispatchCuedEvent();
@@ -317,6 +330,8 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
   }
 
   override play(): Promise<void> {
+    this.ytPlayerState.playIntentPending = true;
+    this.dispatchPlayEvent();
     this.player?.playVideo();
     return Promise.resolve();
   }

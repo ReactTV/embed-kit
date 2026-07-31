@@ -126,13 +126,13 @@ class TwitchEmbedPlayer extends EmbedVideoElement {
           this.dispatchPauseEvent();
         } else if (!isPaused && this.playerState.isPaused) {
           this.playerState.isPaused = false;
-          this.dispatchPlayEvent();
         }
 
         if (p.playback === PlaybackState.BUFFERING) {
           this.dispatchBufferingEvent();
         }
         if (p.playback === PlaybackState.PLAYING) {
+          this.dispatchPlayingEvent();
           this.dispatchVisibleFrameOnce();
         }
         if (p.playback === PlaybackState.ENDED) {

@@ -82,7 +82,7 @@ class TikTokEmbedPlayer extends EmbedVideoElement {
               this.dispatchPauseEvent();
             } else if (data.value === STATE_PLAYING) {
               this.playerState.isPaused = false;
-              this.dispatchPlayEvent();
+              this.dispatchPlayingEvent();
             } else if (data.value === STATE_BUFFERING) {
               this.dispatchBufferingEvent();
             } else if (data.value === STATE_ENDED) {
@@ -155,6 +155,7 @@ class TikTokEmbedPlayer extends EmbedVideoElement {
   }
 
   override play(): Promise<void> {
+    this.dispatchPlayEvent();
     if (this.iframe) post(this.iframe, "play");
     return Promise.resolve();
   }

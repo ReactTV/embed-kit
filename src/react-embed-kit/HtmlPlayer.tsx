@@ -97,6 +97,7 @@ const HtmlPlayer = forwardRef<HTMLMediaElement, HtmlPlayerProps>(
       onPlaybackRateChange,
       onCued,
       onPlay,
+      onPlaying,
       onPause,
       onEnded,
       onBuffering,
@@ -167,8 +168,11 @@ const HtmlPlayer = forwardRef<HTMLMediaElement, HtmlPlayerProps>(
         onLoadedData={() => {
           onReady?.();
         }}
-        onPlaying={(e: React.SyntheticEvent<HTMLMediaElement, Event>) => {
+        onPlay={() => {
           onPlay?.();
+        }}
+        onPlaying={(e: React.SyntheticEvent<HTMLMediaElement, Event>) => {
+          onPlaying?.();
           if (onVisibleFrame) {
             scheduleVisibleFrame(e.currentTarget, visibleFrameDispatchedRef, onVisibleFrame);
           }

@@ -239,6 +239,12 @@ export class EmbedVideoElement extends HTMLElement {
     this.dispatchEvent(new CustomEvent<TDispatchedEventPayloads["onPlay"]>(DISPATCHED_EVENTS.play));
   }
 
+  dispatchPlayingEvent() {
+    this.dispatchEvent(
+      new CustomEvent<TDispatchedEventPayloads["onPlaying"]>(DISPATCHED_EVENTS.playing)
+    );
+  }
+
   dispatchPauseEvent() {
     this.dispatchEvent(
       new CustomEvent<TDispatchedEventPayloads["onPause"]>(DISPATCHED_EVENTS.pause)
