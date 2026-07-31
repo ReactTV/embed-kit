@@ -7,16 +7,16 @@ import { YT_PLAYER_STATE, IVideoProgressEvent } from "./player.types.js";
 const YT_SCRIPT = "https://www.youtube.com/iframe_api";
 
 const removeUndefinedPlayerVars = (
-  playerVars: Record<string, number | string | undefined>,
+  playerVars: Record<string, number | string | undefined>
 ): Record<string, number | string> =>
   Object.fromEntries(
     Object.entries(playerVars).filter(
-      (entry): entry is [string, number | string] => entry[1] !== undefined,
-    ),
+      (entry): entry is [string, number | string] => entry[1] !== undefined
+    )
   );
 
 const getStartSecondsFromConfig = (
-  youtubeConfig: Record<string, number | string | undefined>,
+  youtubeConfig: Record<string, number | string | undefined>
 ): number | undefined => {
   const startRaw = youtubeConfig.start;
   if (startRaw == null || startRaw === "") return undefined;
@@ -96,12 +96,12 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
         playerVars: removeUndefinedPlayerVars({
           autoplay: this.options.autoplay ? 1 : 0,
           controls: this.options.controls ? 1 : 0,
+          cc_load_policy: this.options.captions ? 1 : 3,
           iv_load_policy: this.options.annotations ? 1 : 3,
           rel: this.options.relatedVideos ? 1 : 0,
           mute: this.options.muted ? 1 : 0,
           origin: window.location.origin,
           ...this.options.config.youtube,
-          cc_load_policy: this.options.captions ? 1 : 3,
         }),
         events: {
           onReady: ({ target }) => {
@@ -302,9 +302,13 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
     if (this.options.captions === value) return;
     this.options.captions = value;
 
-    if (this.api) {
+    // cc_load_policy is fixed at iframe creation; reload to turn captions on after cc_load_policy=3.
+    if (value && this.api) {
       this.load();
+      return;
     }
+
+    this.player?.unloadModule("captions");
   }
 
   override set controls(value: boolean) {
