@@ -138,7 +138,7 @@ class TwitchEmbedPlayer extends EmbedVideoElement {
 
         this.playerState.currentTime = p.currentTime;
 
-        if (p.duration !== this.playerState.duration) {
+        if (typeof p.duration === "number" && p.duration !== this.playerState.duration) {
           this.playerState.duration = p.duration;
           this.dispatchDurationChangeEvent(p.duration);
         }
