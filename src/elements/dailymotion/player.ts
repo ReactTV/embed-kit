@@ -152,6 +152,10 @@ class DailymotionEmbedPlayer extends EmbedVideoElement {
       this.dispatchPlayEvent();
     });
 
+    dmPlayer.on(events.VIDEO_PLAYING, () => {
+      this.dispatchVisibleFrameOnce();
+    });
+
     dmPlayer.on(events.VIDEO_PAUSE, () => {
       this.playerState.isPaused = true;
       this.dispatchPauseEvent();

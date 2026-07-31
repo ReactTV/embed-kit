@@ -122,6 +122,10 @@ class VimeoEmbedPlayer extends EmbedVideoElement {
       this.dispatchPlayEvent();
     });
 
+    vimeoPlayer.on("playing", () => {
+      this.dispatchVisibleFrameOnce();
+    });
+
     vimeoPlayer.on("pause", () => {
       this.playerState.isPaused = true;
       this.dispatchPauseEvent();

@@ -42,6 +42,7 @@ export interface YTPlayer {
   getPlayerState: () => number;
   getCurrentTime: () => number;
   getDuration: () => number;
+  getVideoLoadedFraction: () => number;
   loadModule: (module: "captions" | "cc") => void;
   unloadModule: (module: "captions" | "cc") => void;
   seekTo: (seconds: number, allowSeekAhead: boolean) => void;

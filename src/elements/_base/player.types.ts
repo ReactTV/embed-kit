@@ -17,6 +17,7 @@ export const DISPATCHED_EVENTS = {
   playbackRateChange: "onPlaybackRateChange",
   playbackQualityChange: "onPlaybackQualityChange",
   cued: "onCued",
+  visibleFrame: "onVisibleFrame",
 };
 
 export type TDispatchedEventPayloads = {
@@ -33,6 +34,7 @@ export type TDispatchedEventPayloads = {
   onVolumeChange: number;
   onPlaybackRateChange: number;
   onPlaybackQualityChange: string;
+  onVisibleFrame: void;
 };
 
 /** Detail type for each dispatched event. Use `undefined` for events with no payload. */
@@ -52,6 +54,12 @@ export interface IDispatchedEventCallbacks {
     playbackQuality: TDispatchedEventPayloads["onPlaybackQualityChange"]
   ) => void;
   onCued?: () => void;
+  /**
+   * Fires once per src/load when playback is presenting frames to the user.
+   * Normalizes HTML5 `requestVideoFrameCallback` (direct media), the `playing`
+   * event (Vimeo, Dailymotion), and provider-specific equivalents elsewhere.
+   */
+  onVisibleFrame?: () => void;
 }
 
 /**

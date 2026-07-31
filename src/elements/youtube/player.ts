@@ -48,9 +48,10 @@ function loadYTScript(): Promise<void> {
 class YouTubeEmbedPlayer extends EmbedVideoElement {
   protected ytPlayerState: {
     progressIntervalId: ReturnType<typeof setInterval> | undefined;
+    visibleFramePollId: ReturnType<typeof setInterval> | undefined;
     destroyed: boolean;
     loadId: number;
-  } = { progressIntervalId: undefined, destroyed: false, loadId: 0 };
+  } = { progressIntervalId: undefined, visibleFramePollId: undefined, destroyed: false, loadId: 0 };
 
   api: YTPlayer | null = null;
   player: YTPlayer | null = null;
@@ -62,8 +63,52 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
     this.player.unloadModule("cc");
   }
 
+  private clearVisibleFramePoll(): void {
+    if (this.ytPlayerState.visibleFramePollId != null) {
+      clearInterval(this.ytPlayerState.visibleFramePollId);
+      this.ytPlayerState.visibleFramePollId = undefined;
+    }
+  }
+
+  /**
+   * YouTube has no frame callback. Poll while PLAYING until buffered data or
+   * current time advances — closest equivalent to HTML5 `playing` + rVFC.
+   */
+  private scheduleYouTubeVisibleFrame(loadId: number): void {
+    if (this.playerState.visibleFrameDispatched) return;
+    this.clearVisibleFramePoll();
+
+    const tryDispatch = (): boolean => {
+      if (loadId !== this.ytPlayerState.loadId || this.playerState.visibleFrameDispatched) {
+        return true;
+      }
+
+      const player = this.player;
+      if (!player || player.getPlayerState() !== YT_PLAYER_STATE.PLAYING) return false;
+
+      const loaded = player.getVideoLoadedFraction();
+      const time = player.getCurrentTime();
+      if (loaded > 0 || time > 0) {
+        this.dispatchVisibleFrameOnce();
+        return true;
+      }
+
+      return false;
+    };
+
+    if (tryDispatch()) return;
+
+    let attempts = 0;
+    this.ytPlayerState.visibleFramePollId = setInterval(() => {
+      if (tryDispatch() || ++attempts >= 100) {
+        this.clearVisibleFramePoll();
+      }
+    }, 50);
+  }
+
   override load(): void {
     this.loadInitialOptions();
+    this.clearVisibleFramePoll();
 
     // Capture src synchronously so the async callback uses the URL that was
     // current when load() was called, not whatever src is by the time it fires.
@@ -130,6 +175,7 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
               this.disableCaptions();
               this.playerState.isPaused = false;
               this.dispatchPlayEvent();
+              this.scheduleYouTubeVisibleFrame(loadId);
             } else if (event.data === YT_PLAYER_STATE.BUFFERING) {
               this.playerState.isBuffering = true;
               this.dispatchBufferingEvent();
@@ -283,6 +329,7 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
   override destroy(): void {
     this.ytPlayerState.destroyed = true;
     if (this.ytPlayerState.progressIntervalId) clearInterval(this.ytPlayerState.progressIntervalId);
+    this.clearVisibleFramePoll();
     // this.player?.destroy();
   }
 

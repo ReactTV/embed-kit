@@ -44,10 +44,47 @@ const seekToStartSeconds = (el: HTMLMediaElement, target: number) => {
   }
 };
 
+const hasRenderableFrame = (el: HTMLMediaElement) =>
+  !el.paused && el.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA;
+
+const scheduleVisibleFrame = (
+  el: HTMLMediaElement,
+  dispatchedRef: React.MutableRefObject<boolean>,
+  onVisibleFrame: () => void
+) => {
+  if (dispatchedRef.current) return;
+
+  const dispatch = () => {
+    if (dispatchedRef.current) return;
+    dispatchedRef.current = true;
+    onVisibleFrame();
+  };
+
+  const tryFallback = () => {
+    if (!hasRenderableFrame(el)) return false;
+    dispatch();
+    return true;
+  };
+
+  if ("requestVideoFrameCallback" in el && typeof el.requestVideoFrameCallback === "function") {
+    el.requestVideoFrameCallback(() => dispatch());
+    return;
+  }
+
+  if (!tryFallback()) {
+    const onCanPlay = () => {
+      tryFallback();
+      el.removeEventListener("canplay", onCanPlay);
+    };
+    el.addEventListener("canplay", onCanPlay);
+  }
+};
+
 const HtmlPlayer = forwardRef<HTMLMediaElement, HtmlPlayerProps>(
   ({ playing, volume, muted, controls = false, autoplay, startSeconds, ...props }, ref) => {
     const Media = AUDIO_EXTENSIONS.test(`${props.src}`) ? "audio" : "video";
     const internalRef = useRef<HTMLMediaElement | null>(null);
+    const visibleFrameDispatchedRef = useRef(false);
     /** After src changes, skip one pause() so autoPlay is not undone while playing is still false. */
     const skipInitialPauseRef = useRef(false);
     // Omit autoplay from spread so only camelCase autoPlay is passed to the DOM element
@@ -59,12 +96,18 @@ const HtmlPlayer = forwardRef<HTMLMediaElement, HtmlPlayerProps>(
       onReady,
       onPlaybackRateChange,
       onCued,
+      onPlay,
+      onPause,
+      onEnded,
+      onBuffering,
+      onVisibleFrame,
       ...mediaProps
     } = props as HtmlPlayerProps & { autoplay?: boolean };
     const normalizedStartSeconds = normalizeStartSeconds(startSeconds);
 
     useEffect(() => {
       skipInitialPauseRef.current = !!(autoplay && playing === false);
+      visibleFrameDispatchedRef.current = false;
     }, [props.src]);
 
     useEffect(() => {
@@ -124,17 +167,32 @@ const HtmlPlayer = forwardRef<HTMLMediaElement, HtmlPlayerProps>(
         onLoadedData={() => {
           onReady?.();
         }}
+        onPlaying={(e: React.SyntheticEvent<HTMLMediaElement, Event>) => {
+          onPlay?.();
+          if (onVisibleFrame) {
+            scheduleVisibleFrame(e.currentTarget, visibleFrameDispatchedRef, onVisibleFrame);
+          }
+        }}
+        onWaiting={() => {
+          onBuffering?.();
+        }}
+        onPause={() => {
+          onPause?.();
+        }}
+        onEnded={() => {
+          onEnded?.();
+        }}
         onVolumeChange={(e: React.SyntheticEvent<HTMLMediaElement, Event>) => {
           const currentVolume = e.currentTarget?.volume;
           if (currentVolume !== undefined) onVolumeChange?.(currentVolume * 100);
         }}
         onTimeUpdate={(e: React.SyntheticEvent<HTMLMediaElement, Event>) => {
           const progress = e.currentTarget?.currentTime;
-          if (progress) onProgress?.(progress);
+          if (progress != null && Number.isFinite(progress)) onProgress?.(progress);
         }}
         onDurationChange={(e: React.SyntheticEvent<HTMLMediaElement, Event>) => {
           const duration = e.currentTarget?.duration;
-          if (duration) onDurationChange?.(duration);
+          if (duration != null && Number.isFinite(duration)) onDurationChange?.(duration);
         }}
         onError={(e: React.SyntheticEvent<HTMLMediaElement, Event>) => {
           const err = e.currentTarget?.error;

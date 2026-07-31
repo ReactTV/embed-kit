@@ -78,6 +78,7 @@ export class EmbedVideoElement extends HTMLElement {
     currentTime: 0,
     duration: 0,
     isPaused: true,
+    visibleFrameDispatched: false,
     muted: false,
     error: null as MediaError | null,
     volume: 0.2,
@@ -307,6 +308,19 @@ export class EmbedVideoElement extends HTMLElement {
     );
   }
 
+  dispatchVisibleFrameEvent() {
+    this.dispatchEvent(
+      new CustomEvent<TDispatchedEventPayloads["onVisibleFrame"]>(DISPATCHED_EVENTS.visibleFrame)
+    );
+  }
+
+  /** Dispatch onVisibleFrame at most once per src/load. */
+  protected dispatchVisibleFrameOnce(): void {
+    if (this.playerState.visibleFrameDispatched) return;
+    this.playerState.visibleFrameDispatched = true;
+    this.dispatchVisibleFrameEvent();
+  }
+
   dispatchProgressEvent(progress: TDispatchedEventPayloads["onProgress"]) {
     this.dispatchEvent(
       new CustomEvent<TDispatchedEventPayloads["onProgress"]>(DISPATCHED_EVENTS.progress, {
@@ -319,6 +333,7 @@ export class EmbedVideoElement extends HTMLElement {
     if (oldValue === newValue) return;
 
     if (name === "src") {
+      this.playerState.visibleFrameDispatched = false;
       this.load();
     }
 

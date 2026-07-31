@@ -103,6 +103,9 @@ class TikTokEmbedPlayer extends EmbedVideoElement {
                 this.dispatchDurationChangeEvent(t.duration);
               }
             }
+            if (!this.playerState.isPaused) {
+              this.dispatchVisibleFrameOnce();
+            }
             this.dispatchProgressEvent(this.playerState.currentTime);
           }
           break;

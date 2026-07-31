@@ -132,6 +132,9 @@ class TwitchEmbedPlayer extends EmbedVideoElement {
         if (p.playback === PlaybackState.BUFFERING) {
           this.dispatchBufferingEvent();
         }
+        if (p.playback === PlaybackState.PLAYING) {
+          this.dispatchVisibleFrameOnce();
+        }
         if (p.playback === PlaybackState.ENDED) {
           this.dispatchEndedEvent();
         }

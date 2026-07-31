@@ -71,6 +71,7 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
     onPlaybackRateChange,
     onPlaybackQualityChange,
     onCued,
+    onVisibleFrame,
     playerRef,
     volume,
     config,
@@ -143,6 +144,7 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
         onPlaybackQualityChange?.(event.detail);
       },
       onCued: () => onCued?.(),
+      onVisibleFrame: () => onVisibleFrame?.(),
     };
 
     Object.entries(handlers).forEach(([event, handler]) => {
@@ -169,6 +171,7 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
     onPlaybackRateChange,
     onPlaybackQualityChange,
     onCued,
+    onVisibleFrame,
   ]);
 
   const applyAttributesAndLoad = useCallback(
