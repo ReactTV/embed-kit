@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import type { EmbedPlayerRef } from "../../elements/_base/player.types.js";
+import { AUDIO_EXTENSIONS, VIDEO_EXTENSIONS } from "../constants.js";
 import { ReactEmbedKit } from "../ReactEmbedKit.js";
 import { SOURCE_URL as YOUTUBE_SOURCE_URL } from "../../elements/youtube/constants.js";
 import { SOURCE_URL as VIMEO_SOURCE_URL } from "../../elements/vimeo/constants.js";
@@ -14,6 +15,10 @@ import { SOURCE_URL as DAILYMOTION_SOURCE_URL } from "../../elements/dailymotion
 
 const MP4_SAMPLE_URL =
   "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+
+// Direct file URL for https://archive.org/details/RockyBullwinkleFriends/.../Goof+Gas+Attack+Outtake.mp4
+const ARCHIVE_ORG_GOOF_GAS_OUTTAKE_URL =
+  "https://archive.org/download/RockyBullwinkleFriends/RockyAndBullwinkleAndFriends/Extras/Rocky%20%26%20Bullwinkle%20%26%20Friends%20-%20Extra%20-%20Goof%20Gas%20Attack%20Outtake.mp4";
 
 const PRESETS: { label: string; urls: string[] }[] = [
   {
@@ -54,6 +59,10 @@ const PRESETS: { label: string; urls: string[] }[] = [
     label: "MP4",
     urls: [MP4_SAMPLE_URL],
   },
+  {
+    label: "Archive.org",
+    urls: [ARCHIVE_ORG_GOOF_GAS_OUTTAKE_URL],
+  },
 ];
 
 function formatTime(seconds: number | null | undefined): string {
@@ -77,7 +86,7 @@ interface PollData {
  * isBuffering, isSeeking.
  */
 export function ReactEmbedKitTestPage(): React.ReactElement {
-  const [muted, setMuted] = useState(false);
+  const [muted, setMuted] = useState(true);
   const [playing, setPlaying] = useState(false);
   const [volume, setVolume] = useState(1);
   const [selectedPresetIdx, setSelectedPresetIdx] = useState(0);
@@ -86,7 +95,7 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
   const url = urlState.url;
   const [player, setPlayer] = useState<NonNullable<EmbedPlayerRef> | null>(null);
   const [buffering, setBuffering] = useState(false);
-  const [controls, setControls] = useState(false);
+  const [controls, setControls] = useState(true);
   const [captions, setCaptions] = useState(false);
   const [annotations, setAnnotations] = useState(false);
   const [autoplay, setAutoplay] = useState(true);
@@ -101,8 +110,8 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
   });
 
   useEffect(() => {
-    setPlayer(null);
     setBuffering(false);
+    setData({ currentTime: null, duration: null, paused: null, muted: null, volume: null });
   }, [url]);
 
   useEffect(() => {
@@ -152,6 +161,8 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
     : [];
 
   const isYouTube = /youtube\.com|youtu\.be/.test(url);
+  const isDirectMedia = !!(url.match(AUDIO_EXTENSIONS) || url.match(VIDEO_EXTENSIONS));
+  const supportsStartSeconds = isYouTube || isDirectMedia;
 
   const currentPreset = selectedPresetIdx >= 0 ? PRESETS[selectedPresetIdx] : null;
   const canCycle = currentPreset != null && currentPreset.urls.length > 1;
@@ -297,7 +308,7 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
             aria-label="Volume 0-100"
           />
         </label>
-        {isYouTube && (
+        {supportsStartSeconds && (
           <label
             style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginLeft: "1rem" }}
           >
@@ -327,7 +338,7 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
           captions={captions}
           annotations={annotations}
           autoplay={autoplay}
-          {...(isYouTube ? { startSeconds } : {})}
+          {...(supportsStartSeconds ? { startSeconds } : {})}
           config={embedConfig}
           onReady={() => {}}
           onBuffering={() => setBuffering(true)}
@@ -367,6 +378,23 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
           }}
         >
           Seek to 0:30
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (player) player.currentTime = player.duration - 300;
+          }}
+        >
+          Reverse 5 minutes
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            console.log("Player duration", player?.duration ?? 0);
+            if (player) player.currentTime = (player.duration ?? 0) - 1600;
+          }}
+        >
+          Reverse 10 minutes
         </button>
         <button type="button" onClick={() => setMuted(!muted)}>
           [{muted ? "Muted" : "Unmuted"}]

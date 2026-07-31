@@ -25,8 +25,27 @@ export interface VideoElementProps extends React.DetailedHTMLProps<
 
 export type HtmlPlayerProps = Omit<ReactEmbedKitProps, "ref">;
 
+const normalizeStartSeconds = (startSeconds: number | undefined): number | undefined => {
+  if (startSeconds == null || !Number.isFinite(startSeconds) || startSeconds <= 0) {
+    return undefined;
+  }
+
+  return Math.floor(startSeconds);
+};
+
+const seekToStartSeconds = (el: HTMLMediaElement, target: number) => {
+  if (el.readyState === 0) return;
+  if (Math.abs(el.currentTime - target) < 0.25) return;
+
+  try {
+    el.currentTime = target;
+  } catch {
+    // Seeking may fail until the media is seekable.
+  }
+};
+
 const HtmlPlayer = forwardRef<HTMLMediaElement, HtmlPlayerProps>(
-  ({ playing, volume, muted, controls = false, autoplay, ...props }, ref) => {
+  ({ playing, volume, muted, controls = false, autoplay, startSeconds, ...props }, ref) => {
     const Media = AUDIO_EXTENSIONS.test(`${props.src}`) ? "audio" : "video";
     const internalRef = useRef<HTMLMediaElement | null>(null);
     /** After src changes, skip one pause() so autoPlay is not undone while playing is still false. */
@@ -42,10 +61,27 @@ const HtmlPlayer = forwardRef<HTMLMediaElement, HtmlPlayerProps>(
       onCued,
       ...mediaProps
     } = props as HtmlPlayerProps & { autoplay?: boolean };
+    const normalizedStartSeconds = normalizeStartSeconds(startSeconds);
 
     useEffect(() => {
       skipInitialPauseRef.current = !!(autoplay && playing === false);
     }, [props.src]);
+
+    useEffect(() => {
+      const el = internalRef.current;
+      if (!el || normalizedStartSeconds == null) return;
+
+      const seek = () => seekToStartSeconds(el, normalizedStartSeconds);
+
+      el.addEventListener("loadedmetadata", seek);
+      el.addEventListener("canplay", seek);
+      if (el.readyState >= 1) seek();
+
+      return () => {
+        el.removeEventListener("loadedmetadata", seek);
+        el.removeEventListener("canplay", seek);
+      };
+    }, [props.src, normalizedStartSeconds]);
 
     useEffect(() => {
       if (!internalRef.current) return;
