@@ -118,7 +118,8 @@ const HtmlPlayer = forwardRef<HTMLMediaElement, HtmlPlayerProps>(
       const seek = () => seekToStartSeconds(el, normalizedStartSeconds);
 
       el.addEventListener("loadedmetadata", seek);
-      el.addEventListener("canplay", seek);
+      // Fallback when metadata is ready but the target time is not seekable yet.
+      el.addEventListener("canplay", seek, { once: true });
       if (el.readyState >= 1) seek();
 
       return () => {
