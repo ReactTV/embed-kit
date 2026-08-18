@@ -9,6 +9,7 @@ import type {
 import type { EmbedTagName } from "./providers.js";
 import { AUDIO_EXTENSIONS, VIDEO_EXTENSIONS } from "./constants.js";
 import HtmlPlayer from "./HtmlPlayer.js";
+import { useOnTickInterval } from "./useOnTickInterval.js";
 
 export type ReactEmbedKitProps = IDispatchedEventCallbacks & {
   src?: string;
@@ -90,6 +91,7 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
   const isHtmlPlayer = !!(src && (src.match(AUDIO_EXTENSIONS) || src.match(VIDEO_EXTENSIONS)));
 
   const embedRef = useRef<EmbedPlayerRef>(null);
+  const [wiredElement, setWiredElement] = useState<HTMLElement | null>(null);
 
   // Derived synchronously — no extra render cycle when src changes.
   const embedUrl = isClient && tagReady ? (src ?? "") : "";
@@ -111,9 +113,9 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
       });
   }, [isClient]);
 
-  // Wire consumer events to the embed element
+  // Wire consumer events to the embed element once the custom element ref is set.
   useEffect(() => {
-    const el = embedRef.current;
+    const el = wiredElement;
     if (!el) return;
 
     const handlers = {
@@ -150,7 +152,6 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
       },
       onCued: () => onCued?.(),
       onVisibleFrame: () => onVisibleFrame?.(),
-      onTick: () => onTick?.(),
     };
 
     Object.entries(handlers).forEach(([event, handler]) => {
@@ -163,7 +164,7 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
       });
     };
   }, [
-    embedUrl,
+    wiredElement,
     onReady,
     onPlay,
     onPlaying,
@@ -179,8 +180,16 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
     onPlaybackQualityChange,
     onCued,
     onVisibleFrame,
-    onTick,
   ]);
+
+  // onTick for all player paths (embed custom elements and direct media URLs).
+  const playerMounted = Boolean(isClient && tagReady && src);
+  useOnTickInterval({
+    onTick,
+    tickRate,
+    resetKey: src,
+    enabled: playerMounted,
+  });
 
   const applyAttributesAndLoad = useCallback(
     (el: EmbedPlayerRef, targetUrl: string) => {
@@ -274,6 +283,7 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
   const setEmbedRef = useCallback(
     (el: EmbedPlayerRef) => {
       (embedRef as { current: EmbedPlayerRef | null }).current = el;
+      setWiredElement(el instanceof HTMLElement ? el : null);
       if (el && embedUrlRef.current) applyAttributesAndLoad(el, embedUrlRef.current);
       forwardPlayerRef(el);
     },
