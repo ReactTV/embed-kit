@@ -1,6 +1,7 @@
 import { createIframe, EmbedVideoElement } from "../_base/index.js";
 import {
   EMBED_ORIGIN,
+  EmbedEvents,
   NS_EMBED,
   NS_PLAYER_PROXY,
   isPausedPlaybackState,
@@ -115,6 +116,12 @@ class TwitchEmbedPlayer extends EmbedVideoElement {
         ) {
           this.playerState.isPaused = false;
           this.dispatchPlayEvent();
+        }
+        if (message.eventName === EmbedEvents.PLAYBACK_BLOCKED) {
+          if (!this.playerState.isPaused) {
+            this.playerState.isPaused = true;
+            this.dispatchPauseEvent();
+          }
         }
       }
 

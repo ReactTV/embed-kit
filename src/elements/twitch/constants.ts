@@ -13,6 +13,29 @@ export const NS_EMBED = "twitch-embed";
 export const NS_PLAYER_PROXY = "twitch-embed-player-proxy";
 
 /**
+ * twitch-embed namespace event names from the official embed SDK.
+ * @see https://player.twitch.tv/js/embed/v1.js
+ * @see https://dev.twitch.tv/docs/embed/video-and-clips/
+ */
+export const EmbedEvents = {
+  CAPTIONS: "captions",
+  ENDED: "ended",
+  ERROR: "error",
+  OFFLINE: "offline",
+  ONLINE: "online",
+  PAUSE: "pause",
+  PLAY: "play",
+  /** Browser blocked unmuted autoplay or programmatic play(). */
+  PLAYBACK_BLOCKED: "playbackBlocked",
+  PLAYING: "playing",
+  READY: "ready",
+  SEEK: "seek",
+  VIDEO_PAUSE: "video.pause",
+  VIDEO_PLAY: "video.play",
+  VIDEO_READY: "video.ready",
+} as const;
+
+/**
  * Playback state strings from Twitch embed UPDATE_STATE.params.playback.
  * @see https://github.com/muxinc/media-elements/blob/main/packages/twitch-video-element/twitch-video-element.js
  */

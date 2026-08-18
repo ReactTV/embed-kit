@@ -1,7 +1,7 @@
 /**
  * Twitch embed postMessage types — strict shapes from observed messages only.
  * Namespace "twitch-embed-player-proxy": UPDATE_STATE.
- * Namespace "twitch-embed": seek, video.play, play, playing, ready, video.ready, offline, error.
+ * Namespace "twitch-embed": seek, video.play, play, playing, ready, video.ready, offline, error, playbackBlocked.
  */
 
 /** Params for eventName "UPDATE_STATE", namespace "twitch-embed-player-proxy". */
@@ -50,6 +50,7 @@ export type TTwitchMessage =
   | { namespace: "twitch-embed"; eventName: "video.play"; params: ITwitchPlayParams }
   | { namespace: "twitch-embed"; eventName: "play"; params: ITwitchPlayParams }
   | { namespace: "twitch-embed"; eventName: "playing"; params: TTwitchEmptyParams }
+  | { namespace: "twitch-embed"; eventName: "playbackBlocked"; params: TTwitchEmptyParams }
   | { namespace: "twitch-embed"; eventName: "ready"; params: TTwitchEmptyParams }
   | { namespace: "twitch-embed"; eventName: "video.ready"; params: TTwitchEmptyParams }
   | { namespace: "twitch-embed"; eventName: "offline"; params: TTwitchEmptyParams }
