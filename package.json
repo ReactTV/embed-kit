@@ -1,6 +1,6 @@
 {
   "name": "@reacttv/embed-kit",
-  "version": "0.7.4",
+  "version": "0.7.5",
   "description": "Normalized API across YouTube, Twitch, TikTok, and other embed sources",
   "type": "module",
   "exports": {
