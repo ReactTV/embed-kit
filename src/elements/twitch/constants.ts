@@ -26,6 +26,16 @@ export const PlaybackState = {
 } as const;
 
 /**
+ * Twitch UPDATE_STATE playback values that mean the stream is not actively
+ * playing. Idle is reported when playback stalls (e.g. browser-blocked resume)
+ * as well as for an explicit pause; Paused is the user-pause state.
+ * Ready is intentionally excluded — it fires before the first play on load.
+ * @see https://github.com/muxinc/media-elements/blob/main/packages/twitch-video-element/twitch-video-element.js
+ */
+export const isPausedPlaybackState = (playback: string): boolean =>
+  playback === PlaybackState.PAUSED || playback === PlaybackState.IDLE;
+
+/**
  * Numeric command codes for postMessage to the embed (namespace twitch-embed-player-proxy).
  * @see https://github.com/twitchdev/issues/issues/125
  */

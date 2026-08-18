@@ -3,6 +3,7 @@ import {
   EMBED_ORIGIN,
   NS_EMBED,
   NS_PLAYER_PROXY,
+  isPausedPlaybackState,
   PlaybackState,
   PlayerCommands,
   REGEX_CHANNEL,
@@ -119,7 +120,7 @@ class TwitchEmbedPlayer extends EmbedVideoElement {
 
       if (message.namespace === NS_PLAYER_PROXY && message.eventName === "UPDATE_STATE") {
         const p = message.params;
-        const isPaused = p.playback === PlaybackState.PAUSED;
+        const isPaused = isPausedPlaybackState(p.playback);
 
         if (isPaused && !this.playerState.isPaused) {
           this.playerState.isPaused = true;
