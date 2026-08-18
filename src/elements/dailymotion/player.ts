@@ -205,7 +205,7 @@ class DailymotionEmbedPlayer extends EmbedVideoElement {
   }
 
   connectedCallback(): void {
-    this.loadInitialOptions();
+    super.connectedCallback();
 
     const src = this.getAttribute("src");
     if (!src) return;
@@ -226,6 +226,7 @@ class DailymotionEmbedPlayer extends EmbedVideoElement {
   }
 
   override destroy(): void {
+    super.destroy();
     this.dmPlayerState.destroyed = true;
     this.player?.destroy();
     this.player = null;

@@ -144,7 +144,7 @@ class TikTokEmbedPlayer extends EmbedVideoElement {
   }
 
   connectedCallback(): void {
-    this.loadInitialOptions();
+    super.connectedCallback();
 
     const src = this.getAttribute("src");
     if (!src) return;
@@ -166,6 +166,7 @@ class TikTokEmbedPlayer extends EmbedVideoElement {
   }
 
   override destroy(): void {
+    super.destroy();
     this.tiktokPlayerState.destroyed = true;
     window.removeEventListener("message", this.handleMessage);
     if (this.iframe?.parentNode) this.iframe.remove();

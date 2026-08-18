@@ -3,6 +3,7 @@ import { DISPATCHED_EVENTS, TDispatchedEventPayloads } from "./player.types.js";
 export type TEmbedVideoElementOptions = {
   autoplay: boolean;
   progressInterval: number;
+  tickRate: number;
   controls: boolean;
   captions: boolean;
   annotations: boolean;
@@ -18,6 +19,7 @@ export type TEmbedVideoElementOptions = {
 const generateDefaultOptions = (): TEmbedVideoElementOptions => ({
   autoplay: false,
   progressInterval: 50,
+  tickRate: 100,
   controls: true,
   captions: false,
   annotations: false,
@@ -66,12 +68,15 @@ export class EmbedVideoElement extends HTMLElement {
     "annotations",
     "relatedVideos",
     "volume",
+    "tickRate",
     "youtube",
     "vimeo",
     "dailymotion",
   ];
 
   protected options: TEmbedVideoElementOptions = generateDefaultOptions();
+
+  protected tickIntervalId: ReturnType<typeof setInterval> | undefined;
 
   protected playerState = {
     isBuffering: false,
@@ -94,6 +99,7 @@ export class EmbedVideoElement extends HTMLElement {
       progressInterval: attributes.progressInterval
         ? parseInt(attributes.progressInterval, 10)
         : 50,
+      tickRate: attributes.tickRate ? parseInt(attributes.tickRate, 10) : 100,
       controls: attributes.controls === "true",
       captions: attributes.captions === "true",
       annotations: attributes.annotations === "true",
@@ -109,7 +115,34 @@ export class EmbedVideoElement extends HTMLElement {
 
   load(): void {}
 
+  protected clearTickInterval(): void {
+    if (this.tickIntervalId != null) {
+      clearInterval(this.tickIntervalId);
+      this.tickIntervalId = undefined;
+    }
+  }
+
+  protected startTickInterval(): void {
+    this.clearTickInterval();
+    const rate = this.options.tickRate;
+    if (!Number.isFinite(rate) || rate <= 0) return;
+
+    this.tickIntervalId = setInterval(() => {
+      this.dispatchTickEvent();
+    }, rate);
+  }
+
+  connectedCallback(): void {
+    this.loadInitialOptions();
+    this.startTickInterval();
+  }
+
+  disconnectedCallback(): void {
+    this.clearTickInterval();
+  }
+
   destroy(): void | Promise<void> {
+    this.clearTickInterval();
     return Promise.resolve();
   }
 
@@ -335,6 +368,12 @@ export class EmbedVideoElement extends HTMLElement {
     );
   }
 
+  dispatchTickEvent() {
+    this.dispatchEvent(
+      new CustomEvent<TDispatchedEventPayloads["onTick"]>(DISPATCHED_EVENTS.tick)
+    );
+  }
+
   attributeChangedCallback(name: string, oldValue: string, newValue: string): void {
     if (oldValue === newValue) return;
 
@@ -380,6 +419,11 @@ export class EmbedVideoElement extends HTMLElement {
 
     if (name === "relatedVideos") {
       this.relatedVideos = newValue === "true";
+    }
+
+    if (name === "tickRate") {
+      this.loadInitialOptions();
+      this.startTickInterval();
     }
   }
 

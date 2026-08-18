@@ -167,7 +167,7 @@ class VimeoEmbedPlayer extends EmbedVideoElement {
   }
 
   connectedCallback(): void {
-    this.loadInitialOptions();
+    super.connectedCallback();
 
     const src = this.getAttribute("src");
     if (!src) return;
@@ -189,6 +189,7 @@ class VimeoEmbedPlayer extends EmbedVideoElement {
   }
 
   override destroy(): void {
+    super.destroy();
     this.vimeoPlayerState.destroyed = true;
     this.player?.destroy();
     this.player = null;

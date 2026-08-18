@@ -19,6 +19,7 @@ export const DISPATCHED_EVENTS = {
   playbackQualityChange: "onPlaybackQualityChange",
   cued: "onCued",
   visibleFrame: "onVisibleFrame",
+  tick: "onTick",
 };
 
 export type TDispatchedEventPayloads = {
@@ -37,6 +38,7 @@ export type TDispatchedEventPayloads = {
   onPlaybackRateChange: number;
   onPlaybackQualityChange: string;
   onVisibleFrame: void;
+  onTick: void;
 };
 
 /** Detail type for each dispatched event. Use `undefined` for events with no payload. */
@@ -64,6 +66,8 @@ export interface IDispatchedEventCallbacks {
    * event (Vimeo, Dailymotion), and provider-specific equivalents elsewhere.
    */
   onVisibleFrame?: () => void;
+  /** Recurring callback on `tickRate` interval while the player is mounted. */
+  onTick?: () => void;
 }
 
 /**

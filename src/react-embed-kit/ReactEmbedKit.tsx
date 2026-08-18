@@ -24,6 +24,7 @@ export type ReactEmbedKitProps = IDispatchedEventCallbacks & {
   startSeconds?: number;
   seekTo?: number | null;
   progressInterval?: number;
+  tickRate?: number;
   controls?: boolean;
   captions?: boolean;
   annotations?: boolean;
@@ -73,10 +74,12 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
     onPlaybackQualityChange,
     onCued,
     onVisibleFrame,
+    onTick,
     playerRef,
     volume,
     config,
     startSeconds,
+    tickRate,
     className,
     style,
   } = props;
@@ -147,6 +150,7 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
       },
       onCued: () => onCued?.(),
       onVisibleFrame: () => onVisibleFrame?.(),
+      onTick: () => onTick?.(),
     };
 
     Object.entries(handlers).forEach(([event, handler]) => {
@@ -175,6 +179,7 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
     onPlaybackQualityChange,
     onCued,
     onVisibleFrame,
+    onTick,
   ]);
 
   const applyAttributesAndLoad = useCallback(
@@ -217,6 +222,7 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
       setIfChanged("captions", String(!!captions));
       setIfChanged("annotations", String(!!annotations));
       if (volume != null) setIfChanged("volume", String(volume));
+      if (tickRate != null) setIfChanged("tickRate", String(tickRate));
       if (width != null) setIfChanged("width", String(width));
       if (height != null) setIfChanged("height", String(height));
       const normalizedStartSeconds = normalizeStartSeconds(startSeconds);
@@ -251,6 +257,7 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
       height,
       config,
       startSeconds,
+      tickRate,
     ]
   );
 

@@ -274,7 +274,7 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
   }
 
   connectedCallback(): void {
-    this.loadInitialOptions();
+    super.connectedCallback();
 
     const src = this.getAttribute("src");
 
@@ -342,6 +342,7 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
   }
 
   override destroy(): void {
+    super.destroy();
     this.ytPlayerState.destroyed = true;
     if (this.ytPlayerState.progressIntervalId) clearInterval(this.ytPlayerState.progressIntervalId);
     this.clearVisibleFramePoll();

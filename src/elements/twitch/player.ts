@@ -194,7 +194,7 @@ class TwitchEmbedPlayer extends EmbedVideoElement {
   }
 
   connectedCallback(): void {
-    this.loadInitialOptions();
+    super.connectedCallback();
 
     const src = this.getAttribute("src");
     if (!src) return;
@@ -233,6 +233,7 @@ class TwitchEmbedPlayer extends EmbedVideoElement {
   }
 
   override destroy(): void {
+    super.destroy();
     this.twitchPlayerState.destroyed = true;
     window.removeEventListener("message", this.handleMessage);
     if (this.iframe?.parentNode) this.iframe.remove();

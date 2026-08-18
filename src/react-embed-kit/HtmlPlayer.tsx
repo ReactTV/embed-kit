@@ -81,7 +81,7 @@ const scheduleVisibleFrame = (
 };
 
 const HtmlPlayer = forwardRef<HTMLMediaElement, HtmlPlayerProps>(
-  ({ playing, volume, muted, controls = false, autoplay, startSeconds, ...props }, ref) => {
+  ({ playing, volume, muted, controls = false, autoplay, startSeconds, tickRate, ...props }, ref) => {
     const Media = AUDIO_EXTENSIONS.test(`${props.src}`) ? "audio" : "video";
     const internalRef = useRef<HTMLMediaElement | null>(null);
     const visibleFrameDispatchedRef = useRef(false);
@@ -102,6 +102,7 @@ const HtmlPlayer = forwardRef<HTMLMediaElement, HtmlPlayerProps>(
       onEnded,
       onBuffering,
       onVisibleFrame,
+      onTick,
       ...mediaProps
     } = props as HtmlPlayerProps & { autoplay?: boolean };
     const normalizedStartSeconds = normalizeStartSeconds(startSeconds);
@@ -159,6 +160,16 @@ const HtmlPlayer = forwardRef<HTMLMediaElement, HtmlPlayerProps>(
       if (!el) return;
       el.controls = !!controls;
     }, [controls]);
+
+    useEffect(() => {
+      if (!onTick) return;
+
+      const rate = tickRate ?? 100;
+      if (!Number.isFinite(rate) || rate <= 0) return;
+
+      const id = setInterval(() => onTick(), rate);
+      return () => clearInterval(id);
+    }, [onTick, tickRate, props.src]);
 
     return (
       <Media
