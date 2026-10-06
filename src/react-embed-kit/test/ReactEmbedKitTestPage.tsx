@@ -73,6 +73,8 @@ const PRESETS: { label: string; urls: string[] }[] = [
   },
 ];
 
+const DEFAULT_PRESET_IDX = Math.max(0, PRESETS.findIndex((p) => p.label === "Facebook"));
+
 function formatTime(seconds: number | null | undefined): string {
   if (seconds == null || Number.isNaN(seconds)) return "—";
   const m = Math.floor(seconds / 60);
@@ -97,8 +99,11 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
   const [muted, setMuted] = useState(true);
   const [playing, setPlaying] = useState(false);
   const [volume, setVolume] = useState(1);
-  const [selectedPresetIdx, setSelectedPresetIdx] = useState(0);
-  const [urlState, setUrlState] = useState({ idx: 0, url: PRESETS[0]?.urls[0] ?? "" });
+  const [selectedPresetIdx, setSelectedPresetIdx] = useState(DEFAULT_PRESET_IDX);
+  const [urlState, setUrlState] = useState({
+    idx: 0,
+    url: PRESETS[DEFAULT_PRESET_IDX]?.urls[0] ?? "",
+  });
   const urlIdx = urlState.idx;
   const url = urlState.url;
   const [player, setPlayer] = useState<NonNullable<EmbedPlayerRef> | null>(null);

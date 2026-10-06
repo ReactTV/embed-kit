@@ -4,8 +4,7 @@
  */
 
 /** facebook.com/{page}/videos/{numericId} */
-export const REGEX_VIDEOS =
-  /(?:https?:\/\/)?(?:www\.|m\.)?facebook\.com\/[^/?#]+\/videos\/(\d+)/i;
+export const REGEX_VIDEOS = /(?:https?:\/\/)?(?:www\.|m\.)?facebook\.com\/[^/?#]+\/videos\/(\d+)/i;
 
 /** facebook.com/{page}/posts/{numericId} (video posts) */
 export const REGEX_POSTS = /(?:https?:\/\/)?(?:www\.|m\.)?facebook\.com\/[^/?#]+\/posts\/(\d+)/i;
@@ -25,9 +24,12 @@ export const VIDEO_ID = "10153231379946729";
 /** Classic page video URL (Meta docs example). */
 export const CLASSIC_VIDEO_SOURCE_URL = `https://www.facebook.com/facebook/videos/${VIDEO_ID}/`;
 
-/** Portrait reel frame: width / height (9:16). */
-export const REEL_ASPECT_WIDTH = 9;
-export const REEL_ASPECT_HEIGHT = 16;
+/**
+ * Meta’s reel embed frame ratio (width / height). The iframe document is laid out at
+ * `data-width` × this ratio regardless of the iframe’s CSS size (e.g. 560 → 690).
+ */
+export const REEL_FRAME_WIDTH = 560;
+export const REEL_FRAME_HEIGHT = 690;
 
 export const REEL_ID = "1093894635842790";
 
