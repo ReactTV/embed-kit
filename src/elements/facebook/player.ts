@@ -15,25 +15,46 @@ import {
 import type { FacebookVideoEvent, IFacebookVideoPlayer } from "./player.types.js";
 
 const MIN_EMBED_WIDTH = 220;
+const DEFAULT_EMBED_WIDTH = 560;
 
-function getEmbedWidth(el: HTMLElement): number {
+/** Meta `data-width` (min 220 on desktop per their docs). */
+function getDataWidth(el: HTMLElement): number {
   const attr = el.getAttribute("width");
   const parsed = attr ? parseInt(attr, 10) : NaN;
   if (Number.isFinite(parsed) && parsed >= MIN_EMBED_WIDTH) return parsed;
+
   const rect = el.getBoundingClientRect();
   if (rect.width >= MIN_EMBED_WIDTH) return Math.floor(rect.width);
-  return 560;
+
+  return DEFAULT_EMBED_WIDTH;
 }
 
 /**
  * Facebook embedded video player (XFBML + Embedded Video Player API).
- * @see https://developers.facebook.com/docs/plugins/embedded-video-player/api/
+ * Layout is left to Meta’s default embed styles; no extra wrappers or overrides.
+ *
+ * The `fb-video` node must live in the light DOM — Meta’s SDK does not render XFBML
+ * inside shadow roots (same constraint as Dailymotion’s mount element).
+ *
+ * @see https://developers.facebook.com/docs/plugins/embedded-video-player/
  */
 class FacebookEmbedPlayer extends EmbedVideoElement {
   protected player: IFacebookVideoPlayer | null = null;
   protected fbPlayerState: { destroyed: boolean } = { destroyed: false };
-  /** Light DOM mount so XFBML can render the plugin (same pattern as Dailymotion). */
-  private fbMountEl: HTMLDivElement | null = null;
+  private fbVideoEl: HTMLDivElement | null = null;
+
+  constructor() {
+    super();
+    const root = this.shadowRoot!;
+    root.innerHTML = "";
+    const style = document.createElement("style");
+    style.textContent = `
+      :host { display: block; width: 100%; height: 100%; }
+      slot { display: block; width: 100%; height: 100%; }
+    `;
+    const slot = document.createElement("slot");
+    root.append(style, slot);
+  }
   private eventReleases: Array<{
     event: FacebookVideoEvent;
     release: (event: FacebookVideoEvent) => void;
@@ -45,25 +66,6 @@ class FacebookEmbedPlayer extends EmbedVideoElement {
   private pendingSeek: number | null = null;
   private pendingMuted: boolean | null = null;
   private pendingVolume: number | null = null;
-
-  constructor() {
-    super();
-    const root = this.shadowRoot!;
-    const container = this.embedContainer!;
-    root.removeChild(container);
-    const style = document.createElement("style");
-    style.textContent =
-      "slot { pointer-events: none; } slot::slotted(*) { pointer-events: auto; } .fb-mount { width:100%;height:100%;display:block;position:relative; }";
-    root.appendChild(style);
-    const wrapper = document.createElement("div");
-    wrapper.style.cssText = "width:100%;height:100%;display:block;position:relative;";
-    container.style.cssText = "width:100%;height:100%;display:block;position:absolute;inset:0;";
-    wrapper.appendChild(container);
-    const slot = document.createElement("slot");
-    slot.style.cssText = "position:absolute;inset:0;display:block;";
-    wrapper.appendChild(slot);
-    root.appendChild(wrapper);
-  }
 
   private clearProgressInterval(): void {
     if (this.progressIntervalId != null) {
@@ -132,9 +134,9 @@ class FacebookEmbedPlayer extends EmbedVideoElement {
 
     this.clearPendingCommands();
 
-    if (this.fbMountEl?.parentNode) {
-      this.fbMountEl.remove();
-      this.fbMountEl = null;
+    if (this.fbVideoEl?.parentNode) {
+      this.fbVideoEl.remove();
+      this.fbVideoEl = null;
     }
   }
 
@@ -301,17 +303,11 @@ class FacebookEmbedPlayer extends EmbedVideoElement {
     const playerId = `fb-embed-${Math.random().toString(36).slice(2, 11)}`;
     this.activePlayerId = playerId;
 
-    const mountEl = document.createElement("div");
-    mountEl.className = "fb-mount";
-    mountEl.style.cssText = "width:100%;height:100%;display:block;";
-    this.fbMountEl = mountEl;
-    this.appendChild(mountEl);
-
     const fbVideo = document.createElement("div");
     fbVideo.className = "fb-video";
     fbVideo.id = playerId;
     fbVideo.setAttribute("data-href", href);
-    fbVideo.setAttribute("data-width", String(getEmbedWidth(this)));
+    fbVideo.setAttribute("data-width", String(getDataWidth(this)));
     fbVideo.setAttribute("data-allowfullscreen", "true");
     fbVideo.setAttribute("data-show-text", this.options.annotations ? "true" : "false");
     if (this.options.autoplay) {
@@ -323,7 +319,9 @@ class FacebookEmbedPlayer extends EmbedVideoElement {
     if (isFacebookTruthyConfig(fbConfig.lazy)) {
       fbVideo.setAttribute("data-lazy", "true");
     }
-    mountEl.appendChild(fbVideo);
+
+    this.appendChild(fbVideo);
+    this.fbVideoEl = fbVideo;
 
     registerFacebookVideoReady(playerId, (instance) => {
       if (this.fbPlayerState.destroyed || this.activePlayerId !== playerId) return;
@@ -338,7 +336,6 @@ class FacebookEmbedPlayer extends EmbedVideoElement {
 
   connectedCallback(): void {
     super.connectedCallback();
-    this.fbPlayerState.destroyed = false;
 
     const src = this.getAttribute("src");
     if (!src) return;
@@ -497,7 +494,6 @@ class FacebookEmbedPlayer extends EmbedVideoElement {
     this.dispatchVolumeChangeEvent(v * 100);
   }
 
-  /** HTMLVideoElement-style volume helper (0–1) used by normalized API tests. */
   setVolume(volume: number): void {
     this.volume = volume <= 1 ? volume * 100 : volume;
   }

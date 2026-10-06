@@ -19,7 +19,6 @@
       }
       facebook-video {
         display: block;
-        min-height: 315px;
       }
       facebook-video:not(:defined) {
         min-height: 200px;
@@ -43,17 +42,14 @@
   <body>
     <h1>Facebook embed</h1>
     <p>
-      Programmatic <code>play()</code>, <code>pause()</code>, and <code>seek()</code> use Meta’s
-      <a href="https://developers.facebook.com/docs/plugins/embedded-video-player/api"
-        >Embedded Video Player API</a
-      >.
+      Default Meta <code>fb-video</code> markup (no custom layout CSS from embed-kit).
     </p>
     <div class="embed-wrap">
       <facebook-video
         id="fb-player"
         width="560"
         height="315"
-        src="https://www.facebook.com/facebook/videos/10153231379946729/"
+        src="https://www.facebook.com/reel/1093894635842790"
         muted
       />
     </div>

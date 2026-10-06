@@ -17,10 +17,22 @@ export const REGEX_VIDEO_PHP =
 /** fb.watch short links */
 export const REGEX_FB_WATCH = /(?:https?:\/\/)?(?:www\.)?fb\.watch\/([a-zA-Z0-9_-]+)/i;
 
+/** facebook.com/reel/{numericId} (Reels permalink) */
+export const REGEX_REEL = /(?:https?:\/\/)?(?:www\.|m\.)?facebook\.com\/reel\/(\d+)/i;
+
 export const VIDEO_ID = "10153231379946729";
 
-/** Full URL for src attribute (Meta docs example). */
-export const SOURCE_URL = `https://www.facebook.com/facebook/videos/${VIDEO_ID}/`;
+/** Classic page video URL (Meta docs example). */
+export const CLASSIC_VIDEO_SOURCE_URL = `https://www.facebook.com/facebook/videos/${VIDEO_ID}/`;
+
+/** Portrait reel frame: width / height (9:16). */
+export const REEL_ASPECT_WIDTH = 9;
+export const REEL_ASPECT_HEIGHT = 16;
+
+export const REEL_ID = "1093894635842790";
+
+/** Default test URL: public Reel permalink. */
+export const SOURCE_URL = `https://www.facebook.com/reel/${REEL_ID}`;
 
 export function isFacebookVideoUrl(src: string): boolean {
   const trimmed = src?.trim();
@@ -29,8 +41,15 @@ export function isFacebookVideoUrl(src: string): boolean {
     REGEX_VIDEOS.test(trimmed) ||
     REGEX_POSTS.test(trimmed) ||
     REGEX_VIDEO_PHP.test(trimmed) ||
-    REGEX_FB_WATCH.test(trimmed)
+    REGEX_FB_WATCH.test(trimmed) ||
+    REGEX_REEL.test(trimmed)
   );
+}
+
+export function isFacebookReelUrl(src: string): boolean {
+  const trimmed = src?.trim();
+  if (!trimmed) return false;
+  return REGEX_REEL.test(trimmed);
 }
 
 export function normalizeFacebookVideoHref(src: string): string | undefined {

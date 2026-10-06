@@ -12,7 +12,10 @@ import {
 } from "../../elements/twitch/constants.js";
 import { SOURCE_URL as TIKTOK_SOURCE_URL } from "../../elements/tiktok/constants.js";
 import { SOURCE_URL as DAILYMOTION_SOURCE_URL } from "../../elements/dailymotion/constants.js";
-import { SOURCE_URL as FACEBOOK_SOURCE_URL } from "../../elements/facebook/constants.js";
+import {
+  SOURCE_URL as FACEBOOK_SOURCE_URL,
+  CLASSIC_VIDEO_SOURCE_URL as FACEBOOK_CLASSIC_VIDEO_SOURCE_URL,
+} from "../../elements/facebook/constants.js";
 
 const MP4_SAMPLE_URL =
   "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
@@ -58,7 +61,7 @@ const PRESETS: { label: string; urls: string[] }[] = [
   },
   {
     label: "Facebook",
-    urls: [FACEBOOK_SOURCE_URL],
+    urls: [FACEBOOK_SOURCE_URL, FACEBOOK_CLASSIC_VIDEO_SOURCE_URL],
   },
   {
     label: "MP4",
@@ -104,7 +107,7 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
   const [captions, setCaptions] = useState(false);
   const [annotations, setAnnotations] = useState(false);
   const [autoplay, setAutoplay] = useState(true);
-  const [startSeconds, setStartSeconds] = useState<number>(60);
+  const [startSeconds, setStartSeconds] = useState<number>(25);
   const [progress, setProgress] = useState<number | null>(null);
   const [data, setData] = useState<PollData>({
     currentTime: null,
@@ -251,8 +254,8 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
         )}
       </div>
       <p className="hint">
-        Try: YouTube, youtu.be, Vimeo, Twitch videos/clips/channel, TikTok, Dailymotion, Facebook, or
-        MP4 URL
+        Try: YouTube, youtu.be, Vimeo, Twitch videos/clips/channel, TikTok, Dailymotion, Facebook,
+        or MP4 URL
       </p>
       <div className="player-options" style={{ marginBottom: "0.75rem" }}>
         <label
