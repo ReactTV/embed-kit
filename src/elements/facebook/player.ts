@@ -334,13 +334,13 @@ class FacebookEmbedPlayer extends EmbedVideoElement {
       this.muted = attributes.muted === "true";
     }
 
-    if (this.hasAttribute("playing")) {
-      const wantPlay = this.getAttribute("playing") === "true";
-      if (!(wantPlay === false && this.options.autoplay)) {
-        this.playing = wantPlay;
-      }
-    } else if (this.options.autoplay) {
+    // Meta’s `data-autoplay` is unreliable, so start playback explicitly once the player is ready.
+    // Autoplay wins over an initial `playing="false"` (React’s default state), like YouTube.
+    const wantPlay = this.getAttribute("playing") === "true";
+    if (wantPlay || this.options.autoplay) {
       void this.play();
+    } else if (this.hasAttribute("playing")) {
+      this.playing = false;
     }
   }
 
