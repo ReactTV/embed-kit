@@ -20,62 +20,62 @@ import type { FacebookVideoEvent, IFacebookVideoPlayer } from "./player.types.js
 const MIN_EMBED_WIDTH = 220;
 const DEFAULT_EMBED_WIDTH = 560;
 
-const FB_REEL_DOCUMENT_STYLE_ID = "embed-kit-fb-reel-responsive";
+/** Typical frame ratio for non-reel videos; only used to pick a starting `data-width`. */
+const VIDEO_FRAME_WIDTH = 16;
+const VIDEO_FRAME_HEIGHT = 9;
+
+const FB_DOCUMENT_STYLE_ID = "embed-kit-fb-responsive";
 
 /**
- * Centers Meta’s reel frame inside the host box (letterboxed, like other providers).
- * The iframe keeps Meta’s own px size — its document is laid out at `data-width`, so resizing
- * the iframe via CSS only crops/pads it. Instead `--fb-reel-scale` (kept in sync with the host
- * size by a ResizeObserver) scales the whole frame to fit. Must live in the document since the
- * XFBML node is light DOM.
+ * Centers Meta’s frame inside the host box (letterboxed on black, like other providers).
+ * Meta lays out the iframe document at `data-width` regardless of the iframe’s CSS size, so
+ * resizing the iframe only crops/pads it. Instead the frame keeps Meta’s px size and
+ * `--fb-scale` (kept in sync by a ResizeObserver) scales it to fit. Must live in the document
+ * since the XFBML node is light DOM.
  */
-const FB_REEL_DOCUMENT_CSS = `
-facebook-video[data-reel] .fb-video {
-  display: flex !important;
-  align-items: center;
-  justify-content: center;
-  width: 100% !important;
-  height: 100% !important;
-  overflow: hidden;
-}
-facebook-video[data-reel] .fb-video > span {
-  flex-shrink: 0;
-  transform: scale(var(--fb-reel-scale, 1));
+const FB_DOCUMENT_CSS = `
+facebook-video .fb-video {
+  position: absolute !important;
+  top: 50%;
+  left: 50%;
+  width: max-content !important;
+  max-width: none !important;
+  transform: translate(-50%, -50%) scale(var(--fb-scale, 1));
   transform-origin: center;
+}
+facebook-video .fb-video span,
+facebook-video .fb-video iframe {
+  max-width: none !important;
+  vertical-align: top !important;
 }
 `;
 
-function ensureFacebookReelDocumentStyles(): void {
-  if (document.getElementById(FB_REEL_DOCUMENT_STYLE_ID)) return;
+function ensureFacebookDocumentStyles(): void {
+  if (document.getElementById(FB_DOCUMENT_STYLE_ID)) return;
   const style = document.createElement("style");
-  style.id = FB_REEL_DOCUMENT_STYLE_ID;
-  style.textContent = FB_REEL_DOCUMENT_CSS;
+  style.id = FB_DOCUMENT_STYLE_ID;
+  style.textContent = FB_DOCUMENT_CSS;
   document.head.appendChild(style);
 }
 
-/** Meta `data-width` (min 220 on desktop per their docs). */
-function getDataWidth(el: HTMLElement): number {
-  const attr = el.getAttribute("width");
-  const parsed = attr ? parseInt(attr, 10) : NaN;
-  if (Number.isFinite(parsed) && parsed >= MIN_EMBED_WIDTH) return parsed;
-
+/**
+ * Starting Meta `data-width`: the width of a frame with the given ratio fitted inside the host,
+ * so little scaling is needed (min 220 on desktop per Meta’s docs).
+ */
+function getInitialDataWidth(el: HTMLElement, isReel: boolean): number {
   const rect = el.getBoundingClientRect();
-  if (rect.width >= MIN_EMBED_WIDTH) return Math.floor(rect.width);
+  if (rect.width <= 0 || rect.height <= 0) return DEFAULT_EMBED_WIDTH;
 
-  return DEFAULT_EMBED_WIDTH;
-}
-
-/** Width of the largest Meta reel frame (560:690) that fits the host box, or null if unsized. */
-function getReelFitWidth(el: HTMLElement): number | null {
-  const rect = el.getBoundingClientRect();
-  if (rect.width <= 0 || rect.height <= 0) return null;
-  return Math.min(rect.width, (rect.height * REEL_FRAME_WIDTH) / REEL_FRAME_HEIGHT);
+  const [ratioW, ratioH] = isReel
+    ? [REEL_FRAME_WIDTH, REEL_FRAME_HEIGHT]
+    : [VIDEO_FRAME_WIDTH, VIDEO_FRAME_HEIGHT];
+  const fitWidth = Math.min(rect.width, (rect.height * ratioW) / ratioH);
+  return Math.max(MIN_EMBED_WIDTH, Math.floor(fitWidth));
 }
 
 /**
  * Facebook embedded video player (XFBML + Embedded Video Player API).
- * Reel URLs are sized so Meta’s frame fits the host box and centered via document CSS.
- * Other Facebook URLs use Meta’s default embed layout.
+ * Meta’s frame (reel or regular video) is scaled to fit the host box and centered on black.
  *
  * The `fb-video` node must live in the light DOM — Meta’s SDK does not render XFBML
  * inside shadow roots (same constraint as Dailymotion’s mount element).
@@ -93,8 +93,14 @@ class FacebookEmbedPlayer extends EmbedVideoElement {
     root.innerHTML = "";
     const style = document.createElement("style");
     style.textContent = `
-      :host { display: block; width: 100%; height: 100%; }
-      :host([data-reel]) { overflow: hidden; background: #000; }
+      :host {
+        display: block;
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #000;
+      }
       slot { display: block; width: 100%; height: 100%; }
     `;
     const slot = document.createElement("slot");
@@ -111,14 +117,19 @@ class FacebookEmbedPlayer extends EmbedVideoElement {
   private pendingSeek: number | null = null;
   private pendingMuted: boolean | null = null;
   private pendingVolume: number | null = null;
-  private reelDataWidth = 0;
-  private reelResizeObserver: ResizeObserver | null = null;
+  private resizeObserver: ResizeObserver | null = null;
 
-  /** Scales the reel frame (rendered at `reelDataWidth`) to fit the current host size. */
-  private updateReelScale(): void {
-    const fitWidth = getReelFitWidth(this);
-    if (!this.fbVideoEl || !this.reelDataWidth || fitWidth == null) return;
-    this.fbVideoEl.style.setProperty("--fb-reel-scale", String(fitWidth / this.reelDataWidth));
+  /** Scales Meta’s frame (measured at its unscaled layout size) to fit the current host size. */
+  private updateScale(): void {
+    const frame = this.fbVideoEl;
+    if (!frame) return;
+    const frameWidth = frame.offsetWidth;
+    const frameHeight = frame.offsetHeight;
+    const hostWidth = this.clientWidth;
+    const hostHeight = this.clientHeight;
+    if (!frameWidth || !frameHeight || !hostWidth || !hostHeight) return;
+    const scale = Math.min(hostWidth / frameWidth, hostHeight / frameHeight);
+    frame.style.setProperty("--fb-scale", String(scale));
   }
 
   private clearProgressInterval(): void {
@@ -188,15 +199,13 @@ class FacebookEmbedPlayer extends EmbedVideoElement {
 
     this.clearPendingCommands();
 
-    this.reelResizeObserver?.disconnect();
-    this.reelResizeObserver = null;
-    this.reelDataWidth = 0;
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = null;
 
     if (this.fbVideoEl?.parentNode) {
       this.fbVideoEl.remove();
       this.fbVideoEl = null;
     }
-    this.removeAttribute("data-reel");
   }
 
   private syncStateFromPlayer(): void {
@@ -362,21 +371,13 @@ class FacebookEmbedPlayer extends EmbedVideoElement {
     const playerId = `fb-embed-${Math.random().toString(36).slice(2, 11)}`;
     this.activePlayerId = playerId;
 
-    const isReel = isFacebookReelUrl(href);
-
     const fbVideo = document.createElement("div");
     fbVideo.className = "fb-video";
     fbVideo.id = playerId;
     fbVideo.setAttribute("data-href", href);
-    if (isReel) {
-      // Render at the current fit size; later resizes are handled by scaling (see updateReelScale)
-      // since changing data-width would require re-rendering the embed and lose playback.
-      const fitWidth = getReelFitWidth(this) ?? DEFAULT_EMBED_WIDTH;
-      this.reelDataWidth = Math.max(MIN_EMBED_WIDTH, Math.floor(fitWidth));
-      fbVideo.setAttribute("data-width", String(this.reelDataWidth));
-    } else {
-      fbVideo.setAttribute("data-width", String(getDataWidth(this)));
-    }
+    // Render near the current fit size; later resizes are handled by scaling (see updateScale)
+    // since changing data-width would require re-rendering the embed and lose playback.
+    fbVideo.setAttribute("data-width", String(getInitialDataWidth(this, isFacebookReelUrl(href))));
     fbVideo.setAttribute("data-allowfullscreen", "true");
     fbVideo.setAttribute("data-show-text", this.options.annotations ? "true" : "false");
     if (this.options.autoplay) {
@@ -389,21 +390,15 @@ class FacebookEmbedPlayer extends EmbedVideoElement {
       fbVideo.setAttribute("data-lazy", "true");
     }
 
-    if (isReel) {
-      ensureFacebookReelDocumentStyles();
-      this.setAttribute("data-reel", "");
-    } else {
-      this.removeAttribute("data-reel");
-    }
+    ensureFacebookDocumentStyles();
     this.appendChild(fbVideo);
     this.fbVideoEl = fbVideo;
 
-    if (isReel) {
-      this.updateReelScale();
-      if (typeof ResizeObserver !== "undefined") {
-        this.reelResizeObserver = new ResizeObserver(() => this.updateReelScale());
-        this.reelResizeObserver.observe(this);
-      }
+    // Observe both the host (container resizes) and the frame (Meta sizing it after render).
+    if (typeof ResizeObserver !== "undefined") {
+      this.resizeObserver = new ResizeObserver(() => this.updateScale());
+      this.resizeObserver.observe(this);
+      this.resizeObserver.observe(fbVideo);
     }
 
     registerFacebookVideoReady(playerId, (instance) => {
