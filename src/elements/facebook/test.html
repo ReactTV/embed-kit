@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Facebook video — embed-kit</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 42rem;
+        margin: 2rem auto;
+        padding: 0 1rem;
+      }
+      h1 {
+        font-size: 1.25rem;
+      }
+      .embed-wrap {
+        margin: 1rem 0;
+      }
+      facebook-video {
+        display: block;
+        min-height: 315px;
+      }
+      facebook-video:not(:defined) {
+        min-height: 200px;
+        background: #eee;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #666;
+      }
+      facebook-video:not(:defined)::before {
+        content: "Loading… (use npx serve . if this stays)";
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin: 1rem 0;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Facebook embed</h1>
+    <p>
+      Programmatic <code>play()</code>, <code>pause()</code>, and <code>seek()</code> use Meta’s
+      <a href="https://developers.facebook.com/docs/plugins/embedded-video-player/api"
+        >Embedded Video Player API</a
+      >.
+    </p>
+    <div class="embed-wrap">
+      <facebook-video
+        id="fb-player"
+        width="560"
+        height="315"
+        src="https://www.facebook.com/facebook/videos/10153231379946729/"
+        muted
+      />
+    </div>
+    <div class="controls">
+      <button type="button" id="play-btn">Play</button>
+      <button type="button" id="pause-btn">Pause</button>
+      <button type="button" id="seek-btn">Seek to 30s</button>
+    </div>
+    <p><a href="../../test/index.html">← Back to test index</a></p>
+
+    <script type="module">
+      import "../../../dist/elements/facebook/player.js";
+
+      const el = document.getElementById("fb-player");
+      document.getElementById("play-btn")?.addEventListener("click", () => el?.play());
+      document.getElementById("pause-btn")?.addEventListener("click", () => el?.pause());
+      document.getElementById("seek-btn")?.addEventListener("click", () => {
+        if (el) el.currentTime = 30;
+      });
+    </script>
+  </body>
+</html>

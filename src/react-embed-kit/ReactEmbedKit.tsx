@@ -32,6 +32,7 @@ export type ReactEmbedKitProps = IDispatchedEventCallbacks & {
   config?: {
     youtube?: Record<string, number | string | undefined>;
     vimeo?: Record<string, number | string | undefined>;
+    facebook?: Record<string, number | string | undefined>;
   };
   playerRef?: React.Ref<EmbedPlayerRef>;
   onUnsupportedUrl?: (url: string) => void;
@@ -80,6 +81,8 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
     volume,
     config,
     startSeconds,
+    seekTo,
+    progressInterval,
     tickRate,
     className,
     style,
@@ -232,6 +235,7 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
       setIfChanged("annotations", String(!!annotations));
       if (volume != null) setIfChanged("volume", String(volume));
       if (tickRate != null) setIfChanged("tickRate", String(tickRate));
+      if (progressInterval != null) setIfChanged("progressInterval", String(progressInterval));
       if (width != null) setIfChanged("width", String(width));
       if (height != null) setIfChanged("height", String(height));
       const normalizedStartSeconds = normalizeStartSeconds(startSeconds);
@@ -242,10 +246,15 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
       const dailymotionConfig = {
         ...(normalizedStartSeconds !== undefined ? { startTime: normalizedStartSeconds } : {}),
       };
+      const facebookConfig = {
+        ...config?.facebook,
+        ...(normalizedStartSeconds !== undefined ? { start: normalizedStartSeconds } : {}),
+      };
 
       setSerializedConfig("youtube", youtubeConfig);
       setSerializedConfig("vimeo", config?.vimeo);
       setSerializedConfig("dailymotion", dailymotionConfig);
+      setSerializedConfig("facebook", facebookConfig);
       setIfChanged("src", targetUrl);
 
       if (targetIsHtmlPlayer) {
@@ -266,9 +275,25 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
       height,
       config,
       startSeconds,
+      progressInterval,
       tickRate,
     ]
   );
+
+  useLayoutEffect(() => {
+    if (seekTo == null || !Number.isFinite(seekTo)) return;
+    const target = embedRef.current;
+    if (!target) return;
+    try {
+      if ("seek" in target && typeof (target as { seek: (s: number) => void }).seek === "function") {
+        (target as { seek: (s: number) => void }).seek(seekTo);
+      } else {
+        target.currentTime = seekTo;
+      }
+    } catch {
+      // player may not be ready yet
+    }
+  }, [seekTo, embedUrl]);
 
   const forwardPlayerRef = useCallback(
     (el: EmbedPlayerRef) => {

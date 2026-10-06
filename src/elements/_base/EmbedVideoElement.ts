@@ -13,6 +13,7 @@ export type TEmbedVideoElementOptions = {
     youtube: Record<string, number | string | undefined>;
     vimeo: Record<string, number | string | undefined>;
     dailymotion: Record<string, number | string | undefined>;
+    facebook: Record<string, number | string | undefined>;
   };
 };
 
@@ -29,6 +30,7 @@ const generateDefaultOptions = (): TEmbedVideoElementOptions => ({
     youtube: {},
     vimeo: {},
     dailymotion: {},
+    facebook: {},
   },
 });
 
@@ -69,9 +71,11 @@ export class EmbedVideoElement extends HTMLElement {
     "relatedVideos",
     "volume",
     "tickRate",
+    "progressInterval",
     "youtube",
     "vimeo",
     "dailymotion",
+    "facebook",
   ];
 
   protected options: TEmbedVideoElementOptions = generateDefaultOptions();
@@ -109,6 +113,7 @@ export class EmbedVideoElement extends HTMLElement {
         youtube: attributes.youtube ? JSON.parse(attributes.youtube) : {},
         vimeo: attributes.vimeo ? JSON.parse(attributes.vimeo) : {},
         dailymotion: attributes.dailymotion ? JSON.parse(attributes.dailymotion) : {},
+        facebook: attributes.facebook ? JSON.parse(attributes.facebook) : {},
       },
     };
   }
@@ -382,7 +387,7 @@ export class EmbedVideoElement extends HTMLElement {
       this.load();
     }
 
-    if (name === "youtube" || name === "vimeo" || name === "dailymotion") {
+    if (name === "youtube" || name === "vimeo" || name === "dailymotion" || name === "facebook") {
       this.loadInitialOptions();
       if (this.hasAttribute("src")) {
         this.load();
@@ -424,6 +429,10 @@ export class EmbedVideoElement extends HTMLElement {
     if (name === "tickRate") {
       this.loadInitialOptions();
       this.startTickInterval();
+    }
+
+    if (name === "progressInterval") {
+      this.loadInitialOptions();
     }
   }
 

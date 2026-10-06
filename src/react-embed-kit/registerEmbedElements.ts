@@ -8,3 +8,4 @@ import "../elements/twitch/player.js";
 import "../elements/vimeo/player.js";
 import "../elements/tiktok/player.js";
 import "../elements/dailymotion/player.js";
+import "../elements/facebook/player.js";

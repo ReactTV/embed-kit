@@ -98,6 +98,23 @@
       <button id="dailymotion-run">Run tests</button>
     </section>
 
+    <section id="facebook-section" style="margin-top: 2rem">
+      <h2>Facebook</h2>
+      <p>
+        <small
+          >Uses Meta’s
+          <a href="https://developers.facebook.com/docs/plugins/embedded-video-player/api/"
+            >Embedded Video Player API</a
+          >
+          (<code>play</code>, <code>pause</code>, <code>seek</code>). SDK + XFBML load can be
+          slow.</small
+        >
+      </p>
+      <div id="facebook-container" class="player-container"></div>
+      <div id="facebook-results" class="results"></div>
+      <button id="facebook-run">Run tests</button>
+    </section>
+
     <p style="margin-top: 2rem"><a href="index.html">← Back to test index</a></p>
 
     <script type="module">
@@ -321,7 +338,7 @@
         el.addEventListener("pause", () => pauseEvents.push(1));
 
         const t = showTimeoutFailure(resultsId, "Embed ready");
-        el.addEventListener("ready", () => {
+        el.addEventListener("onReady", () => {
           clearTimeout(t);
           runPlayPauseTests(el, resultsId, {
             ...options,
@@ -381,7 +398,7 @@
         const t = showTimeoutFailure(resultsId, "Twitch embed ready");
         return new Promise((resolve) => {
           el.addEventListener(
-            "ready",
+            "onReady",
             async () => {
               clearTimeout(t);
               if (typeof el.play === "function") await el.play();
@@ -429,6 +446,18 @@
         });
       }
 
+      async function runFacebookTests() {
+        await import("/dist/elements/facebook/player.js");
+        const { SOURCE_URL } = await import("/dist/elements/facebook/constants.js");
+        return new Promise((resolve) => {
+          mountAndTest("facebook-container", "facebook-results", "facebook-video", SOURCE_URL, {
+            delayAfterPlay: 2500,
+            delayAfterPause: 1000,
+            onComplete: resolve,
+          });
+        });
+      }
+
       document.getElementById("youtube-run").addEventListener("click", () => runYouTubeTests());
       document.getElementById("vimeo-run").addEventListener("click", () => runVimeoTests());
       document.getElementById("twitch-run").addEventListener("click", () => runTwitchTests());
@@ -436,6 +465,7 @@
       document
         .getElementById("dailymotion-run")
         .addEventListener("click", () => runDailymotionTests());
+      document.getElementById("facebook-run").addEventListener("click", () => runFacebookTests());
 
       document.getElementById("run-all").addEventListener("click", async () => {
         const runAllBtn = document.getElementById("run-all");
@@ -449,6 +479,7 @@
             runTwitchTests(),
             runTikTokTests(),
             runDailymotionTests(),
+            runFacebookTests(),
           ]);
           statusEl.textContent = "Done.";
         } catch (err) {
