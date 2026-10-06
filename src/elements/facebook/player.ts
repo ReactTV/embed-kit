@@ -380,12 +380,10 @@ class FacebookEmbedPlayer extends EmbedVideoElement {
     fbVideo.setAttribute("data-width", String(getInitialDataWidth(this, isFacebookReelUrl(href))));
     fbVideo.setAttribute("data-allowfullscreen", "true");
     fbVideo.setAttribute("data-show-text", this.options.annotations ? "true" : "false");
-    if (this.options.autoplay) {
-      fbVideo.setAttribute("data-autoplay", "true");
-    }
-    if (this.options.captions) {
-      fbVideo.setAttribute("data-show-captions", "true");
-    }
+    // Set explicitly — when omitted, Meta applies its own defaults (e.g. captions on).
+    // Note: reels still show captions while muted regardless of data-show-captions.
+    fbVideo.setAttribute("data-autoplay", this.options.autoplay ? "true" : "false");
+    fbVideo.setAttribute("data-show-captions", this.options.captions ? "true" : "false");
     if (isFacebookTruthyConfig(fbConfig.lazy)) {
       fbVideo.setAttribute("data-lazy", "true");
     }
