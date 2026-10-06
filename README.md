@@ -1,6 +1,6 @@
 # embed-kit
 
-Normalized API across different embed sources (YouTube, Twitch, TikTok, and others). Includes custom elements per provider and a React wrapper (`ReactEmbedKit`).
+Normalized API across different embed sources (YouTube, Twitch, TikTok, Facebook, and others). Includes custom elements per provider and a React wrapper (`ReactEmbedKit`).
 
 ## Install (GitHub Packages)
 

@@ -12,6 +12,10 @@ import {
 } from "../../elements/twitch/constants.js";
 import { SOURCE_URL as TIKTOK_SOURCE_URL } from "../../elements/tiktok/constants.js";
 import { SOURCE_URL as DAILYMOTION_SOURCE_URL } from "../../elements/dailymotion/constants.js";
+import {
+  SOURCE_URL as FACEBOOK_SOURCE_URL,
+  CLASSIC_VIDEO_SOURCE_URL as FACEBOOK_CLASSIC_VIDEO_SOURCE_URL,
+} from "../../elements/facebook/constants.js";
 
 const MP4_SAMPLE_URL =
   "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
@@ -56,6 +60,14 @@ const PRESETS: { label: string; urls: string[] }[] = [
     urls: [DAILYMOTION_SOURCE_URL],
   },
   {
+    label: "Facebook",
+    urls: [
+      FACEBOOK_SOURCE_URL,
+      "https://www.facebook.com/reel/857706093581030",
+      FACEBOOK_CLASSIC_VIDEO_SOURCE_URL,
+    ],
+  },
+  {
     label: "MP4",
     urls: [MP4_SAMPLE_URL],
   },
@@ -64,6 +76,8 @@ const PRESETS: { label: string; urls: string[] }[] = [
     urls: [ARCHIVE_ORG_GOOF_GAS_OUTTAKE_URL],
   },
 ];
+
+const DEFAULT_PRESET_IDX = Math.max(0, PRESETS.findIndex((p) => p.label === "Facebook"));
 
 function formatTime(seconds: number | null | undefined): string {
   if (seconds == null || Number.isNaN(seconds)) return "—";
@@ -89,8 +103,11 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
   const [muted, setMuted] = useState(true);
   const [playing, setPlaying] = useState(false);
   const [volume, setVolume] = useState(1);
-  const [selectedPresetIdx, setSelectedPresetIdx] = useState(0);
-  const [urlState, setUrlState] = useState({ idx: 0, url: PRESETS[0]?.urls[0] ?? "" });
+  const [selectedPresetIdx, setSelectedPresetIdx] = useState(DEFAULT_PRESET_IDX);
+  const [urlState, setUrlState] = useState({
+    idx: 0,
+    url: PRESETS[DEFAULT_PRESET_IDX]?.urls[0] ?? "",
+  });
   const urlIdx = urlState.idx;
   const url = urlState.url;
   const [player, setPlayer] = useState<NonNullable<EmbedPlayerRef> | null>(null);
@@ -99,7 +116,7 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
   const [captions, setCaptions] = useState(false);
   const [annotations, setAnnotations] = useState(false);
   const [autoplay, setAutoplay] = useState(true);
-  const [startSeconds, setStartSeconds] = useState<number>(60);
+  const [startSeconds, setStartSeconds] = useState<number>(25);
   const [progress, setProgress] = useState<number | null>(null);
   const [data, setData] = useState<PollData>({
     currentTime: null,
@@ -161,8 +178,9 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
     : [];
 
   const isYouTube = /youtube\.com|youtu\.be/.test(url);
+  const isFacebook = /facebook\.com|fb\.watch/.test(url);
   const isDirectMedia = !!(url.match(AUDIO_EXTENSIONS) || url.match(VIDEO_EXTENSIONS));
-  const supportsStartSeconds = isYouTube || isDirectMedia;
+  const supportsStartSeconds = isYouTube || isFacebook || isDirectMedia;
 
   const currentPreset = selectedPresetIdx >= 0 ? PRESETS[selectedPresetIdx] : null;
   const canCycle = currentPreset != null && currentPreset.urls.length > 1;
@@ -245,7 +263,8 @@ export function ReactEmbedKitTestPage(): React.ReactElement {
         )}
       </div>
       <p className="hint">
-        Try: YouTube, youtu.be, Vimeo, Twitch videos/clips/channel, TikTok, Dailymotion, or MP4 URL
+        Try: YouTube, youtu.be, Vimeo, Twitch videos/clips/channel, TikTok, Dailymotion, Facebook,
+        or MP4 URL
       </p>
       <div className="player-options" style={{ marginBottom: "0.75rem" }}>
         <label

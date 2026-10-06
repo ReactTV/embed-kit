@@ -8,6 +8,7 @@ import {
   REGEX_CHANNELS,
   REGEX_GROUPS,
 } from "../elements/vimeo/constants.js";
+import { isFacebookVideoUrl } from "../elements/facebook/constants.js";
 
 export const EMBED_TAG = {
   YOUTUBE: "youtube-video",
@@ -15,6 +16,7 @@ export const EMBED_TAG = {
   TIKTOK: "tiktok-video",
   DAILYMOTION: "dailymotion-video",
   VIMEO: "vimeo-video",
+  FACEBOOK: "facebook-video",
 } as const;
 
 export type EmbedTagName = (typeof EMBED_TAG)[keyof typeof EMBED_TAG];
@@ -30,12 +32,15 @@ function match(url: string, regex: RegExp): boolean {
 
 /**
  * Parses a URL and returns the matching embed tag name and the URL to use as src.
- * Tries each built-in provider (YouTube, Twitch, TikTok, Dailymotion, Vimeo) in order.
+ * Tries each built-in provider (YouTube, Twitch, TikTok, Dailymotion, Vimeo, Facebook) in order.
  */
 export function getProviderForUrl(url: string): ResolvedEmbed | null {
   const trimmed = url?.trim();
   if (!trimmed) return null;
 
+  if (isFacebookVideoUrl(trimmed)) {
+    return { tagName: EMBED_TAG.FACEBOOK, url: trimmed };
+  }
   if (match(trimmed, REGEX_WATCH) || match(trimmed, REGEX_SHORT) || match(trimmed, REGEX_EMBED)) {
     return { tagName: EMBED_TAG.YOUTUBE, url: trimmed };
   }
@@ -76,6 +81,7 @@ const PLAYER_MODULE_PATHS: Record<EmbedTagName, () => Promise<unknown>> = {
   [EMBED_TAG.TIKTOK]: () => import("../elements/tiktok/player.js"),
   [EMBED_TAG.DAILYMOTION]: () => import("../elements/dailymotion/player.js"),
   [EMBED_TAG.VIMEO]: () => import("../elements/vimeo/player.js"),
+  [EMBED_TAG.FACEBOOK]: () => import("../elements/facebook/player.js"),
 };
 
 const loadedTags = new Set<EmbedTagName>();
