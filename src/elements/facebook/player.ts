@@ -413,12 +413,13 @@ class FacebookEmbedPlayer extends EmbedVideoElement {
 
     void loadFacebookSdk().then(() => {
       if (this.fbPlayerState.destroyed || this.activePlayerId !== playerId) return;
-      parseFacebookEmbed(fbVideo);
+      parseFacebookEmbed(this);
     });
   }
 
   connectedCallback(): void {
     super.connectedCallback();
+    this.fbPlayerState.destroyed = false;
 
     const src = this.getAttribute("src");
     if (!src) return;

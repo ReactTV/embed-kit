@@ -54,7 +54,8 @@ function initFacebookSdk(): void {
   if (fbSdkInitialized || !window.FB) return;
   window.FB.init({
     ...(facebookAppId ? { appId: facebookAppId } : {}),
-    xfbml: true,
+    // Each embed is rendered explicitly via parseFacebookEmbed; skip the whole-document scan.
+    xfbml: false,
     version: FB_SDK_VERSION,
   });
   installXfbmlReadyRouter();
@@ -115,6 +116,7 @@ export function unregisterFacebookVideoReady(playerId: string): void {
   readyHandlersByPlayerId.delete(playerId);
 }
 
+/** Renders XFBML *descendants* of `node` — pass the container, not the `.fb-video` itself. */
 export function parseFacebookEmbed(node: HTMLElement): void {
   window.FB?.XFBML.parse(node);
 }
