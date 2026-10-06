@@ -61,7 +61,11 @@ const PRESETS: { label: string; urls: string[] }[] = [
   },
   {
     label: "Facebook",
-    urls: [FACEBOOK_SOURCE_URL, FACEBOOK_CLASSIC_VIDEO_SOURCE_URL],
+    urls: [
+      FACEBOOK_SOURCE_URL,
+      "https://www.facebook.com/reel/857706093581030",
+      FACEBOOK_CLASSIC_VIDEO_SOURCE_URL,
+    ],
   },
   {
     label: "MP4",
