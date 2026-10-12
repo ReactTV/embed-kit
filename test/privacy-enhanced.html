@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>privacyEnhanced — embed-kit</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 72rem;
+        margin: 2rem auto;
+        padding: 0 1rem;
+      }
+      h1 {
+        font-size: 1.25rem;
+      }
+      h2 {
+        font-size: 1.05rem;
+        margin-top: 2rem;
+      }
+      .hint {
+        font-size: 0.875rem;
+        color: #666;
+      }
+      .pair {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+      youtube-video {
+        display: block;
+        aspect-ratio: 16 / 9;
+        background: #eee;
+      }
+      .pair > * {
+        min-width: 0;
+      }
+      /* One fixed-height line, so the buttons below don't move as the src fills in. */
+      .host {
+        font-family: ui-monospace, monospace;
+        font-size: 0.8rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .host.nocookie {
+        color: #0a0;
+      }
+      .buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin: 0.75rem 0;
+      }
+      button {
+        padding: 0.4rem 0.8rem;
+        cursor: pointer;
+      }
+      table {
+        border-collapse: collapse;
+        font-size: 0.85rem;
+      }
+      td {
+        padding: 0.15rem 0.75rem 0.15rem 0;
+        font-family: ui-monospace, monospace;
+      }
+      #log {
+        height: 16rem;
+        overflow: auto;
+        background: #111;
+        color: #ddd;
+        font: 0.75rem/1.4 ui-monospace, monospace;
+        padding: 0.5rem;
+        white-space: pre;
+      }
+    </style>
+  </head>
+  <body>
+    <h1><code>privacyEnhanced</code> (YouTube)</h1>
+    <p class="hint">
+      Open this page over <code>http://localhost:3333</code> (<code>npm run test</code>). Opened as
+      <code>file://</code>, YouTube rejects the embed with “Video player configuration error” (Error
+      153) because there is no referrer; that is not a bug in the option.
+    </p>
+
+    <h2>Side by side</h2>
+    <div class="pair">
+      <div>
+        <p><code>privacyEnhanced</code> off</p>
+        <youtube-video
+          id="yt-off"
+          controls="true"
+          src="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+        ></youtube-video>
+        <p class="host" id="yt-off-host">—</p>
+      </div>
+      <div>
+        <p><code>privacyEnhanced</code> on</p>
+        <youtube-video
+          id="yt-on"
+          controls="true"
+          privacyenhanced="true"
+          src="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+        ></youtube-video>
+        <p class="host" id="yt-on-host">—</p>
+      </div>
+    </div>
+
+    <h2>Live player</h2>
+    <p class="hint">
+      Driven the way <code>ReactEmbedKit</code> drives it: Play / Pause set the
+      <code>playing</code> attribute. Press Play, let it run, then flip the option; the gap and the
+      position before and after are measured below.
+    </p>
+    <div class="pair">
+      <div>
+        <youtube-video
+          id="yt-live"
+          controls="true"
+          playing="false"
+          src="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+        ></youtube-video>
+        <p class="host" id="yt-live-host">—</p>
+        <div class="buttons">
+          <button id="play" type="button">Play</button>
+          <button id="pause" type="button">Pause</button>
+          <button id="seek" type="button">Seek to 60s</button>
+          <button id="seek-end" type="button">Seek to 5s before end</button>
+          <button id="mute" type="button">Mute</button>
+          <button id="unmute" type="button">Unmute</button>
+          <button id="vol-25" type="button">Volume 25</button>
+          <button id="vol-75" type="button">Volume 75</button>
+        </div>
+        <div class="buttons">
+          <button id="flip" type="button">Flip privacyEnhanced</button>
+          <button id="switch" type="button">Switch video</button>
+        </div>
+      </div>
+      <div>
+        <table>
+          <tr>
+            <td>privacyEnhanced</td>
+            <td id="s-option"></td>
+          </tr>
+          <tr>
+            <td>currentTime</td>
+            <td id="s-time"></td>
+          </tr>
+          <tr>
+            <td>paused</td>
+            <td id="s-paused"></td>
+          </tr>
+          <tr>
+            <td>muted</td>
+            <td id="s-muted"></td>
+          </tr>
+          <tr>
+            <td>volume</td>
+            <td id="s-volume"></td>
+          </tr>
+          <tr>
+            <td>onProgress count</td>
+            <td id="s-progress"></td>
+          </tr>
+          <tr>
+            <td>last flip</td>
+            <td id="s-flip">—</td>
+          </tr>
+        </table>
+        <div id="log"></div>
+      </div>
+    </div>
+
+    <p><a href="index.html">← Back to test index</a></p>
+
+    <script type="module">
+      import "../dist/elements/youtube/player.js";
+
+      const VIDEOS = [
+        "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        "https://www.youtube.com/watch?v=Q8ZjLYesvqo",
+      ];
+      const LOGGED_EVENTS = [
+        "onReady",
+        "onPlay",
+        "onPlaying",
+        "onPause",
+        "onBuffering",
+        "onEnded",
+        "onCued",
+        "onError",
+        "onVolumeChange",
+        "onMuteChange",
+        "onVisibleFrame",
+      ];
+
+      const $ = (id) => document.getElementById(id);
+      const iframeSrc = (el) => el.shadowRoot?.querySelector("iframe")?.src ?? "";
+
+      const showHost = (el) => {
+        const out = $(`${el.id}-host`);
+        const src = iframeSrc(el);
+        out.textContent = src || "(no iframe)";
+        out.classList.toggle("nocookie", src.startsWith("https://www.youtube-nocookie.com/"));
+      };
+
+      const live = $("yt-live");
+      const logEl = $("log");
+      const t0 = performance.now();
+      const log = (text) => {
+        logEl.textContent += `${((performance.now() - t0) / 1000).toFixed(2).padStart(7)}  ${text}\n`;
+        logEl.scrollTop = logEl.scrollHeight;
+      };
+
+      let progressCount = 0;
+      // Set when the option is flipped; resolved by the next onPlaying.
+      let pendingFlip = null;
+
+      LOGGED_EVENTS.forEach((name) => {
+        live.addEventListener(name, (event) => {
+          log(event.detail === null ? name : `${name} ${JSON.stringify(event.detail)}`);
+        });
+      });
+      live.addEventListener("onProgress", () => {
+        progressCount += 1;
+      });
+      live.addEventListener("onPlaying", () => {
+        if (!pendingFlip) return;
+        const { at, position } = pendingFlip;
+        pendingFlip = null;
+        const gap = Math.round(performance.now() - at);
+        const resumed = live.currentTime;
+        const text = `${gap} ms; was at ${position.toFixed(2)}s, resumed at ${resumed.toFixed(2)}s, muted=${live.muted}`;
+        $("s-flip").textContent = text;
+        log(`flip → playing: ${text}`);
+      });
+
+      $("play").addEventListener("click", () => live.setAttribute("playing", "true"));
+      $("pause").addEventListener("click", () => live.setAttribute("playing", "false"));
+      $("seek").addEventListener("click", () => {
+        live.currentTime = 60;
+      });
+      $("seek-end").addEventListener("click", () => {
+        live.currentTime = Math.max(0, live.duration - 5);
+      });
+      $("mute").addEventListener("click", () => live.setAttribute("muted", "true"));
+      $("unmute").addEventListener("click", () => live.setAttribute("muted", "false"));
+      $("vol-25").addEventListener("click", () => live.setAttribute("volume", "25"));
+      $("vol-75").addEventListener("click", () => live.setAttribute("volume", "75"));
+
+      $("flip").addEventListener("click", () => {
+        const next = !live.privacyEnhanced;
+        if (!live.paused) pendingFlip = { at: performance.now(), position: live.currentTime };
+        log(`flip privacyEnhanced → ${next} at ${live.currentTime.toFixed(2)}s`);
+        live.setAttribute("privacyenhanced", String(next));
+      });
+
+      $("switch").addEventListener("click", () => {
+        const next = VIDEOS[(VIDEOS.indexOf(live.getAttribute("src")) + 1) % VIDEOS.length];
+        log(`switch video → ${next}`);
+        live.setAttribute("src", next);
+      });
+
+      setInterval(() => {
+        [$("yt-off"), $("yt-on"), live].forEach(showHost);
+        $("s-option").textContent = String(live.privacyEnhanced);
+        $("s-time").textContent = live.currentTime.toFixed(2);
+        $("s-paused").textContent = String(live.paused);
+        $("s-muted").textContent = String(live.muted);
+        $("s-volume").textContent = String(live.volume);
+        $("s-progress").textContent = String(progressCount);
+      }, 250);
+    </script>
+  </body>
+</html>

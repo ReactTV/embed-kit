@@ -29,6 +29,7 @@ export type ReactEmbedKitProps = IDispatchedEventCallbacks & {
   controls?: boolean;
   captions?: boolean;
   annotations?: boolean;
+  privacyEnhanced?: boolean;
   config?: {
     youtube?: Record<string, number | string | undefined>;
     vimeo?: Record<string, number | string | undefined>;
@@ -59,6 +60,7 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
     controls = true,
     captions,
     annotations,
+    privacyEnhanced,
     playing,
     onReady,
     onError,
@@ -230,6 +232,7 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
       }
       setIfChanged("captions", String(!!captions));
       setIfChanged("annotations", String(!!annotations));
+      setIfChanged("privacyenhanced", String(!!privacyEnhanced));
       if (volume != null) setIfChanged("volume", String(volume));
       if (tickRate != null) setIfChanged("tickRate", String(tickRate));
       if (width != null) setIfChanged("width", String(width));
@@ -261,6 +264,7 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
       controls,
       captions,
       annotations,
+      privacyEnhanced,
       volume,
       width,
       height,

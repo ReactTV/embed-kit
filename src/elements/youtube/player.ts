@@ -5,6 +5,15 @@ import { parseYouTubeUrl } from "./helpers/parseYouTubeUrl.js";
 import { YT_PLAYER_STATE, IVideoProgressEvent } from "./player.types.js";
 
 const YT_SCRIPT = "https://www.youtube.com/iframe_api";
+const YT_PRIVACY_ENHANCED_HOST = "https://www.youtube-nocookie.com";
+
+/** Playback state carried from a destroyed player to the one that replaces it. */
+type TResumeState = {
+  seconds: number;
+  playing: boolean;
+  muted: boolean;
+  volume: number;
+};
 
 const removeUndefinedPlayerVars = (
   playerVars: Record<string, number | string | undefined>
@@ -113,7 +122,7 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
     }, 50);
   }
 
-  override load(): void {
+  override load(resume?: TResumeState): void {
     this.loadInitialOptions();
     this.clearVisibleFramePoll();
 
@@ -143,8 +152,19 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
 
       if (!videoId) return;
 
+      // `start` only takes whole seconds; below one second there is nothing to resume.
+      const resumeVars = resume
+        ? {
+            autoplay: resume.playing ? 1 : 0,
+            mute: resume.muted ? 1 : 0,
+            ...(resume.seconds >= 1 ? { start: Math.floor(resume.seconds) } : {}),
+          }
+        : {};
+
       this.api = new YT.Player(this.getEmbedContainer(), {
         videoId,
+        // The host is fixed when the player is created; omitted so the default stays untouched.
+        ...(this.options.privacyEnhanced ? { host: YT_PRIVACY_ENHANCED_HOST } : {}),
         playerVars: removeUndefinedPlayerVars({
           autoplay: this.options.autoplay ? 1 : 0,
           controls: this.options.controls ? 1 : 0,
@@ -154,12 +174,13 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
           mute: this.options.muted ? 1 : 0,
           origin: window.location.origin,
           ...this.options.config.youtube,
+          ...resumeVars,
         }),
         events: {
           onReady: ({ target }) => {
             if (loadId !== this.ytPlayerState.loadId) return;
             this.player = target;
-            this.setInitialPlayerState();
+            this.setInitialPlayerState(resume);
             this.disableCaptions();
             this.dispatchReadyEvent();
           },
@@ -207,6 +228,18 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
             } as MediaError;
             this.dispatchErrorEvent(this.playerState.error);
           },
+          // Only on a recreate: the browser may refuse to autoplay the replacement iframe,
+          // and without this the element would keep reporting the old player's playing state.
+          ...(resume?.playing
+            ? {
+                onAutoplayBlocked: () => {
+                  if (loadId !== this.ytPlayerState.loadId) return;
+                  this.playerState.isPaused = true;
+                  this.ytPlayerState.playIntentPending = false;
+                  this.dispatchPauseEvent();
+                },
+              }
+            : {}),
           onApiChange: () => {
             // console.log("onApiChange");
           },
@@ -231,7 +264,14 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
     });
   }
 
-  setInitialPlayerState(): void {
+  setInitialPlayerState(resume?: TResumeState): void {
+    // A recreated player picks up where the old one left off, not where the attributes started.
+    if (resume) {
+      this.volume = resume.volume;
+      this.muted = resume.muted;
+      return;
+    }
+
     const attributes = this.getAttributes();
 
     if (attributes.volume) {
@@ -377,6 +417,38 @@ class YouTubeEmbedPlayer extends EmbedVideoElement {
   override set controls(value: boolean) {
     this.options.controls = value;
     this.load();
+  }
+
+  override get privacyEnhanced(): boolean {
+    return this.options.privacyEnhanced;
+  }
+
+  override set privacyEnhanced(value: boolean) {
+    if (this.options.privacyEnhanced === value) return;
+    this.options.privacyEnhanced = value;
+
+    // load() re-reads options from the attributes, so a property write has to land there too.
+    if (this.getAttribute("privacyenhanced") !== String(value)) {
+      this.setAttribute("privacyenhanced", String(value));
+    }
+
+    // No player yet: the pending load() reads the option when it creates one.
+    if (!this.api) return;
+
+    // The host is fixed at iframe creation; rebuild on the new one and resume where we were.
+    const { player } = this;
+    if (!player) {
+      this.load();
+      return;
+    }
+
+    const state = player.getPlayerState();
+    this.load({
+      seconds: player.getCurrentTime(),
+      playing: state === YT_PLAYER_STATE.PLAYING || state === YT_PLAYER_STATE.BUFFERING,
+      muted: player.isMuted(),
+      volume: player.getVolume(),
+    });
   }
 
   override get currentTime(): number {

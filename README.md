@@ -28,6 +28,25 @@ The package is published to GitHub Package Registry. Use the scoped name `@react
    npm install @reacttv/embed-kit
    ```
 
+## Options
+
+### `privacyEnhanced`
+
+Boolean, default `false`. When `true`, providers that offer a privacy-enhanced player use it; providers that don't ignore the option.
+
+```tsx
+<ReactEmbedKit src="https://www.youtube.com/watch?v=dQw4w9WgXcQ" privacyEnhanced />
+```
+
+```html
+<youtube-video src="https://www.youtube.com/watch?v=dQw4w9WgXcQ" privacyenhanced="true"></youtube-video>
+```
+
+- **YouTube**: the player is served from `www.youtube-nocookie.com` instead of `www.youtube.com` ([privacy-enhanced mode](https://support.google.com/youtube/answer/171780)), so views in it are not used to personalize the viewer's YouTube recommendations or ads. The host is fixed when the player is created, so changing the option on a live player destroys it and creates a new one on the other host, on the same video and at the same position (to the whole second), with the same volume and mute state. Expect a gap of roughly half a second and a second `onReady`. If the browser refuses to autoplay the new player (Safari does when the video has sound and the change was not triggered by a click), it stays at that position and `onPause` fires.
+- **Twitch, TikTok, Vimeo, Dailymotion**: ignored.
+
+On the custom elements the attribute is `privacyenhanced` (HTML lowercases attribute names) and the property is `privacyEnhanced`.
+
 ## Setup (developing this package)
 
 When **developing** this package locally:

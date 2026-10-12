@@ -8,6 +8,7 @@ export type TEmbedVideoElementOptions = {
   captions: boolean;
   annotations: boolean;
   relatedVideos: boolean;
+  privacyEnhanced: boolean;
   muted: boolean;
   config: {
     youtube: Record<string, number | string | undefined>;
@@ -24,6 +25,7 @@ const generateDefaultOptions = (): TEmbedVideoElementOptions => ({
   captions: false,
   annotations: false,
   relatedVideos: false,
+  privacyEnhanced: false,
   muted: false,
   config: {
     youtube: {},
@@ -67,6 +69,8 @@ export class EmbedVideoElement extends HTMLElement {
     "captions",
     "annotations",
     "relatedVideos",
+    // Lowercase: the browser lowercases attribute names, so a camelCase entry never matches.
+    "privacyenhanced",
     "volume",
     "tickRate",
     "youtube",
@@ -104,6 +108,7 @@ export class EmbedVideoElement extends HTMLElement {
       captions: attributes.captions === "true",
       annotations: attributes.annotations === "true",
       relatedVideos: attributes.relatedVideos === "true",
+      privacyEnhanced: attributes.privacyenhanced === "" || attributes.privacyenhanced === "true",
       muted: attributes.muted === "true",
       config: {
         youtube: attributes.youtube ? JSON.parse(attributes.youtube) : {},
@@ -236,6 +241,14 @@ export class EmbedVideoElement extends HTMLElement {
 
   set playing(_value: boolean) {
     //
+  }
+
+  get privacyEnhanced(): boolean {
+    return this.options.privacyEnhanced;
+  }
+
+  set privacyEnhanced(_value: boolean) {
+    this.options.privacyEnhanced = _value;
   }
 
   get relatedVideos(): boolean {
@@ -419,6 +432,10 @@ export class EmbedVideoElement extends HTMLElement {
 
     if (name === "relatedVideos") {
       this.relatedVideos = newValue === "true";
+    }
+
+    if (name === "privacyenhanced") {
+      this.privacyEnhanced = newValue === "" || newValue === "true";
     }
 
     if (name === "tickRate") {

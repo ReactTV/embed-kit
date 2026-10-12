@@ -19,6 +19,7 @@ declare global {
 
 export interface YTOptions {
   videoId: string;
+  host?: string;
   width?: number;
   height?: number;
   playerVars?: Record<string, number | string>;

@@ -14,6 +14,7 @@ declare module "react" {
           controls?: string | undefined;
           captions?: string | undefined;
           annotations?: string | undefined;
+          privacyenhanced?: string | undefined;
           playing?: string | undefined;
           volume?: number | undefined;
         },
@@ -29,6 +30,7 @@ declare module "react" {
           controls?: string | undefined;
           captions?: string | undefined;
           annotations?: string | undefined;
+          privacyenhanced?: string | undefined;
           volume?: number | undefined;
         },
         HTMLElement
@@ -43,6 +45,7 @@ declare module "react" {
           controls?: string | undefined;
           captions?: string | undefined;
           annotations?: string | undefined;
+          privacyenhanced?: string | undefined;
           volume?: number | undefined;
         },
         HTMLElement
@@ -57,6 +60,7 @@ declare module "react" {
           controls?: string | undefined;
           captions?: string | undefined;
           annotations?: string | undefined;
+          privacyenhanced?: string | undefined;
           volume?: number | undefined;
         },
         HTMLElement
@@ -71,6 +75,7 @@ declare module "react" {
           controls?: string | undefined;
           captions?: string | undefined;
           annotations?: string | undefined;
+          privacyenhanced?: string | undefined;
           volume?: number | undefined;
         },
         HTMLElement
