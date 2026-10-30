@@ -307,7 +307,7 @@ class DailymotionEmbedPlayer extends EmbedVideoElement {
   }
 
   override set volume(vol: number) {
-    const v = vol <= 1 ? Math.max(0, Math.min(1, vol)) : Math.max(0, Math.min(1, vol / 100));
+    const v = Math.max(0, Math.min(1, vol / 100));
     this.playerState.volume = v;
     this.player?.setVolume?.(v);
   }

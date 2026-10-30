@@ -110,6 +110,15 @@ class TikTokEmbedPlayer extends EmbedVideoElement {
           }
           break;
         }
+        case "onVolumeChange":
+          if (typeof data.value === "number") {
+            const volume = data.value / 100;
+            if (volume !== this.playerState.volume) {
+              this.playerState.volume = volume;
+              this.dispatchVolumeChangeEvent(data.value);
+            }
+          }
+          break;
         case "onError":
         case "error": {
           this.playerState.error = {
@@ -239,12 +248,10 @@ class TikTokEmbedPlayer extends EmbedVideoElement {
     return ((this.playerState.volume ?? 1) * 100);
   }
 
+  // TikTok's embed API has no volume command (only mute/unMute), so this
+  // only tracks state; the viewer's own changes arrive via onVolumeChange.
   override set volume(vol: number) {
-    const v =
-      vol <= 1
-        ? Math.max(0, Math.min(1, vol))
-        : Math.max(0, Math.min(1, vol / 100));
-    this.playerState.volume = v;
+    this.playerState.volume = Math.max(0, Math.min(1, vol / 100));
   }
 
   override get error() {

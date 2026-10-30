@@ -160,10 +160,12 @@ class TwitchEmbedPlayer extends EmbedVideoElement {
             this.dispatchMuteChangeEvent(p.muted);
           }
         }
+        // Twitch reports 0–1; the element's contract is 0–100 like YouTube.
         if (typeof p.volume === "number" && !Number.isNaN(p.volume)) {
-          if (p.volume !== this.playerState.volume) {
-            this.playerState.volume = p.volume;
-            this.dispatchVolumeChangeEvent(p.volume);
+          const volume = Math.round(p.volume * 100);
+          if (volume !== this.playerState.volume) {
+            this.playerState.volume = volume;
+            this.dispatchVolumeChangeEvent(volume);
           }
         }
 
@@ -328,17 +330,17 @@ class TwitchEmbedPlayer extends EmbedVideoElement {
   }
 
   override get volume(): number {
-    return this.playerState.volume ?? 1;
+    return this.playerState.volume ?? 100;
   }
 
   override set volume(vol: number) {
-    const v = Math.max(0, Math.min(1, vol));
+    const v = Math.max(0, Math.min(100, vol));
     this.playerState.volume = v;
     if (this.iframe?.contentWindow) {
       this.iframe.contentWindow.postMessage(
         {
           eventName: PlayerCommands.SET_VOLUME,
-          params: v,
+          params: v / 100,
           namespace: NS_PLAYER_PROXY,
         },
         EMBED_ORIGIN
