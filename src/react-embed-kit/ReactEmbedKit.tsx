@@ -1,13 +1,12 @@
 import React, { useRef, useEffect, useLayoutEffect, useState, useCallback } from "react";
 import "./embed-elements.js";
-import { getProviderForUrl, EMBED_TAG } from "./providers.js";
+import { getProviderForUrl } from "./providers.js";
 import type {
   EmbedPlayerRef,
   TDispatchedEventPayloads,
   IDispatchedEventCallbacks,
 } from "../elements/_base/player.types.js";
-import type { EmbedTagName } from "./providers.js";
-import { AUDIO_EXTENSIONS, VIDEO_EXTENSIONS } from "./constants.js";
+import { isMediaFileUrl } from "./constants.js";
 import HtmlPlayer from "./HtmlPlayer.js";
 import { useOnTickInterval } from "./useOnTickInterval.js";
 
@@ -34,6 +33,7 @@ export type ReactEmbedKitProps = IDispatchedEventCallbacks & {
     vimeo?: Record<string, number | string | undefined>;
   };
   playerRef?: React.Ref<EmbedPlayerRef>;
+  /** Called when `src` matches no provider and isn't a media file; nothing renders. */
   onUnsupportedUrl?: (url: string) => void;
 };
 
@@ -45,11 +45,8 @@ const normalizeStartSeconds = (startSeconds: number | undefined): number | undef
   return Math.floor(startSeconds);
 };
 
-function resolveUrl(url: string) {
-  return getProviderForUrl(url) ?? { tagName: EMBED_TAG.YOUTUBE as EmbedTagName, url };
-}
-
 export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
+  const { onUnsupportedUrl, ...htmlPlayerProps } = props;
   const {
     autoplay,
     muted,
@@ -88,7 +85,7 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
   const [isClient, setIsClient] = useState(false);
   const [tagReady, setTagReady] = useState(false);
 
-  const isHtmlPlayer = !!(src && (src.match(AUDIO_EXTENSIONS) || src.match(VIDEO_EXTENSIONS)));
+  const isHtmlPlayer = !!src && isMediaFileUrl(src);
 
   const embedRef = useRef<EmbedPlayerRef>(null);
   const [wiredElement, setWiredElement] = useState<HTMLElement | null>(null);
@@ -97,6 +94,15 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
   const embedUrl = isClient && tagReady ? (src ?? "") : "";
   const embedUrlRef = useRef(embedUrl);
   embedUrlRef.current = embedUrl;
+
+  const resolved = embedUrl && !isHtmlPlayer ? getProviderForUrl(embedUrl) : null;
+  const unsupportedUrl = embedUrl && !isHtmlPlayer && !resolved ? embedUrl : "";
+  const onUnsupportedUrlRef = useRef(onUnsupportedUrl);
+  onUnsupportedUrlRef.current = onUnsupportedUrl;
+
+  useEffect(() => {
+    if (unsupportedUrl) onUnsupportedUrlRef.current?.(unsupportedUrl);
+  }, [unsupportedUrl]);
 
   useEffect(() => {
     setIsClient(true);
@@ -195,9 +201,7 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
     (el: EmbedPlayerRef, targetUrl: string) => {
       if (!el || !(el instanceof HTMLElement) || !el.isConnected) return;
       if (!targetUrl) return;
-      const targetIsHtmlPlayer = !!(
-        targetUrl.match(AUDIO_EXTENSIONS) || targetUrl.match(VIDEO_EXTENSIONS)
-      );
+      const targetIsHtmlPlayer = isMediaFileUrl(targetUrl);
       const setOrRemove = (name: string, value: boolean) => {
         if (el.getAttribute(name) !== String(value)) {
           if (value) el.setAttribute(name, String(value));
@@ -304,10 +308,8 @@ export function ReactEmbedKit(props: ReactEmbedKitProps): React.ReactElement {
   if (!src) return <div />;
 
   if (isHtmlPlayer) {
-    return <HtmlPlayer {...props} ref={playerRef as React.Ref<HTMLMediaElement>} />;
+    return <HtmlPlayer {...htmlPlayerProps} ref={playerRef as React.Ref<HTMLMediaElement>} />;
   }
-
-  const resolved = embedUrl ? resolveUrl(embedUrl) : null;
 
   return (
     <div
